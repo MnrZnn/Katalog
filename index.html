@@ -13,7 +13,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
   
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #121212; color: #E0E0E0; }
@@ -29,9 +28,13 @@
     .btn-primary:disabled, button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
     .placeholder-custom::placeholder { color: #888888; }
     [x-cloak] { display: none !important; }
-    .cover-search-results { max-height: 300px; overflow-y: auto; }
-    .cover-option { cursor: pointer; transition: all 0.2s; }
-    .cover-option:hover { transform: scale(1.05); }
+    .format-badge {
+      @apply px-2 py-1 text-xs font-semibold rounded-full;
+    }
+    .format-cd { @apply bg-blue-500 text-white; }
+    .format-vinil { @apply bg-purple-500 text-white; }
+    .format-cassete { @apply bg-orange-500 text-white; }
+    .format-digital { @apply bg-green-500 text-white; }
   </style>
 </head>
 <body x-data="app" x-init="init()" x-cloak>
@@ -52,20 +55,38 @@
     <p x-text="notification.message"></p>
   </div>
 
+  <!-- Modal Compartilhar -->
+  <div x-show="shareModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="shareModal.show = false">
+    <div class="bg-card p-8 rounded-lg max-w-md w-full mx-4">
+      <h3 class="text-xl font-bold mb-4">🎵 Compartilhar Minha Coleção</h3>
+      <p class="text-gray-400 mb-4">Copie este link para compartilhar sua coleção:</p>
+      <div class="flex space-x-2">
+        <input :value="shareModal.url" readonly 
+               class="flex-1 p-3 bg-input border border-custom rounded-md text-sm">
+        <button @click="copyShareLink()" class="px-4 py-3 btn-primary rounded-md">
+          <i data-lucide="copy" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="flex justify-end mt-4">
+        <button @click="shareModal.show = false" class="px-4 py-2 btn-secondary rounded-md">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Tela de Login -->
   <div x-show="!user && !isLoading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black">
     <div class="bg-card p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
       <div class="text-center mb-8">
         <i data-lucide="disc-3" class="mx-auto h-16 w-16 text-green-400 mb-4"></i>
         <h1 class="text-3xl font-bold text-white">Katalog</h1>
-        <p class="text-gray-400 mt-2">Organize sua coleção de discos</p>
+        <p class="text-gray-400 mt-2">Organize sua coleção musical</p>
       </div>
       
       <div class="space-y-4">
         <button @click="loginAnonymous()" 
                 :disabled="authLoading"
                 class="w-full py-3 px-4 btn-primary rounded-md font-medium flex items-center justify-center">
-          <span x-show="!authLoading">🎵 Entrar Anonimamente</span>
+          <span x-show="!authLoading">🎵 Entrar Rapidamente</span>
           <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
         </button>
         
@@ -95,7 +116,7 @@
         
         <button @click="showEmailForm = !showEmailForm" 
                 class="w-full py-2 text-gray-400 hover:text-white">
-          <span x-show="!showEmailForm">📧 Usar Email/Senha</span>
+          <span x-show="!showEmailForm">📧 Criar Conta</span>
           <span x-show="showEmailForm">← Voltar</span>
         </button>
       </div>
@@ -119,10 +140,14 @@
         <a href="#" @click.prevent="appView = 'add-record'" 
            :class="{'bg-green-500 text-white': appView === 'add-record'}"
            class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700">
-           <i data-lucide="plus-circle"></i><span>Adicionar Disco</span>
+           <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
         </a>
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
+        <button @click="openShareModal()" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-blue-600/50 hover:bg-blue-700 text-white">
+          <i data-lucide="share-2"></i><span>Compartilhar</span>
+        </button>
         <div class="px-3 py-2 text-xs text-gray-400 break-words">
           <span class="font-semibold text-gray-300">Usuário:</span>
           <span x-text="user?.email || user?.uid.substring(0, 8) + '...'"></span>
@@ -138,21 +163,65 @@
     <main class="flex-1 p-8 overflow-y-auto">
       <!-- Coleção -->
       <div x-show="appView === 'collection'">
-        <h2 class="text-3xl font-bold mb-6">Minha Coleção (<span x-text="collection.length"></span>)</h2>
-        
-        <!-- Filtro/Busca -->
-        <div class="mb-6">
-          <input x-model="searchFilter" @input="filterCollection()" 
-                 placeholder="Buscar por álbum ou artista..." 
-                 class="w-full max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-3xl font-bold">Minha Coleção (<span x-text="collection.length"></span>)</h2>
+          <div class="flex space-x-2">
+            <button @click="viewMode = 'grid'" 
+                    :class="{'btn-primary': viewMode === 'grid', 'btn-secondary': viewMode !== 'grid'}"
+                    class="px-4 py-2 rounded-md">
+              <i data-lucide="grid-3x3"></i>
+            </button>
+            <button @click="viewMode = 'list'" 
+                    :class="{'btn-primary': viewMode === 'list', 'btn-secondary': viewMode !== 'list'}"
+                    class="px-4 py-2 rounded-md">
+              <i data-lucide="list"></i>
+            </button>
+          </div>
         </div>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" x-show="filteredCollection.length > 0">
+        <!-- Controles -->
+        <div class="mb-6 space-y-4">
+          <!-- Busca -->
+          <input x-model="searchFilter" @input="filterCollection()" 
+                 placeholder="🔍 Buscar por álbum, artista, formato..." 
+                 class="w-full max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
+          
+          <!-- Filtros e Ordenação -->
+          <div class="flex flex-wrap gap-4">
+            <select x-model="formatFilter" @change="filterCollection()" 
+                    class="p-2 bg-input border border-custom rounded-md">
+              <option value="">Todos os formatos</option>
+              <option value="CD">📀 CD</option>
+              <option value="Vinil">🎵 Vinil</option>
+              <option value="Cassete">📼 Cassete</option>
+              <option value="Digital">💻 Digital</option>
+            </select>
+            
+            <select x-model="sortBy" @change="filterCollection()" 
+                    class="p-2 bg-input border border-custom rounded-md">
+              <option value="newest">Mais recentes</option>
+              <option value="oldest">Mais antigos</option>
+              <option value="album-asc">Álbum (A-Z)</option>
+              <option value="album-desc">Álbum (Z-A)</option>
+              <option value="artist-asc">Artista (A-Z)</option>
+              <option value="artist-desc">Artista (Z-A)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Grid View -->
+        <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
+             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           <template x-for="record in filteredCollection" :key="record.id">
             <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative transform hover:scale-105 transition-transform">
               <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                    class="w-full aspect-square object-cover"
                    :alt="`Capa do álbum ${record.album}`">
+              <div class="absolute top-2 left-2">
+                <span :class="`format-${record.format?.toLowerCase() || 'cd'}`" 
+                      class="format-badge" 
+                      x-text="record.format || 'CD'"></span>
+              </div>
               <div class="absolute top-2 right-2">
                 <button @click="confirmDelete(record.id)" 
                         class="bg-red-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700">
@@ -162,98 +231,175 @@
               <div class="p-3">
                 <h3 class="font-bold text-white truncate" x-text="record.album" :title="record.album"></h3>
                 <p class="text-sm text-gray-400 truncate" x-text="record.artist" :title="record.artist"></p>
-                <p x-show="record.year" class="text-xs text-gray-500" x-text="record.year"></p>
+                <div class="flex justify-between items-center mt-1">
+                  <p x-show="record.year" class="text-xs text-gray-500" x-text="record.year"></p>
+                  <p x-show="record.catalog_number" class="text-xs text-gray-500 font-mono" x-text="record.catalog_number"></p>
+                </div>
+                <p x-show="record.edition_notes" class="text-xs text-gray-400 mt-1 truncate" 
+                   x-text="record.edition_notes" :title="record.edition_notes"></p>
               </div>
             </div>
           </template>
         </div>
         
+        <!-- List View -->
+        <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
+             class="bg-card rounded-lg overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-800">
+              <tr>
+                <th class="text-left p-4 font-semibold">Capa</th>
+                <th class="text-left p-4 font-semibold">Álbum</th>
+                <th class="text-left p-4 font-semibold">Artista</th>
+                <th class="text-left p-4 font-semibold">Formato</th>
+                <th class="text-left p-4 font-semibold">Ano</th>
+                <th class="text-left p-4 font-semibold">Catálogo</th>
+                <th class="text-left p-4 font-semibold">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="record in filteredCollection" :key="record.id">
+                <tr class="border-b border-gray-700 hover:bg-gray-800">
+                  <td class="p-4">
+                    <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                         class="w-12 h-12 object-cover rounded">
+                  </td>
+                  <td class="p-4">
+                    <div>
+                      <p class="font-semibold" x-text="record.album"></p>
+                      <p x-show="record.edition_notes" class="text-xs text-gray-400" x-text="record.edition_notes"></p>
+                    </div>
+                  </td>
+                  <td class="p-4" x-text="record.artist"></td>
+                  <td class="p-4">
+                    <span :class="`format-${record.format?.toLowerCase() || 'cd'}`" 
+                          class="format-badge" 
+                          x-text="record.format || 'CD'"></span>
+                  </td>
+                  <td class="p-4" x-text="record.year || '-'"></td>
+                  <td class="p-4">
+                    <span x-show="record.catalog_number" class="font-mono text-sm" x-text="record.catalog_number"></span>
+                    <span x-show="!record.catalog_number" class="text-gray-500">-</span>
+                  </td>
+                  <td class="p-4">
+                    <button @click="confirmDelete(record.id)" 
+                            class="text-red-400 hover:text-red-300">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty State -->
         <div x-show="collection.length === 0" class="text-center py-20 bg-card rounded-lg">
           <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-gray-500 mb-4"></i>
           <h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
-          <p class="text-gray-400 mt-2">Comece adicionando seu primeiro disco!</p>
-          <button @click="appView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">Adicionar Disco</button>
+          <p class="text-gray-400 mt-2">Comece adicionando seu primeiro item!</p>
+          <button @click="appView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">Adicionar Item</button>
         </div>
         
+        <!-- No Results -->
         <div x-show="collection.length > 0 && filteredCollection.length === 0" class="text-center py-10">
-          <p class="text-gray-400">Nenhum resultado encontrado para "<span x-text="searchFilter"></span>"</p>
+          <p class="text-gray-400">Nenhum resultado encontrado</p>
+          <button @click="clearFilters()" class="mt-2 px-4 py-2 btn-secondary rounded-md">Limpar Filtros</button>
         </div>
       </div>
 
       <!-- Form Adicionar -->
       <div x-show="appView === 'add-record'">
-        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Disco</h2>
-        <form @submit.prevent="addRecord" class="max-w-2xl mx-auto bg-card p-8 rounded-lg space-y-6">
+        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Item</h2>
+        <form @submit.prevent="addRecord" class="max-w-3xl mx-auto bg-card p-8 rounded-lg space-y-6">
           
-          <!-- Campos básicos -->
+          <!-- Informações Básicas -->
           <div class="grid md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">Álbum *</label>
-              <input x-model="newRecord.album" @input="searchCovers()" required 
+              <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
+              <input x-model="newRecord.album" required 
                      class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">Artista *</label>
-              <input x-model="newRecord.artist" @input="searchCovers()" required 
+              <input x-model="newRecord.artist" required 
                      class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
             </div>
           </div>
           
-          <div>
-            <label class="block text-sm font-medium mb-1">Ano</label>
-            <input x-model="newRecord.year" type="number" min="1900" max="2030"
-                   class="w-full p-3 bg-input border border-custom rounded-md">
+          <!-- Formato e Ano -->
+          <div class="grid md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Formato *</label>
+              <select x-model="newRecord.format" required
+                      class="w-full p-3 bg-input border border-custom rounded-md">
+                <option value="">Selecione...</option>
+                <option value="CD">📀 CD</option>
+                <option value="Vinil">🎵 Vinil</option>
+                <option value="Cassete">📼 Cassete</option>
+                <option value="Digital">💻 Digital</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Ano</label>
+              <input x-model="newRecord.year" type="number" min="1900" max="2030"
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
+              <input x-model="newRecord.catalog_number" placeholder="Ex: EVIL0023"
+                     class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+            </div>
           </div>
 
-          <!-- Seção de Capa -->
+          <!-- Descrição da Edição -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Descrição da Edição</label>
+            <textarea x-model="newRecord.edition_notes" 
+                      placeholder="Ex: Edição limitada com capa dourada, remasterizado..."
+                      class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom resize-none"
+                      rows="3"></textarea>
+          </div>
+
+          <!-- Capa -->
           <div>
             <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
             
-            <!-- Botões de ação -->
-            <div class="flex flex-wrap gap-2 mb-4">
-              <button type="button" @click="searchCovers()" 
+            <!-- Botão de busca -->
+            <div class="mb-4">
+              <button type="button" @click="searchCoverOnGoogle()" 
                       :disabled="!newRecord.album || !newRecord.artist || coverSearchLoading"
                       class="px-4 py-2 btn-primary rounded-md flex items-center">
                 <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                <span x-show="!coverSearchLoading">🎨 Buscar Capas Online</span>
+                <span x-show="!coverSearchLoading">🔍 Buscar Capa no Google</span>
                 <span x-show="coverSearchLoading">Buscando...</span>
               </button>
             </div>
             
             <!-- URL Manual -->
-            <input x-model="newRecord.cover_url" placeholder="🌐 Cole aqui a URL de uma imagem da internet..."
+            <input x-model="newRecord.cover_url" placeholder="🌐 Cole aqui a URL da capa..."
                    class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom mb-4">
             
-            <!-- Preview da capa atual -->
+            <!-- Preview -->
             <div x-show="newRecord.cover_url" class="mb-4">
               <p class="text-sm text-gray-400 mb-2">Preview:</p>
               <img :src="newRecord.cover_url" class="w-32 h-32 object-cover rounded-md" 
                    @error="newRecord.cover_url = ''" alt="Preview da capa">
             </div>
-            
-            <!-- Resultados da busca -->
-            <div x-show="coverSearchResults.length > 0" class="cover-search-results">
-              <p class="text-sm text-gray-400 mb-3">Capas encontradas (clique para selecionar):</p>
-              <div class="grid grid-cols-3 md:grid-cols-4 gap-3">
-                <template x-for="cover in coverSearchResults.slice(0, 12)" :key="cover.url">
-                  <div @click="selectCover(cover.url)" 
-                       class="cover-option border-2 border-transparent hover:border-green-400 rounded-md overflow-hidden">
-                    <img :src="cover.url" class="w-full aspect-square object-cover" 
-                         :alt="`Opção de capa`">
-                  </div>
-                </template>
-              </div>
-            </div>
           </div>
           
-          <button type="submit" :disabled="formLoading" 
-                  class="w-full py-3 font-semibold rounded-md btn-primary flex items-center justify-center">
-            <span x-show="!formLoading">💾 Salvar Disco</span>
-            <span x-show="formLoading" class="flex items-center">
-              <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Salvando...
-            </span>
-          </button>
+          <div class="flex space-x-4">
+            <button type="submit" :disabled="formLoading" 
+                    class="flex-1 py-3 font-semibold rounded-md btn-primary flex items-center justify-center">
+              <span x-show="!formLoading">💾 Salvar Item</span>
+              <span x-show="formLoading" class="flex items-center">
+                <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Salvando...
+              </span>
+            </button>
+            <button type="button" @click="resetForm()" 
+                    class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
+          </div>
         </form>
       </div>
     </main>
@@ -287,14 +433,27 @@
         
         // UI
         appView: 'collection',
+        viewMode: 'grid',
         showEmailForm: false,
         searchFilter: '',
+        formatFilter: '',
+        sortBy: 'newest',
+        
+        // Modals
+        shareModal: { show: false, url: '' },
         
         // Dados
         collection: [],
         filteredCollection: [],
-        newRecord: { album: '', artist: '', year: '', cover_url: '' },
-        coverSearchResults: [],
+        newRecord: { 
+          album: '', 
+          artist: '', 
+          format: '',
+          year: '', 
+          catalog_number: '',
+          edition_notes: '',
+          cover_url: '' 
+        },
         
         // Auth
         loginEmail: '',
@@ -339,7 +498,7 @@
           this.authLoading = true;
           try {
             await auth.signInAnonymously();
-            this.showNotification("Login realizado com sucesso!", "success");
+            this.showNotification("Bem-vindo ao Katalog! 🎵", "success");
           } catch (error) {
             console.error('Erro no login:', error);
             this.showNotification("Erro ao fazer login", "error");
@@ -431,20 +590,60 @@
         },
 
         filterCollection() {
-          if (!this.searchFilter.trim()) {
-            this.filteredCollection = [...this.collection];
-          } else {
+          let filtered = [...this.collection];
+          
+          // Filtro por texto
+          if (this.searchFilter.trim()) {
             const filter = this.searchFilter.toLowerCase();
-            this.filteredCollection = this.collection.filter(record => 
+            filtered = filtered.filter(record => 
               record.album.toLowerCase().includes(filter) ||
-              record.artist.toLowerCase().includes(filter)
+              record.artist.toLowerCase().includes(filter) ||
+              record.format?.toLowerCase().includes(filter) ||
+              record.catalog_number?.toLowerCase().includes(filter) ||
+              record.edition_notes?.toLowerCase().includes(filter)
             );
           }
+          
+          // Filtro por formato
+          if (this.formatFilter) {
+            filtered = filtered.filter(record => record.format === this.formatFilter);
+          }
+          
+          // Ordenação
+          switch (this.sortBy) {
+            case 'newest':
+              filtered.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+              break;
+            case 'oldest':
+              filtered.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+              break;
+            case 'album-asc':
+              filtered.sort((a, b) => a.album.localeCompare(b.album));
+              break;
+            case 'album-desc':
+              filtered.sort((a, b) => b.album.localeCompare(a.album));
+              break;
+            case 'artist-asc':
+              filtered.sort((a, b) => a.artist.localeCompare(b.artist));
+              break;
+            case 'artist-desc':
+              filtered.sort((a, b) => b.artist.localeCompare(a.artist));
+              break;
+          }
+          
+          this.filteredCollection = filtered;
+        },
+
+        clearFilters() {
+          this.searchFilter = '';
+          this.formatFilter = '';
+          this.sortBy = 'newest';
+          this.filterCollection();
         },
 
         async addRecord() {
-          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
-            this.showNotification("Álbum e Artista são obrigatórios", "error");
+          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim() || !this.newRecord.format) {
+            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
             return;
           }
           
@@ -454,118 +653,95 @@
             const recordData = {
               album: this.newRecord.album.trim(),
               artist: this.newRecord.artist.trim(),
+              format: this.newRecord.format,
               year: this.newRecord.year ? Number(this.newRecord.year) : null,
+              catalog_number: this.newRecord.catalog_number?.trim() || null,
+              edition_notes: this.newRecord.edition_notes?.trim() || null,
               cover_url: this.newRecord.cover_url?.trim() || null,
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             
             await db.collection(`users/${this.user.uid}/records`).add(recordData);
             
-            this.showNotification("Disco adicionado com sucesso!", "success");
+            this.showNotification("Item adicionado com sucesso! 🎉", "success");
             this.resetForm();
             this.appView = 'collection';
             
           } catch (error) {
-            console.error('Erro ao adicionar disco:', error);
-            this.showNotification("Erro ao salvar disco", "error");
+            console.error('Erro ao adicionar item:', error);
+            this.showNotification("Erro ao salvar item", "error");
           } finally {
             this.formLoading = false;
           }
         },
 
         async confirmDelete(id) {
-          if (!confirm('Tem certeza que deseja excluir este disco?')) {
+          if (!confirm('Tem certeza que deseja excluir este item da sua coleção?')) {
             return;
           }
           
           try {
             await db.collection(`users/${this.user.uid}/records`).doc(id).delete();
-            this.showNotification("Disco excluído com sucesso!", "success");
+            this.showNotification("Item excluído com sucesso!", "success");
           } catch (error) {
             console.error('Erro ao excluir:', error);
-            this.showNotification("Erro ao excluir disco", "error");
+            this.showNotification("Erro ao excluir item", "error");
           }
         },
 
-        // === BUSCA DE CAPAS GRÁTIS ===
-        async searchCovers() {
+        // === BUSCA DE CAPA ===
+        searchCoverOnGoogle() {
           if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
             this.showNotification("Preencha álbum e artista primeiro!", "error");
             return;
           }
           
-          this.coverSearchLoading = true;
-          this.coverSearchResults = [];
+          const query = `${this.newRecord.artist} ${this.newRecord.album} album cover`;
+          const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
           
+          window.open(googleUrl, '_blank');
+          this.showNotification("Clique com o botão direito na imagem → 'Copiar endereço da imagem'", "info");
+        },
+
+        // === COMPARTILHAMENTO ===
+        openShareModal() {
+          // Criar um link público para a coleção
+          const baseUrl = window.location.origin + window.location.pathname;
+          const shareUrl = `${baseUrl}?user=${this.user.uid}&view=public`;
+          
+          this.shareModal = {
+            show: true,
+            url: shareUrl
+          };
+        },
+
+        async copyShareLink() {
           try {
-            // Gerar capas com diferentes estilos e cores
-            const album = this.newRecord.album.replace(/\s+/g, '+');
-            const artist = this.newRecord.artist.replace(/\s+/g, '+');
-            
-            // Diferentes serviços de placeholder com estilos variados
-            const placeholderServices = [
-              // Picsum (fotos reais)
-              `https://picsum.photos/300/300?random=${Math.random()}`,
-              `https://picsum.photos/300/300?random=${Math.random() + 1}`,
-              `https://picsum.photos/300/300?random=${Math.random() + 2}`,
-              
-              // Placeholders coloridos
-              `https://placehold.co/300x300/1DB954/FFFFFF?text=${album}`,
-              `https://placehold.co/300x300/FF6B6B/FFFFFF?text=${artist}`,
-              `https://placehold.co/300x300/4ECDC4/000000?text=${this.newRecord.album.charAt(0)}`,
-              `https://placehold.co/300x300/45B7D1/FFFFFF?text=${this.newRecord.artist.charAt(0)}`,
-              `https://placehold.co/300x300/FFA07A/000000?text=♪`,
-              `https://placehold.co/300x300/98D8C8/000000?text=🎵`,
-              `https://placehold.co/300x300/F06292/FFFFFF?text=🎶`,
-              
-              // Via.placeholder.com
-              `https://via.placeholder.com/300x300/6366f1/ffffff?text=${encodeURIComponent(album)}`,
-              `https://via.placeholder.com/300x300/8b5cf6/ffffff?text=${encodeURIComponent(artist)}`
-            ];
-            
-            this.coverSearchResults = placeholderServices.map((url, index) => ({
-              url: url,
-              id: index
-            }));
-            
-            this.showNotification("Capas geradas! Clique em uma para selecionar 🎨", "success");
-            
+            await navigator.clipboard.writeText(this.shareModal.url);
+            this.showNotification("Link copiado! 📋", "success");
           } catch (error) {
-            console.error('Erro na busca de capas:', error);
-            this.generateFallbackCovers();
-          } finally {
-            this.coverSearchLoading = false;
+            // Fallback para navegadores mais antigos
+            const textArea = document.createElement('textarea');
+            textArea.value = this.shareModal.url;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            this.showNotification("Link copiado! 📋", "success");
           }
-        },
-
-        generateFallbackCovers() {
-          // Cores bonitas para capas
-          const colors = [
-            { bg: '1DB954', text: 'FFFFFF' }, // Verde Spotify
-            { bg: 'FF6B6B', text: 'FFFFFF' }, // Vermelho
-            { bg: '4ECDC4', text: '000000' }, // Azul claro
-            { bg: '45B7D1', text: 'FFFFFF' }, // Azul
-            { bg: 'FFA07A', text: '000000' }, // Salmão
-            { bg: '98D8C8', text: '000000' }, // Verde água
-            { bg: 'F06292', text: 'FFFFFF' }, // Rosa
-            { bg: '9C27B0', text: 'FFFFFF' }, // Roxo
-          ];
-          
-          this.coverSearchResults = colors.map((color, index) => ({
-            url: `https://placehold.co/300x300/${color.bg}/${color.text}?text=${encodeURIComponent(this.newRecord.album.charAt(0) || '♪')}`,
-            id: index
-          }));
-        },
-
-        selectCover(url) {
-          this.newRecord.cover_url = url;
-          this.showNotification("Capa selecionada! 🎨", "success");
         },
 
         // === UTILITÁRIOS ===
         resetForm() {
-          this.newRecord = { album: '', artist: '', year: '', cover_url: '' };
-          this.coverSearchResults = [];
+          this.newRecord = { 
+            album: '', 
+            artist: '', 
+            format: '',
+            year: '', 
+            catalog_number: '',
+            edition_notes: '',
+            cover_url: '' 
+          };
         },
 
         showNotification(message, type = 'success') {
