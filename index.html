@@ -30,7 +30,7 @@
     .theme-dark .border-custom { border-color: #383838; }
     .theme-dark .text-muted { color: #888888; }
     
-  /* Tema Claro */
+      /* Tema Claro */
     .theme-light {
       background-color: #f8fafc;
       color: #1f2937;
@@ -47,6 +47,27 @@
     .theme-light aside .text-gray-400 { color: #64748b !important; }
     .theme-light aside .border-custom { border-color: #e2e8f0 !important; }
     .theme-light aside .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
+    
+    /* Correções de visibilidade para modo claro */
+    .theme-light h1, .theme-light h2, .theme-light h3, .theme-light h4 { color: #1f2937 !important; }
+    .theme-light table th { color: #1f2937 !important; }
+    .theme-light table td { color: #1f2937 !important; }
+    .theme-light .font-bold { color: #1f2937 !important; }
+    .theme-light .font-semibold { color: #1f2937 !important; }
+    
+    /* Estilos para ordenação */
+    .sort-button {
+      @apply px-2 py-1 text-xs rounded border;
+    }
+    .sort-active {
+      @apply bg-green-500 text-white;
+    }
+    .sort-inactive {
+      @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+    }
+    .theme-dark .sort-inactive {
+      @apply bg-gray-600 text-gray-300 hover:bg-gray-500;
+    }
     
     .btn-primary { background-color: #1DB954; color: #FFFFFF; }
     .btn-primary:hover { background-color: #1ED760; }
@@ -311,11 +332,28 @@
           </div>
         </div>
         
-        <!-- Busca -->
-        <div class="mb-6">
+        <!-- Busca e Ordenação -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <input x-model="searchFilter" @input="filterCollection()" 
                  placeholder="Buscar por álbum, artista, formato..." 
-                 class="w-full max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
+                 class="w-full sm:max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
+          
+          <div class="flex items-center space-x-2">
+            <span class="text-sm font-medium">Ordenar por:</span>
+            <button @click="setSortBy('album')" 
+                    :class="sortBy === 'album' ? 'sort-active' : 'sort-inactive'"
+                    class="sort-button">Álbum</button>
+            <button @click="setSortBy('artist')" 
+                    :class="sortBy === 'artist' ? 'sort-active' : 'sort-inactive'"
+                    class="sort-button">Artista</button>
+            <button @click="setSortBy('year')" 
+                    :class="sortBy === 'year' ? 'sort-active' : 'sort-inactive'"
+                    class="sort-button">Ano</button>
+            <button @click="toggleSortOrder()" 
+                    class="sort-button sort-inactive">
+              <i :data-lucide="sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'" class="w-3 h-3"></i>
+            </button>
+          </div>
         </div>
         
         <!-- Grid View -->
@@ -524,6 +562,8 @@
         // Data
         collection: [],
         filteredCollection: [],
+        sortBy: 'album',
+        sortOrder: 'asc',
         newRecord: { album: '', artist: '', format: '', year: '', catalog_number: '', cover_url: '' },
         
         // Auth
@@ -546,9 +586,13 @@
                 this.filteredCollection = [];
               }
               this.loading = false;
+              // Re-criar ícones após mudanças
+              setTimeout(() => lucide.createIcons(), 100);
             });
             
             lucide.createIcons();
+            // Garantir que os ícones sejam criados após qualquer mudança
+            setTimeout(() => lucide.createIcons(), 50);
           } catch (error) {
             console.error('Erro na inicialização:', error);
             this.showNotification('Erro ao carregar aplicação', 'error');
@@ -564,7 +608,7 @@
                 id: doc.id,
                 ...doc.data()
               }));
-              this.filterCollection();
+              this.filterAndSortCollection();
             });
           } catch (error) {
             console.error('Erro ao configurar coleção:', error);
@@ -682,19 +726,72 @@
           }
         },
 
-        filterCollection() {
-          if (!this.searchFilter.trim()) {
-            this.filteredCollection = this.collection;
-            return;
+        filterAndSortCollection() {
+          let filtered = this.collection;
+          
+          // Aplicar filtro de busca
+          if (this.searchFilter.trim()) {
+            const filter = this.searchFilter.toLowerCase();
+            filtered = filtered.filter(record => 
+              record.album?.toLowerCase().includes(filter) ||
+              record.artist?.toLowerCase().includes(filter) ||
+              record.format?.toLowerCase().includes(filter) ||
+              record.year?.toString().includes(filter)
+            );
           }
+          
+          // Aplicar ordenação
+          filtered.sort((a, b) => {
+            let valueA, valueB;
+            
+            switch(this.sortBy) {
+              case 'album':
+                valueA = (a.album || '').toLowerCase();
+                valueB = (b.album || '').toLowerCase();
+                break;
+              case 'artist':
+                valueA = (a.artist || '').toLowerCase();
+                valueB = (b.artist || '').toLowerCase();
+                break;
+              case 'year':
+                valueA = parseInt(a.year) || 0;
+                valueB = parseInt(b.year) || 0;
+                break;
+              default:
+                return 0;
+            }
+            
+            if (this.sortOrder === 'asc') {
+              return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+            } else {
+              return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+            }
+          });
+          
+          this.filteredCollection = filtered;
+        },
 
-          const filter = this.searchFilter.toLowerCase();
-          this.filteredCollection = this.collection.filter(record => 
-            record.album?.toLowerCase().includes(filter) ||
-            record.artist?.toLowerCase().includes(filter) ||
-            record.format?.toLowerCase().includes(filter) ||
-            record.year?.toString().includes(filter)
-          );
+        filterCollection() {
+          this.filterAndSortCollection();
+        },
+
+        setSortBy(field) {
+          if (this.sortBy === field) {
+            this.toggleSortOrder();
+          } else {
+            this.sortBy = field;
+            this.sortOrder = 'asc';
+          }
+          this.filterAndSortCollection();
+          // Re-criar ícones após mudança de estado
+          setTimeout(() => lucide.createIcons(), 10);
+        },
+
+        toggleSortOrder() {
+          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+          this.filterAndSortCollection();
+          // Re-criar ícones após mudança de estado
+          setTimeout(() => lucide.createIcons(), 10);
         },
 
         resetForm() {
@@ -834,6 +931,8 @@
           setTimeout(() => {
             this.notification.show = false;
           }, 4000);
+          // Re-criar ícones após notificações
+          setTimeout(() => lucide.createIcons(), 10);
         }
 
       }));
@@ -842,6 +941,8 @@
     // Inicializar ícones após carregamento
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => lucide.createIcons(), 100);
+      // Re-criar ícones periodicamente para garantir que apareçam
+      setInterval(() => lucide.createIcons(), 1000);
     });
   </script>
 </body>
