@@ -8,6 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  
+  <!-- Firebase SDKs - Versão Compat para HTML estático -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #121212; color: #E0E0E0; }
     .bg-card { background-color: #1E1E1E; }
@@ -122,13 +128,8 @@
     </main>
   </div>
 
-  <!-- Firebase + Alpine -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    // 🔥 Troque pelos dados do seu Firebase
+  <script>
+    // 🔥 COLOQUE AQUI AS SUAS CONFIGURAÇÕES DO FIREBASE
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
       authDomain: "SEU_PROJECT.firebaseapp.com",
@@ -137,6 +138,11 @@
       messagingSenderId: "SEU_SENDER_ID",
       appId: "SEU_APP_ID"
     };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
     document.addEventListener('alpine:init', () => {
       Alpine.data('app', () => ({
@@ -147,27 +153,29 @@
         newRecord: { album: '', artist: '', year: '', cover_url: '' },
         currentUser: { id: null },
         notification: { show: false, message: '', type: 'success' },
-        db: null,
-        auth: null,
         collectionListener: null,
 
         async init() {
           try {
-            const app = initializeApp(firebaseConfig);
-            this.auth = getAuth(app);
-            this.db = getFirestore(app);
-            await signInAnonymously(this.auth);
+            // Fazer login anônimo
+            await auth.signInAnonymously();
             this.setupAuthListener();
-          } catch (e) {
-            console.error(e);
-            this.showNotification("Erro ao inicializar Firebase", "error");
+          } catch (error) {
+            console.error('Erro ao inicializar:', error);
+            this.showNotification("Erro ao conectar com Firebase", "error");
             this.isInitializing = false;
           }
-          this.$nextTick(() => lucide.createIcons());
+          
+          // Inicializar ícones do Lucide
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') {
+              lucide.createIcons();
+            }
+          });
         },
 
         setupAuthListener() {
-          onAuthStateChanged(this.auth, (user) => {
+          auth.onAuthStateChanged((user) => {
             if (user) {
               this.currentUser.id = user.uid;
               this.fetchCollection(user.uid);
@@ -178,31 +186,51 @@
 
         fetchCollection(userId) {
           if (!userId) return;
-          if (this.collectionListener) this.collectionListener();
-          const q = query(collection(this.db, `users/${userId}/records`));
-          this.collectionListener = onSnapshot(q, (qs) => {
-            this.collection = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          });
+          
+          // Cancelar listener anterior se existir
+          if (this.collectionListener) {
+            this.collectionListener();
+          }
+          
+          // Criar novo listener
+          this.collectionListener = db.collection(`users/${userId}/records`)
+            .onSnapshot((snapshot) => {
+              this.collection = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+            }, (error) => {
+              console.error('Erro ao buscar coleção:', error);
+              this.showNotification("Erro ao carregar coleção", "error");
+            });
         },
 
         async addRecord() {
-          if (!this.newRecord.album || !this.newRecord.artist) {
-            this.showNotification("Álbum e Artista obrigatórios", "error");
+          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
+            this.showNotification("Álbum e Artista são obrigatórios", "error");
             return;
           }
+          
           this.loading = true;
+          
           try {
             const userId = this.currentUser.id;
-            await addDoc(collection(this.db, `users/${userId}/records`), {
-              ...this.newRecord,
-              year: Number(this.newRecord.year) || null,
-              createdAt: serverTimestamp()
-            });
-            this.showNotification("Disco adicionado!", "success");
+            const recordData = {
+              album: this.newRecord.album.trim(),
+              artist: this.newRecord.artist.trim(),
+              year: this.newRecord.year ? Number(this.newRecord.year) : null,
+              cover_url: this.newRecord.cover_url.trim() || null,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection(`users/${userId}/records`).add(recordData);
+            
+            this.showNotification("Disco adicionado com sucesso!", "success");
             this.newRecord = { album: '', artist: '', year: '', cover_url: '' };
             this.appView = 'collection';
-          } catch (e) {
-            console.error(e);
+            
+          } catch (error) {
+            console.error('Erro ao adicionar disco:', error);
             this.showNotification("Erro ao salvar disco", "error");
           } finally {
             this.loading = false;
@@ -210,26 +238,46 @@
         },
 
         async confirmDelete(id) {
+          if (!confirm('Tem certeza que deseja excluir este disco?')) {
+            return;
+          }
+          
           try {
             const userId = this.currentUser.id;
-            await deleteDoc(doc(this.db, `users/${userId}/records/${id}`));
+            await db.collection(`users/${userId}/records`).doc(id).delete();
             this.showNotification("Disco excluído!", "success");
-          } catch {
-            this.showNotification("Erro ao excluir", "error");
+          } catch (error) {
+            console.error('Erro ao excluir:', error);
+            this.showNotification("Erro ao excluir disco", "error");
           }
         },
 
         async logout() {
-          await signOut(this.auth);
-          this.currentUser.id = null;
-          this.collection = [];
-          this.showNotification("Saiu da conta", "success");
+          try {
+            await auth.signOut();
+            this.currentUser.id = null;
+            this.collection = [];
+            this.showNotification("Você saiu da conta", "success");
+          } catch (error) {
+            console.error('Erro ao sair:', error);
+            this.showNotification("Erro ao sair", "error");
+          }
         },
 
-        openDeleteModal(id) { this.confirmDelete(id) },
-        showNotification(msg, type = 'success') {
-          this.notification = { message: msg, type, show: true };
-          setTimeout(() => this.notification.show = false, 3000);
+        openDeleteModal(id) { 
+          this.confirmDelete(id);
+        },
+
+        showNotification(message, type = 'success') {
+          this.notification = { 
+            message: message, 
+            type: type, 
+            show: true 
+          };
+          
+          setTimeout(() => {
+            this.notification.show = false;
+          }, 3000);
         }
       }))
     })
