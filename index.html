@@ -165,29 +165,77 @@
         </div>
     </div>
     
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            onAuthStateChanged, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut,
-            updateProfile
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            doc, 
-            addDoc, 
-            onSnapshot,
-            query,
-            deleteDoc
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+...
+        <div class="min-h-screen">
+            </div>
 
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    
+        <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut,
+            updateProfile
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            onSnapshot,
+            query,
+            deleteDoc
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        window.app = function() {
+            return {
+                // Estado da Aplicação
+                isLoggedIn: false,
+                isInitializing: true,
+                loading: false,
+                view: 'landing', 
+                appView: 'collection',
+                
+                // Modelos de dados
+                credentials: { email: '', password: '' },
+                newUser: { name: '', email: '', password: '' },
+                collection: [],
+                newRecord: { album: '', artist: '', year: '', cover_url: '' },
+                currentUser: { id: null, name: 'Convidado', email: ''},
+
+                // UI
+                notification: { show: false, message: '', type: 'success' },
+                
+                // Firebase
+                firebaseApp: null,
+                auth: null,
+                db: null,
+                collectionListener: null, // Para cancelar o listener ao deslogar
+
+                // Inicialização
+                init() {
+                    this.initializeFirebase();
+                },
+
+...
+
+                // Funções para o Firestore, UI, etc...
+            }
+        }
+        
+        // Inicializa o Alpine.js quando o DOM estiver pronto
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('app', window.app);
+        });
+    </script>
+
+        <script>
+        lucide.createIcons();
+            
         window.app = function() {
             return {
                 // Estado da Aplicação
@@ -420,4 +468,5 @@
     </script>
 </body>
 </html>
+
 
