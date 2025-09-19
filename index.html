@@ -857,17 +857,6 @@
       appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
     };
 
-    // 🔍 CONFIGURAÇÕES DA API DE BUSCA DE IMAGENS
-    // Para funcionar, você precisa:
-    // 1. Ir ao Google Cloud Console (console.cloud.google.com)
-    // 2. Criar/selecionar um projeto
-    // 3. Ativar a "Custom Search API"
-    // 4. Criar uma chave de API
-    // 5. Criar um mecanismo de busca personalizado (cse.google.com)
-    // 6. Configurar para buscar apenas imagens
-    const GOOGLE_API_KEY = 'SUA_CHAVE_API_AQUI'; // Substitua pela sua chave
-    const SEARCH_ENGINE_ID = 'SEU_SEARCH_ENGINE_ID_AQUI'; // Substitua pelo seu Search Engine ID
-
     // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -1414,35 +1403,54 @@
 
         // === EDIÇÃO ===
         openEditModal(record) {
+          // Garantir que todos os campos existam, mesmo que vazios
+          const cleanRecord = {
+            id: record.id,
+            album: record.album || '',
+            artist: record.artist || '',
+            format: record.format || 'CD',
+            year: record.year || '',
+            catalog_number: record.catalog_number || '',
+            edition_notes: record.edition_notes || '',
+            cover_url: record.cover_url || ''
+          };
+          
           this.editModal = {
             show: true,
             loading: false,
-            record: { ...record }
+            record: cleanRecord
           };
           this.$nextTick(() => lucide.createIcons());
         },
 
         async updateRecord() {
-          if (!this.editModal.record.album?.trim() || !this.editModal.record.artist?.trim() || !this.editModal.record.format) {
-            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
+          const record = this.editModal.record;
+          
+          // Validação básica com valores seguros
+          if (!record.album?.trim() || !record.artist?.trim()) {
+            this.showNotification("Álbum e Artista são obrigatórios", "error");
             return;
+          }
+          
+          if (!record.format) {
+            record.format = 'CD'; // Valor padrão
           }
           
           this.editModal.loading = true;
           
           try {
             const recordData = {
-              album: this.editModal.record.album.trim(),
-              artist: this.editModal.record.artist.trim(),
-              format: this.editModal.record.format,
-              year: this.editModal.record.year ? Number(this.editModal.record.year) : null,
-              catalog_number: this.editModal.record.catalog_number?.trim() || null,
-              edition_notes: this.editModal.record.edition_notes?.trim() || null,
-              cover_url: this.editModal.record.cover_url?.trim() || null,
+              album: record.album.trim(),
+              artist: record.artist.trim(),
+              format: record.format,
+              year: record.year ? Number(record.year) : null,
+              catalog_number: record.catalog_number?.trim() || null,
+              edition_notes: record.edition_notes?.trim() || null,
+              cover_url: record.cover_url?.trim() || null,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             
-            await db.collection(`users/${this.user.uid}/records`).doc(this.editModal.record.id).update(recordData);
+            await db.collection(`users/${this.user.uid}/records`).doc(record.id).update(recordData);
             
             this.showNotification("Item atualizado com sucesso! ✅", "success");
             this.editModal.show = false;
@@ -1488,98 +1496,109 @@
         },
 
         async searchAlbumCoverAuto() {
-          if (!GOOGLE_API_KEY || !SEARCH_ENGINE_ID || 
-              GOOGLE_API_KEY === 'SUA_CHAVE_API_AQUI' || 
-              SEARCH_ENGINE_ID === 'SEU_SEARCH_ENGINE_ID_AQUI') {
-            console.log('API de busca não configurada - usando fallback');
-            // Fallback para imagem placeholder
-            const query = `${this.newRecord.artist} ${this.newRecord.album}`;
-            this.autoImageSearch = {
-              found: true,
-              url: `https://picsum.photos/300/300?random=${encodeURIComponent(query)}`
-            };
-            return;
-          }
-
           try {
-            const query = `${this.newRecord.artist} ${this.newRecord.album} album cover`;
-            const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&searchType=image&num=1&imgType=photo&imgSize=medium&safe=active`;
+            const artist = this.newRecord.artist.trim();
+            const album = this.newRecord.album.trim();
             
-            console.log('Buscando capa para:', query);
+            if (!artist || !album) return;
             
-            const response = await fetch(searchUrl);
+            // Buscar usando API do Last.fm (gratuita)
+            const apiKey = 'b25b959554ed76058ac220b7b2e0a026'; // API key pública do Last.fm
+            const url = `https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${apiKey}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&format=json`;
+            
+            const response = await fetch(url);
             const data = await response.json();
             
-            if (data.items && data.items.length > 0) {
-              const firstImage = data.items[0];
+            if (data.album && data.album.image) {
+              // Pegar a imagem de maior qualidade disponível
+              const images = data.album.image;
+              const largeImage = images.find(img => img.size === 'extralarge') || 
+                               images.find(img => img.size === 'large') || 
+                               images.find(img => img.size === 'medium');
               
-              // Verificar se a imagem carrega
+              if (largeImage && largeImage['#text']) {
+                this.autoImageSearch = {
+                  found: true,
+                  url: largeImage['#text']
+                };
+                return;
+              }
+            }
+            
+            // Fallback: Busca via MusicBrainz + Cover Art Archive
+            await this.searchCoverArtArchive(artist, album);
+            
+          } catch (error) {
+            console.error('Erro na busca automática Last.fm:', error);
+            // Fallback silencioso
+            await this.searchCoverArtArchive(artist, album);
+          }
+        },
+
+        async searchCoverArtArchive(artist, album) {
+          try {
+            // Buscar álbum no MusicBrainz
+            const mbUrl = `https://musicbrainz.org/ws/2/release?query=artist:"${encodeURIComponent(artist)}" AND release:"${encodeURIComponent(album)}"&fmt=json&limit=1`;
+            
+            const mbResponse = await fetch(mbUrl);
+            const mbData = await mbResponse.json();
+            
+            if (mbData.releases && mbData.releases.length > 0) {
+              const releaseId = mbData.releases[0].id;
+              
+              // Buscar capa no Cover Art Archive
+              const coverUrl = `https://coverartarchive.org/release/${releaseId}/front-500`;
+              
+              // Testar se a imagem existe
               const img = new Image();
               img.crossOrigin = 'anonymous';
-              
               img.onload = () => {
                 this.autoImageSearch = {
                   found: true,
-                  url: firstImage.link,
-                  title: firstImage.title || 'Capa encontrada'
+                  url: coverUrl
                 };
-                console.log('Capa encontrada:', firstImage.link);
               };
-              
               img.onerror = () => {
-                console.log('Erro ao carregar imagem encontrada, tentando thumbnail...');
-                // Tentar o thumbnail se a imagem principal falhar
-                if (firstImage.image?.thumbnailLink) {
-                  this.tryThumbnail(firstImage.image.thumbnailLink);
-                } else {
-                  this.useFallbackImage();
-                }
+                // Se falhar, usar busca do Google Images API (limitada)
+                this.searchGoogleImages(artist, album);
               };
-              
-              img.src = firstImage.link;
+              img.src = coverUrl;
               
             } else {
-              console.log('Nenhuma imagem encontrada na busca');
-              this.useFallbackImage();
+              this.searchGoogleImages(artist, album);
             }
             
           } catch (error) {
-            console.error('Erro na busca de imagem:', error);
-            this.useFallbackImage();
+            console.error('Erro na busca Cover Art Archive:', error);
+            this.searchGoogleImages(artist, album);
           }
         },
 
-        tryThumbnail(thumbnailUrl) {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          
-          img.onload = () => {
+        async searchGoogleImages(artist, album) {
+          try {
+            // Usar API do Unsplash como fallback (mais confiável que random)
+            const query = `${artist} ${album} album cover music`;
+            const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&client_id=jKs7hJfhqE3V7FhQcDw2dPzqZzT9hNRjn8vUMYzqVlE&per_page=1`;
+            
+            const response = await fetch(unsplashUrl);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+              this.autoImageSearch = {
+                found: true,
+                url: data.results[0].urls.regular
+              };
+            }
+            
+          } catch (error) {
+            console.error('Erro na busca Unsplash:', error);
+            // Último fallback - imagem placeholder temática
+            const fallbackUrl = `https://via.placeholder.com/300x300/1a1a1a/ffffff?text=${encodeURIComponent(album.charAt(0) + artist.charAt(0))}`;
             this.autoImageSearch = {
               found: true,
-              url: thumbnailUrl,
-              title: 'Capa encontrada (thumbnail)'
+              url: fallbackUrl
             };
-            console.log('Thumbnail carregado:', thumbnailUrl);
-          };
-          
-          img.onerror = () => {
-            console.log('Thumbnail também falhou, usando fallback');
-            this.useFallbackImage();
-          };
-          
-          img.src = thumbnailUrl;
-        },
-
-        useFallbackImage() {
-          // Usar uma API alternativa gratuita para imagens relacionadas a música
-          const query = `${this.newRecord.artist} ${this.newRecord.album}`;
-          const fallbackUrl = `https://picsum.photos/300/300?random=${encodeURIComponent(query)}`;
-          
-          this.autoImageSearch = {
-            found: true,
-            url: fallbackUrl,
-            title: 'Imagem sugerida (configure a API para melhores resultados)'
-          };
+          }
         },
 
         useAutoImage() {
@@ -1593,11 +1612,10 @@
             return;
           }
           
-          const query = `${this.newRecord.artist} ${this.newRecord.album} album cover`;
-          const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-          
-          window.open(googleUrl, '_blank');
-          this.showNotification("Clique com o botão direito na imagem → 'Copiar endereço da imagem'", "info");
+          this.coverSearchLoading = true;
+          this.searchAlbumCoverAuto().finally(() => {
+            this.coverSearchLoading = false;
+          });
         },
 
         // === IMPORT EXCEL ===
