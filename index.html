@@ -19,9 +19,8 @@
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body x-data="app()" x-cloak>
+<body x-data="app()" x-init="init()" x-cloak>
 
-    <!-- Loading Spinner -->
     <div x-show="isInitializing" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
         <div class="flex flex-col items-center text-center p-4">
             <div class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -29,9 +28,7 @@
         </div>
     </div>
 
-    <!-- Main Container -->
     <div class="min-h-screen">
-        <!-- Notificação Global -->
         <div x-show="notification.show"
              class="fixed top-5 right-5 z-50 p-4 rounded-md shadow-lg text-white"
              :class="{'bg-green-600': notification.type === 'success', 'bg-red-600': notification.type === 'error'}"
@@ -44,7 +41,6 @@
             <p x-text="notification.message"></p>
         </div>
 
-        <!-- ===== LANDING PAGE (Usuário Deslogado) ===== -->
         <div id="landing-page" x-show="!isLoggedIn">
             <header class="p-4 flex justify-between items-center bg-card shadow-lg">
                 <div class="flex items-center space-x-2">
@@ -65,18 +61,17 @@
                 </main>
                 <section class="py-16 bg-black bg-opacity-20">
                      <div class="container mx-auto px-4">
-                         <h3 class="text-3xl font-bold text-center mb-12">Recursos da Plataforma</h3>
-                         <div class="grid md:grid-cols-3 gap-8 text-center">
-                             <div class="bg-card p-6 rounded-lg"><i data-lucide="book-marked" class="mx-auto h-12 w-12 text-green-400 mb-4"></i><h4 class="text-xl font-semibold mb-2">Catalogação Detalhada</h4><p class="text-gray-400">Organize seus discos com informações completas.</p></div>
-                             <div class="bg-card p-6 rounded-lg"><i data-lucide="shield-check" class="mx-auto h-12 w-12 text-green-400 mb-4"></i><h4 class="text-xl font-semibold mb-2">Segurança Firebase</h4><p class="text-gray-400">Seus dados protegidos com autenticação segura.</p></div>
-                             <div class="bg-card p-6 rounded-lg"><i data-lucide="users" class="mx-auto h-12 w-12 text-green-400 mb-4"></i><h4 class="text-xl font-semibold mb-2">Comunidade de Colecionadores</h4><p class="text-gray-400">Conecte-se com outros amantes da música.</p></div>
-                         </div>
-                    </div>
+                          <h3 class="text-3xl font-bold text-center mb-12">Recursos da Plataforma</h3>
+                          <div class="grid md:grid-cols-3 gap-8 text-center">
+                               <div class="bg-card p-6 rounded-lg"><i data-lucide="book-marked" class="mx-auto h-12 w-12 text-green-400 mb-4"></i><h4 class="text-xl font-semibold mb-2">Catalogação Detalhada</h4><p class="text-gray-400">Organize seus discos com informações completas.</p></div>
+                               <div class="bg-card p-6 rounded-lg"><i data-lucide="shield-check" class="mx-auto h-12 w-12 text-green-400 mb-4"></i><h4 class="text-xl font-semibold mb-2">Segurança Firebase</h4><p class="text-gray-400">Seus dados protegidos com autenticação segura.</p></div>
+                               <div class="bg-card p-6 rounded-lg"><i data-lucide="users" class="mx-auto h-12 w-12 text-green-400 mb-4"></i><h4 class="text-xl font-semibold mb-2">Comunidade de Colecionadores</h4><p class="text-gray-400">Conecte-se com outros amantes da música.</p></div>
+                          </div>
+                     </div>
                 </section>
             </div>
             
             <div x-show="view === 'login' || view === 'register'" class="flex items-center justify-center min-h-[calc(100vh-68px)]">
-                <!-- LOGIN -->
                 <div x-show="view === 'login'" class="w-full max-w-md p-8 space-y-6 bg-card rounded-xl shadow-lg">
                     <div class="text-center"><div class="flex items-center justify-center space-x-2 mb-4"><i data-lucide="disc-3" class="text-green-400 h-8 w-8"></i><h1 class="text-2xl font-bold text-white">Login</h1></div></div>
                     <form @submit.prevent="login" class="space-y-4">
@@ -86,7 +81,6 @@
                     </form>
                     <p class="text-center text-sm text-gray-400">Não tem uma conta? <button @click="view = 'register'" class="font-medium text-green-400 hover:underline">Cadastre-se</button></p>
                 </div>
-                <!-- REGISTER -->
                 <div x-show="view === 'register'" class="w-full max-w-md p-8 space-y-6 bg-card rounded-xl shadow-lg">
                     <div class="text-center"><div class="flex items-center justify-center space-x-2 mb-4"><i data-lucide="disc-3" class="text-green-400 h-8 w-8"></i><h1 class="text-2xl font-bold text-white">Crie sua Conta</h1></div></div>
                     <form @submit.prevent="register" class="space-y-4">
@@ -100,9 +94,7 @@
             </div>
         </div>
 
-        <!-- ===== APP DASHBOARD (Usuário Logado) ===== -->
         <div id="app-dashboard" x-show="isLoggedIn" class="flex h-screen">
-            <!-- Sidebar -->
             <aside class="w-64 bg-black flex-shrink-0 flex flex-col">
                 <div class="p-4 flex items-center space-x-2 border-b border-custom"><i data-lucide="disc-3" class="text-green-400"></i><h1 class="text-xl font-bold text-white">Do Vinil ao Digital</h1></div>
                 <nav class="flex-1 p-4 space-y-2">
@@ -119,9 +111,7 @@
                 </div>
             </aside>
 
-            <!-- Main Content -->
             <main class="flex-1 p-8 overflow-y-auto">
-                <!-- My Collection View -->
                 <div x-show="appView === 'collection'">
                     <h2 class="text-3xl font-bold mb-6">Minha Coleção (<span x-text="collection.length"></span>)</h2>
                     <div v-if="collection.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
@@ -140,12 +130,11 @@
                         </template>
                     </div>
                      <div x-show="collection.length === 0 && !loading" class="text-center py-20 bg-card rounded-lg">
-                         <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-gray-500 mb-4"></i><h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
-                         <p class="text-gray-400 mt-2">Comece adicionando seu primeiro disco!</p>
-                         <button @click="appView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">Adicionar Disco</button>
-                    </div>
+                          <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-gray-500 mb-4"></i><h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
+                          <p class="text-gray-400 mt-2">Comece adicionando seu primeiro disco!</p>
+                          <button @click="appView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">Adicionar Disco</button>
+                     </div>
                 </div>
-                <!-- Add Record View -->
                 <div x-show="appView === 'add-record'">
                     <h2 class="text-3xl font-bold mb-6">Adicionar Novo Disco</h2>
                     <form @submit.prevent="addRecord" class="max-w-xl mx-auto bg-card p-8 rounded-lg space-y-4">
@@ -156,20 +145,15 @@
                         <button type="submit" :disabled="loading" class="w-full py-3 font-semibold rounded-md btn-primary flex items-center justify-center"><span x-show="!loading">Salvar Disco</span><span x-show="loading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span></button>
                     </form>
                 </div>
-                <!-- Community View -->
-                 <div x-show="appView === 'community'">
-                     <h2 class="text-3xl font-bold mb-6">Comunidade</h2>
-                     <div class="bg-card p-8 rounded-lg text-center"><i data-lucide="construction" class="mx-auto h-16 w-16 text-yellow-500 mb-4"></i><h3 class="text-2xl font-bold">Em Construção</h3><p class="text-gray-400 mt-2">A área da comunidade está sendo preparada!</p></div>
-                </div>
+                <div x-show="appView === 'community'">
+                      <h2 class="text-3xl font-bold mb-6">Comunidade</h2>
+                      <div class="bg-card p-8 rounded-lg text-center"><i data-lucide="construction" class="mx-auto h-16 w-16 text-yellow-500 mb-4"></i><h3 class="text-2xl font-bold">Em Construção</h3><p class="text-gray-400 mt-2">A área da comunidade está sendo preparada!</p></div>
+                 </div>
             </main>
         </div>
     </div>
     
-...
-        <div class="min-h-screen">
-            </div>
-
-   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { 
@@ -221,9 +205,9 @@
                     // Garanta que os ícones do Lucide sejam criados após a inicialização
                     // do Alpine.js e do DOM. A chamada `lucide.createIcons()` 
                     // dentro de `init()` do Alpine é o lugar ideal.
-                    setTimeout(() => {
-                      lucide.createIcons();
-                    }, 500); 
+                    this.$nextTick(() => {
+                        lucide.createIcons();
+                    }); 
                 },
 
                 initializeFirebase() {
@@ -232,7 +216,7 @@
                         apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
                         authDomain: "katalog-1178e.firebaseapp.com",
                         projectId: "katalog-1178e",
-                        storageBucket: "katalog-1178e.firebasestorage.app",
+                        storageBucket: "katalog-1178e.appspot.com",
                         messagingSenderId: "998961219093",
                         appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
                     };
@@ -413,7 +397,8 @@
         });
     </script>
     <script>
-        lucide.createIcons();
+        // Esta chamada pode ser removida pois já está sendo chamada dentro do init() do Alpine
+        // lucide.createIcons();
     </script>
 </body>
 </html>
