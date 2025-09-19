@@ -169,73 +169,27 @@
         <div class="min-h-screen">
             </div>
 
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    
-        <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            onAuthStateChanged, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut,
-            updateProfile
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            doc, 
-            addDoc, 
-            onSnapshot,
-            query,
-            deleteDoc
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut,
+            updateProfile
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            onSnapshot,
+            query,
+            deleteDoc
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        window.app = function() {
-            return {
-                // Estado da Aplicação
-                isLoggedIn: false,
-                isInitializing: true,
-                loading: false,
-                view: 'landing', 
-                appView: 'collection',
-                
-                // Modelos de dados
-                credentials: { email: '', password: '' },
-                newUser: { name: '', email: '', password: '' },
-                collection: [],
-                newRecord: { album: '', artist: '', year: '', cover_url: '' },
-                currentUser: { id: null, name: 'Convidado', email: ''},
-
-                // UI
-                notification: { show: false, message: '', type: 'success' },
-                
-                // Firebase
-                firebaseApp: null,
-                auth: null,
-                db: null,
-                collectionListener: null, // Para cancelar o listener ao deslogar
-
-                // Inicialização
-                init() {
-                    this.initializeFirebase();
-                },
-
-...
-
-                // Funções para o Firestore, UI, etc...
-            }
-        }
-        
-        // Inicializa o Alpine.js quando o DOM estiver pronto
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('app', window.app);
-        });
-    </script>
-
-        <script>
-        lucide.createIcons();
-            
         window.app = function() {
             return {
                 // Estado da Aplicação
@@ -263,35 +217,27 @@
 
                 // Inicialização
                 init() {
-                    lucide.createIcons();
                     this.initializeFirebase();
+                    // Garanta que os ícones do Lucide sejam criados após a inicialização
+                    // do Alpine.js e do DOM. A chamada `lucide.createIcons()` 
+                    // dentro de `init()` do Alpine é o lugar ideal.
+                    setTimeout(() => {
+                      lucide.createIcons();
+                    }, 500); 
                 },
 
                 initializeFirebase() {
                     // COLE AQUI A CONFIGURAÇÃO DO SEU FIREBASE
-                   // Import the functions you need from the SDKs you need
-                    
-                    // Your web app's Firebase configuration
                     const firebaseConfig = {
-                      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
-                      authDomain: "katalog-1178e.firebaseapp.com",
-                      projectId: "katalog-1178e",
-                      storageBucket: "katalog-1178e.firebasestorage.app",
-                      messagingSenderId: "998961219093",
-                      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
+                        apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
+                        authDomain: "katalog-1178e.firebaseapp.com",
+                        projectId: "katalog-1178e",
+                        storageBucket: "katalog-1178e.firebasestorage.app",
+                        messagingSenderId: "998961219093",
+                        appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
                     };
                     
                     // Initialize Firebase
-                    const app = initializeApp(firebaseConfig);
-
-                    // Checa se a configuração foi preenchida
-                    if (firebaseConfig.apiKey === "SUA_API_KEY") {
-                        this.showNotification("Firebase não configurado! Siga as instruções no README.md.", "error");
-                        console.error("Firebase não configurado! Cole o objeto de configuração do seu projeto.");
-                        this.isInitializing = false;
-                        return;
-                    }
-
                     this.firebaseApp = initializeApp(firebaseConfig);
                     this.auth = getAuth(this.firebaseApp);
                     this.db = getFirestore(this.firebaseApp);
@@ -394,8 +340,8 @@
 
                 async addRecord() {
                     if (!this.newRecord.album || !this.newRecord.artist) {
-                         this.showNotification("Álbum e Artista são obrigatórios.", "error");
-                         return;
+                        this.showNotification("Álbum e Artista são obrigatórios.", "error");
+                        return;
                     }
                     this.loading = true;
                     try {
@@ -466,7 +412,8 @@
             Alpine.data('app', window.app);
         });
     </script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
-
-
