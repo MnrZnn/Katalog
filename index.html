@@ -127,7 +127,7 @@
         <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Informações Atuais:</h4>
           <div class="space-y-2 text-sm text-muted">
-            <div><span>Email:</span> <span x-text="user?.email"></span></div>
+            <div><span>Email:</span> <span x-text="user?.email || 'Não definido'"></span></div>
             <div><span>Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
           </div>
         </div>
@@ -290,7 +290,7 @@
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
         <div class="px-3 py-2 text-xs text-gray-400 break-words">
-          <span x-text="user?.email"></span>
+          <span x-text="user?.email || 'Usuário'"></span>
         </div>
         <button @click="confirmLogout()" 
                 class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
@@ -449,7 +449,10 @@
 
       <!-- Form Adicionar -->
       <div x-show="currentView === 'add-record'">
-        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Item</h2>
+        <h2 class="text-3xl font-bold mb-6">
+          <span x-show="!editingRecord">Adicionar Novo Item</span>
+          <span x-show="editingRecord">Editar Item</span>
+        </h2>
         <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-8 rounded-lg space-y-6">
           
           <div class="grid md:grid-cols-2 gap-4">
@@ -484,4 +487,566 @@
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
-              <input x-model="newRecord.catalog_number
+              <input x-model="newRecord.catalog_number"
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-1">URL da Capa</label>
+            <input x-model="newRecord.cover_url" type="url" 
+                   placeholder="https://exemplo.com/capa.jpg"
+                   class="w-full p-3 bg-input border border-custom rounded-md">
+          </div>
+          
+          <div class="flex space-x-4">
+            <button type="submit" :disabled="!newRecord.album || !newRecord.artist || !newRecord.format"
+                    class="flex-1 py-3 btn-primary rounded-md">
+              <span x-show="!editingRecord">Adicionar à Coleção</span>
+              <span x-show="editingRecord">Salvar Alterações</span>
+            </button>
+            <button type="button" @click="resetForm()" class="px-6 py-3 btn-secondary rounded-md">
+              <span x-show="!editingRecord">Limpar</span>
+              <span x-show="editingRecord">Cancelar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Configuração Firebase (substitua pelas suas credenciais)
+    const firebaseConfig = {
+      // Suas credenciais Firebase aqui
+      apiKey: "demo-key",
+      authDomain: "demo.firebaseapp.com",
+      projectId: "demo",
+      storageBucket: "demo.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "demo-app-id"
+    };
+
+    // Inicializar Firebase se não estiver em demo
+    let db, auth;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+    } catch (error) {
+      console.log('Firebase não configurado, usando modo demo');
+    }
+
+    function app() {
+      return {
+        // Estados
+        loading: true,
+        user: null,
+        darkMode: true,
+        currentView: 'collection',
+        viewMode: 'grid',
+        
+        // Auth
+        email: '',
+        password: '',
+        displayName: '',
+        showRegister: false,
+        authLoading: false,
+        newDisplayName: '',
+        
+        // Modais
+        configModal: false,
+        
+        // Dados
+        collection: [],
+        filteredCollection: [],
+        
+        // Busca e filtros
+        searchFilter: '',
+        sortBy: 'album',
+        sortOrder: 'asc',
+        
+        // Form
+        newRecord: {
+          album: '',
+          artist: '',
+          format: '',
+          year: '',
+          catalog_number: '',
+          cover_url: ''
+        },
+        editingRecord: null,
+        
+        // Import
+        importModal: {
+          show: false,
+          data: [],
+          preview: [],
+          loading: false
+        },
+        
+        // Notificações
+        notification: {
+          show: false,
+          message: '',
+          type: 'info'
+        },
+
+        init() {
+          this.loadTheme();
+          this.initAuth();
+        },
+
+        loadTheme() {
+          const saved = localStorage.getItem('darkMode');
+          this.darkMode = saved !== null ? JSON.parse(saved) : true;
+        },
+
+        saveTheme() {
+          localStorage.setItem('darkMode', JSON.stringify(this.darkMode));
+        },
+
+        toggleTheme() {
+          this.darkMode = !this.darkMode;
+          this.saveTheme();
+        },
+
+        initAuth() {
+          if (auth) {
+            auth.onAuthStateChanged((user) => {
+              this.user = user;
+              if (user) {
+                this.loadCollection();
+              }
+              this.loading = false;
+            });
+          } else {
+            // Modo demo
+            setTimeout(() => {
+              this.user = { email: 'demo@katalog.com', displayName: 'Usuário Demo' };
+              this.loadDemoData();
+              this.loading = false;
+            }, 1000);
+          }
+        },
+
+        async login() {
+          if (!auth) {
+            this.showNotification('Modo demo ativo', 'info');
+            return;
+          }
+
+          this.authLoading = true;
+          try {
+            await auth.signInWithEmailAndPassword(this.email, this.password);
+            this.showNotification('Login realizado com sucesso!', 'success');
+          } catch (error) {
+            this.showNotification(this.getAuthErrorMessage(error.code), 'error');
+          }
+          this.authLoading = false;
+        },
+
+        async register() {
+          if (!auth) {
+            this.showNotification('Modo demo ativo', 'info');
+            return;
+          }
+
+          if (!this.displayName.trim()) {
+            this.showNotification('Nome de usuário é obrigatório', 'error');
+            return;
+          }
+
+          this.authLoading = true;
+          try {
+            const result = await auth.createUserWithEmailAndPassword(this.email, this.password);
+            await result.user.updateProfile({ displayName: this.displayName });
+            this.showNotification('Conta criada com sucesso!', 'success');
+          } catch (error) {
+            this.showNotification(this.getAuthErrorMessage(error.code), 'error');
+          }
+          this.authLoading = false;
+        },
+
+        async updateDisplayName() {
+          if (!this.newDisplayName?.trim()) return;
+
+          if (!auth || !this.user) {
+            this.showNotification('Modo demo ativo', 'info');
+            return;
+          }
+
+          try {
+            await this.user.updateProfile({ displayName: this.newDisplayName });
+            this.user = { ...this.user, displayName: this.newDisplayName };
+            this.newDisplayName = '';
+            this.showNotification('Nome atualizado com sucesso!', 'success');
+          } catch (error) {
+            this.showNotification('Erro ao atualizar nome', 'error');
+          }
+        },
+
+        confirmLogout() {
+          if (confirm('Tem certeza que deseja sair?')) {
+            this.logout();
+          }
+        },
+
+        async logout() {
+          if (auth) {
+            await auth.signOut();
+          } else {
+            this.user = null;
+            this.collection = [];
+            this.filteredCollection = [];
+          }
+          this.resetForm();
+          this.currentView = 'collection';
+        },
+
+        confirmDeleteAccount() {
+          if (confirm('ATENÇÃO: Esta ação é irreversível!\n\nTem certeza que deseja excluir sua conta e todos os dados?')) {
+            this.deleteAccount();
+          }
+        },
+
+        async deleteAccount() {
+          if (!auth || !this.user) {
+            this.showNotification('Modo demo ativo', 'info');
+            return;
+          }
+
+          try {
+            // Deletar dados do Firestore
+            const batch = db.batch();
+            const snapshot = await db.collection('records')
+              .where('userId', '==', this.user.uid)
+              .get();
+            
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            
+            // Deletar conta
+            await this.user.delete();
+            
+            this.showNotification('Conta excluída com sucesso', 'success');
+            this.configModal = false;
+          } catch (error) {
+            this.showNotification('Erro ao excluir conta', 'error');
+          }
+        },
+
+        async loadCollection() {
+          if (!db || !this.user) {
+            this.loadDemoData();
+            return;
+          }
+
+          try {
+            const snapshot = await db.collection('records')
+              .where('userId', '==', this.user.uid)
+              .get();
+            
+            this.collection = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            
+            this.filterCollection();
+          } catch (error) {
+            this.showNotification('Erro ao carregar coleção', 'error');
+            this.loadDemoData();
+          }
+        },
+
+        loadDemoData() {
+          this.collection = [
+            {
+              id: '1',
+              album: 'Thriller',
+              artist: 'Michael Jackson',
+              format: 'Vinil',
+              year: 1982,
+              cover_url: 'https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png'
+            },
+            {
+              id: '2',
+              album: 'The Dark Side of the Moon',
+              artist: 'Pink Floyd',
+              format: 'CD',
+              year: 1973,
+              cover_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png'
+            },
+            {
+              id: '3',
+              album: 'Back in Black',
+              artist: 'AC/DC',
+              format: 'Cassete',
+              year: 1980
+            }
+          ];
+          this.filterCollection();
+        },
+
+        filterCollection() {
+          let filtered = [...this.collection];
+
+          // Aplicar filtro de busca
+          if (this.searchFilter.trim()) {
+            const search = this.searchFilter.toLowerCase();
+            filtered = filtered.filter(record =>
+              record.album.toLowerCase().includes(search) ||
+              record.artist.toLowerCase().includes(search) ||
+              (record.format || '').toLowerCase().includes(search)
+            );
+          }
+
+          // Aplicar ordenação
+          filtered.sort((a, b) => {
+            let aVal = a[this.sortBy] || '';
+            let bVal = b[this.sortBy] || '';
+            
+            if (typeof aVal === 'string') {
+              aVal = aVal.toLowerCase();
+              bVal = bVal.toLowerCase();
+            }
+            
+            if (this.sortOrder === 'asc') {
+              return aVal > bVal ? 1 : -1;
+            } else {
+              return aVal < bVal ? 1 : -1;
+            }
+          });
+
+          this.filteredCollection = filtered;
+        },
+
+        setSortBy(field) {
+          if (this.sortBy === field) {
+            this.toggleSortOrder();
+          } else {
+            this.sortBy = field;
+            this.sortOrder = 'asc';
+          }
+          this.filterCollection();
+        },
+
+        toggleSortOrder() {
+          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+          this.filterCollection();
+        },
+
+        confirmAddRecord() {
+          if (this.editingRecord) {
+            if (confirm('Salvar as alterações feitas no item?')) {
+              this.saveRecord();
+            }
+          } else {
+            if (confirm('Adicionar este item à sua coleção?')) {
+              this.addRecord();
+            }
+          }
+        },
+
+        async addRecord() {
+          const record = {
+            ...this.newRecord,
+            userId: this.user?.uid || 'demo',
+            createdAt: new Date()
+          };
+
+          if (db && this.user) {
+            try {
+              const docRef = await db.collection('records').add(record);
+              record.id = docRef.id;
+            } catch (error) {
+              this.showNotification('Erro ao salvar no banco de dados', 'error');
+              return;
+            }
+          } else {
+            record.id = Date.now().toString();
+          }
+
+          this.collection.push(record);
+          this.filterCollection();
+          this.resetForm();
+          this.showNotification('Item adicionado à coleção!', 'success');
+          this.currentView = 'collection';
+        },
+
+        async saveRecord() {
+          if (!this.editingRecord) return;
+
+          const updates = { ...this.newRecord };
+
+          if (db && this.user) {
+            try {
+              await db.collection('records').doc(this.editingRecord.id).update(updates);
+            } catch (error) {
+              this.showNotification('Erro ao salvar alterações', 'error');
+              return;
+            }
+          }
+
+          const index = this.collection.findIndex(r => r.id === this.editingRecord.id);
+          if (index !== -1) {
+            this.collection[index] = { ...this.editingRecord, ...updates };
+          }
+
+          this.filterCollection();
+          this.resetForm();
+          this.showNotification('Item atualizado com sucesso!', 'success');
+          this.currentView = 'collection';
+        },
+
+        editRecord(record) {
+          this.editingRecord = record;
+          this.newRecord = { ...record };
+          this.currentView = 'add-record';
+        },
+
+        confirmDeleteRecord(id) {
+          if (confirm('Tem certeza que deseja excluir este item?')) {
+            this.deleteRecord(id);
+          }
+        },
+
+        async deleteRecord(id) {
+          if (db && this.user) {
+            try {
+              await db.collection('records').doc(id).delete();
+            } catch (error) {
+              this.showNotification('Erro ao excluir do banco de dados', 'error');
+              return;
+            }
+          }
+
+          this.collection = this.collection.filter(r => r.id !== id);
+          this.filterCollection();
+          this.showNotification('Item excluído da coleção', 'success');
+        },
+
+        resetForm() {
+          this.newRecord = {
+            album: '',
+            artist: '',
+            format: '',
+            year: '',
+            catalog_number: '',
+            cover_url: ''
+          };
+          this.editingRecord = null;
+        },
+
+        handleFileUpload(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = e.target.result;
+              const workbook = XLSX.read(data, { type: 'binary' });
+              const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+              const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+              const records = jsonData.map(row => ({
+                album: row.album || row.Album || '',
+                artist: row.artist || row.Artist || '',
+                format: row.format || row.Format || 'CD',
+                year: row.year || row.Year || '',
+                catalog_number: row.catalog_number || row['Catalog Number'] || '',
+                cover_url: row.cover_url || row['Cover URL'] || ''
+              })).filter(record => record.album && record.artist);
+
+              this.importModal.data = records;
+              this.importModal.preview = records;
+              
+              if (records.length === 0) {
+                this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
+              }
+            } catch (error) {
+              this.showNotification('Erro ao ler o arquivo Excel', 'error');
+            }
+          };
+          reader.readAsBinaryString(file);
+        },
+
+        async importRecords() {
+          if (this.importModal.data.length === 0) return;
+
+          this.importModal.loading = true;
+          let imported = 0;
+
+          try {
+            for (const record of this.importModal.data) {
+              const newRecord = {
+                ...record,
+                userId: this.user?.uid || 'demo',
+                createdAt: new Date()
+              };
+
+              if (db && this.user) {
+                const docRef = await db.collection('records').add(newRecord);
+                newRecord.id = docRef.id;
+              } else {
+                newRecord.id = Date.now().toString() + imported;
+              }
+
+              this.collection.push(newRecord);
+              imported++;
+            }
+
+            this.filterCollection();
+            this.showNotification(`${imported} itens importados com sucesso!`, 'success');
+            this.closeImportModal();
+          } catch (error) {
+            this.showNotification(`Erro na importação. ${imported} itens foram importados.`, 'error');
+          }
+
+          this.importModal.loading = false;
+        },
+
+        closeImportModal() {
+          this.importModal.show = false;
+          this.importModal.data = [];
+          this.importModal.preview = [];
+          this.importModal.loading = false;
+        },
+
+        showNotification(message, type = 'info') {
+          this.notification = { show: true, message, type };
+          setTimeout(() => {
+            this.notification.show = false;
+          }, 3000);
+        },
+
+        getAuthErrorMessage(code) {
+          const messages = {
+            'auth/user-not-found': 'Usuário não encontrado',
+            'auth/wrong-password': 'Senha incorreta',
+            'auth/email-already-in-use': 'Este email já está em uso',
+            'auth/weak-password': 'Senha muito fraca (mín. 6 caracteres)',
+            'auth/invalid-email': 'Email inválido'
+          };
+          return messages[code] || 'Erro de autenticação';
+        }
+      };
+    }
+
+    // Inicializar ícones Lucide após o DOM carregar
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+
+    // Re-criar ícones quando o Alpine atualizar o DOM
+    document.addEventListener('alpine:updated', () => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>
