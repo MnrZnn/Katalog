@@ -14,6 +14,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   
+  <!-- SheetJS para Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #121212; color: #E0E0E0; }
     .bg-card { background-color: #1E1E1E; }
@@ -35,6 +38,15 @@
     .format-vinil { @apply bg-purple-500 text-white; }
     .format-cassete { @apply bg-orange-500 text-white; }
     .format-digital { @apply bg-green-500 text-white; }
+    .footer-info { 
+      position: fixed; 
+      bottom: 20px; 
+      right: 20px; 
+      z-index: 40;
+      background: rgba(30, 30, 30, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid #383838;
+    }
   </style>
 </head>
 <body x-data="app" x-init="init()" x-cloak>
@@ -73,6 +85,154 @@
     </div>
   </div>
 
+  <!-- Modal Editar -->
+  <div x-show="editModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="editModal.show = false">
+    <div class="bg-card p-8 rounded-lg max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">✏️ Editar Item</h3>
+      <form @submit.prevent="updateRecord()" class="space-y-4">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
+            <input x-model="editModal.record.album" required 
+                   class="w-full p-3 bg-input border border-custom rounded-md">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Artista *</label>
+            <input x-model="editModal.record.artist" required 
+                   class="w-full p-3 bg-input border border-custom rounded-md">
+          </div>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Formato *</label>
+            <select x-model="editModal.record.format" required
+                    class="w-full p-3 bg-input border border-custom rounded-md">
+              <option value="CD">📀 CD</option>
+              <option value="Vinil">🎵 Vinil</option>
+              <option value="Cassete">📼 Cassete</option>
+              <option value="Digital">💻 Digital</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Ano</label>
+            <input x-model="editModal.record.year" type="number" min="1900" max="2030"
+                   class="w-full p-3 bg-input border border-custom rounded-md">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
+            <input x-model="editModal.record.catalog_number" 
+                   class="w-full p-3 bg-input border border-custom rounded-md">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Descrição da Edição</label>
+          <textarea x-model="editModal.record.edition_notes" 
+                    class="w-full p-3 bg-input border border-custom rounded-md resize-none"
+                    rows="3"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">URL da Capa</label>
+          <input x-model="editModal.record.cover_url" 
+                 class="w-full p-3 bg-input border border-custom rounded-md">
+          <div x-show="editModal.record.cover_url" class="mt-2">
+            <img :src="editModal.record.cover_url" class="w-20 h-20 object-cover rounded-md" 
+                 @error="editModal.record.cover_url = ''" alt="Preview">
+          </div>
+        </div>
+        
+        <div class="flex space-x-4">
+          <button type="submit" :disabled="editModal.loading" 
+                  class="flex-1 py-3 btn-primary rounded-md">
+            <span x-show="!editModal.loading">💾 Salvar Alterações</span>
+            <span x-show="editModal.loading">Salvando...</span>
+          </button>
+          <button type="button" @click="editModal.show = false" 
+                  class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Import Excel -->
+  <div x-show="importModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="importModal.show = false">
+    <div class="bg-card p-8 rounded-lg max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">📊 Importar do Excel</h3>
+      
+      <div class="space-y-4">
+        <!-- Instruções -->
+        <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-300 mb-2">📋 Como preparar seu arquivo Excel:</h4>
+          <ul class="text-sm text-blue-200 space-y-1">
+            <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
+            <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
+            <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
+            <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
+            <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
+            <li>• <strong>edition_notes</strong> - Observações da edição (opcional)</li>
+            <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
+          </ul>
+        </div>
+        
+        <!-- Upload -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Escolha o arquivo Excel:</label>
+          <input type="file" @change="handleFileUpload($event)" 
+                 accept=".xlsx,.xls,.csv" 
+                 class="w-full p-3 bg-input border border-custom rounded-md">
+        </div>
+        
+        <!-- Preview -->
+        <div x-show="importModal.preview.length > 0">
+          <h4 class="font-semibold mb-2">Preview (primeiros 3 itens):</h4>
+          <div class="bg-input rounded-lg p-4 max-h-40 overflow-y-auto">
+            <template x-for="item in importModal.preview.slice(0, 3)" :key="item.album">
+              <div class="text-sm py-1 border-b border-gray-600 last:border-b-0">
+                <strong x-text="item.album"></strong> - <span x-text="item.artist"></span>
+                (<span x-text="item.format"></span>)
+              </div>
+            </template>
+          </div>
+          <p class="text-sm text-gray-400 mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
+        </div>
+        
+        <div class="flex space-x-4">
+          <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
+                  class="flex-1 py-3 btn-primary rounded-md">
+            <span x-show="!importModal.loading">📥 Importar Coleção</span>
+            <span x-show="importModal.loading">Importando...</span>
+          </button>
+          <button @click="closeImportModal()" class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Info -->
+  <div x-show="infoModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="infoModal.show = false">
+    <div class="bg-card p-8 rounded-lg max-w-lg w-full mx-4">
+      <h3 class="text-xl font-bold mb-4">ℹ️ Sobre o Katalog</h3>
+      <div class="space-y-4 text-gray-300">
+        <p>Este é um <strong>mockup inicial</strong> de um aplicativo desenvolvido por alunos da <strong>UMC</strong> do curso de <strong>Sistemas de Informação</strong>.</p>
+        <p>O objetivo é ajudar colecionadores a catalogar suas coleções musicais de forma objetiva e organizada.</p>
+        <p>Recursos inclusos:</p>
+        <ul class="list-disc list-inside space-y-1 text-sm">
+          <li>Catálogo completo com busca e filtros</li>
+          <li>Múltiplos formatos (CD, Vinil, Cassete, Digital)</li>
+          <li>Busca automática de capas</li>
+          <li>Importação via Excel</li>
+          <li>Compartilhamento de coleções</li>
+        </ul>
+        <p class="text-sm text-gray-400">Desenvolvido com ❤️ usando Firebase, Alpine.js e Tailwind CSS.</p>
+      </div>
+      <div class="flex justify-end mt-6">
+        <button @click="infoModal.show = false" class="px-6 py-2 btn-primary rounded-md">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Tela de Login -->
   <div x-show="!user && !isLoading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black">
     <div class="bg-card p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -83,42 +243,87 @@
       </div>
       
       <div class="space-y-4">
-        <button @click="loginAnonymous()" 
-                :disabled="authLoading"
-                class="w-full py-3 px-4 btn-primary rounded-md font-medium flex items-center justify-center">
-          <span x-show="!authLoading">🎵 Entrar Rapidamente</span>
-          <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        </button>
-        
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-600"></div>
+        <!-- Modo Login -->
+        <div x-show="!showRegisterForm && !showForgotPassword" class="space-y-4">
+          <div>
+            <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
           </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-card text-gray-400">ou</span>
+          <div>
+            <input x-model="loginPassword" type="password" placeholder="Sua senha" 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          </div>
+          <button @click="loginWithEmail()" 
+                  :disabled="authLoading"
+                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
+            <span x-show="!authLoading">🎵 Entrar</span>
+            <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
+          </button>
+          
+          <div class="text-center space-y-2">
+            <button @click="showForgotPassword = true" 
+                    class="text-sm text-gray-400 hover:text-white">
+              Esqueci minha senha
+            </button>
+            <div>
+              <span class="text-gray-400 text-sm">Não tem uma conta?</span>
+              <button @click="showRegisterForm = true" 
+                      class="text-green-400 hover:text-green-300 text-sm ml-1">
+                Cadastre-se
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div x-show="showEmailForm" class="space-y-3">
-          <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
-                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          <input x-model="loginPassword" type="password" placeholder="Senha" 
-                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          <div class="flex space-x-2">
-            <button @click="loginWithEmail()" 
-                    :disabled="authLoading"
-                    class="flex-1 py-2 btn-secondary rounded-md">Entrar</button>
-            <button @click="registerWithEmail()" 
-                    :disabled="authLoading"
-                    class="flex-1 py-2 btn-primary rounded-md">Cadastrar</button>
+
+        <!-- Modo Cadastro -->
+        <div x-show="showRegisterForm" class="space-y-4">
+          <h3 class="text-lg font-semibold text-center">Criar Nova Conta</h3>
+          <div>
+            <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          </div>
+          <div>
+            <input x-model="loginPassword" type="password" placeholder="Senha (min. 6 caracteres)" 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          </div>
+          <button @click="registerWithEmail()" 
+                  :disabled="authLoading"
+                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
+            <span x-show="!authLoading">📝 Cadastrar</span>
+            <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
+          </button>
+          
+          <div class="text-center">
+            <span class="text-gray-400 text-sm">Já tem uma conta?</span>
+            <button @click="showRegisterForm = false" 
+                    class="text-green-400 hover:text-green-300 text-sm ml-1">
+              Fazer login
+            </button>
           </div>
         </div>
-        
-        <button @click="showEmailForm = !showEmailForm" 
-                class="w-full py-2 text-gray-400 hover:text-white">
-          <span x-show="!showEmailForm">📧 Criar Conta</span>
-          <span x-show="showEmailForm">← Voltar</span>
-        </button>
+
+        <!-- Modo Esqueci Senha -->
+        <div x-show="showForgotPassword" class="space-y-4">
+          <h3 class="text-lg font-semibold text-center">Recuperar Senha</h3>
+          <p class="text-sm text-gray-400 text-center">Digite seu email para receber o link de recuperação:</p>
+          <div>
+            <input x-model="resetEmail" type="email" placeholder="seu@email.com" 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          </div>
+          <button @click="resetPassword()" 
+                  :disabled="authLoading"
+                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
+            <span x-show="!authLoading">📧 Enviar Link</span>
+            <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
+          </button>
+          
+          <div class="text-center">
+            <button @click="showForgotPassword = false" 
+                    class="text-gray-400 hover:text-white text-sm">
+              ← Voltar ao login
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -141,6 +346,10 @@
            :class="{'bg-green-500 text-white': appView === 'add-record'}"
            class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700">
            <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
+        </a>
+        <a href="#" @click.prevent="importModal.show = true" 
+           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+           <i data-lucide="upload"></i><span>Importar Excel</span>
         </a>
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
@@ -222,7 +431,11 @@
                       class="format-badge" 
                       x-text="record.format || 'CD'"></span>
               </div>
-              <div class="absolute top-2 right-2">
+              <div class="absolute top-2 right-2 flex space-x-1">
+                <button @click="openEditModal(record)" 
+                        class="bg-blue-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-700">
+                  <i data-lucide="edit" class="w-4 h-4"></i>
+                </button>
                 <button @click="confirmDelete(record.id)" 
                         class="bg-red-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -282,10 +495,16 @@
                     <span x-show="!record.catalog_number" class="text-gray-500">-</span>
                   </td>
                   <td class="p-4">
-                    <button @click="confirmDelete(record.id)" 
-                            class="text-red-400 hover:text-red-300">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                    <div class="flex space-x-2">
+                      <button @click="openEditModal(record)" 
+                              class="text-blue-400 hover:text-blue-300" title="Editar">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                      </button>
+                      <button @click="confirmDelete(record.id)" 
+                              class="text-red-400 hover:text-red-300" title="Excluir">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -317,12 +536,12 @@
           <div class="grid md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
-              <input x-model="newRecord.album" required 
+              <input x-model="newRecord.album" @input="debounceImageSearch()" required 
                      class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">Artista *</label>
-              <input x-model="newRecord.artist" required 
+              <input x-model="newRecord.artist" @input="debounceImageSearch()" required 
                      class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
             </div>
           </div>
@@ -365,7 +584,25 @@
           <div>
             <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
             
-            <!-- Botão de busca -->
+            <!-- Busca automática -->
+            <div x-show="autoImageSearch.found" class="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+              <p class="text-sm text-green-300 mb-2">✨ Capa encontrada automaticamente!</p>
+              <div class="flex items-center space-x-3">
+                <img :src="autoImageSearch.url" class="w-16 h-16 object-cover rounded-md" alt="Capa encontrada">
+                <div class="flex-1">
+                  <button type="button" @click="useAutoImage()" 
+                          class="px-4 py-2 btn-primary rounded-md text-sm mr-2">
+                    ✅ Usar esta capa
+                  </button>
+                  <button type="button" @click="autoImageSearch = {found: false, url: ''}" 
+                          class="px-4 py-2 btn-secondary rounded-md text-sm">
+                    ❌ Ignorar
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Botão de busca manual -->
             <div class="mb-4">
               <button type="button" @click="searchCoverOnGoogle()" 
                       :disabled="!newRecord.album || !newRecord.artist || coverSearchLoading"
@@ -405,6 +642,13 @@
     </main>
   </div>
 
+  <!-- Botão Info -->
+  <button @click="infoModal.show = true" 
+          class="footer-info p-3 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          title="Sobre o Katalog">
+    <i data-lucide="info" class="w-5 h-5"></i>
+  </button>
+
   <script>
     // 🔥 SUAS CONFIGURAÇÕES DO FIREBASE
     const firebaseConfig = {
@@ -434,13 +678,17 @@
         // UI
         appView: 'collection',
         viewMode: 'grid',
-        showEmailForm: false,
+        showRegisterForm: false,
+        showForgotPassword: false,
         searchFilter: '',
         formatFilter: '',
         sortBy: 'newest',
         
         // Modals
         shareModal: { show: false, url: '' },
+        editModal: { show: false, record: {}, loading: false },
+        importModal: { show: false, data: [], preview: [], loading: false },
+        infoModal: { show: false },
         
         // Dados
         collection: [],
@@ -458,6 +706,11 @@
         // Auth
         loginEmail: '',
         loginPassword: '',
+        resetEmail: '',
+        
+        // Busca automática de imagem
+        autoImageSearch: { found: false, url: '' },
+        imageSearchTimeout: null,
         
         // Notificação
         notification: { show: false, message: '', type: 'success' },
@@ -494,19 +747,6 @@
         },
 
         // === AUTENTICAÇÃO ===
-        async loginAnonymous() {
-          this.authLoading = true;
-          try {
-            await auth.signInAnonymously();
-            this.showNotification("Bem-vindo ao Katalog! 🎵", "success");
-          } catch (error) {
-            console.error('Erro no login:', error);
-            this.showNotification("Erro ao fazer login", "error");
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
         async loginWithEmail() {
           if (!this.loginEmail || !this.loginPassword) {
             this.showNotification("Preencha email e senha", "error");
@@ -519,7 +759,6 @@
             this.showNotification("Login realizado com sucesso!", "success");
             this.loginEmail = '';
             this.loginPassword = '';
-            this.showEmailForm = false;
           } catch (error) {
             console.error('Erro no login:', error);
             this.showNotification("Email ou senha incorretos", "error");
@@ -545,13 +784,37 @@
             this.showNotification("Conta criada com sucesso!", "success");
             this.loginEmail = '';
             this.loginPassword = '';
-            this.showEmailForm = false;
+            this.showRegisterForm = false;
           } catch (error) {
             console.error('Erro ao registrar:', error);
             if (error.code === 'auth/email-already-in-use') {
               this.showNotification("Este email já está em uso", "error");
             } else {
               this.showNotification("Erro ao criar conta", "error");
+            }
+          } finally {
+            this.authLoading = false;
+          }
+        },
+
+        async resetPassword() {
+          if (!this.resetEmail) {
+            this.showNotification("Digite seu email", "error");
+            return;
+          }
+          
+          this.authLoading = true;
+          try {
+            await auth.sendPasswordResetEmail(this.resetEmail);
+            this.showNotification("Link de recuperação enviado! Verifique seu email 📧", "success");
+            this.resetEmail = '';
+            this.showForgotPassword = false;
+          } catch (error) {
+            console.error('Erro ao enviar email:', error);
+            if (error.code === 'auth/user-not-found') {
+              this.showNotification("Email não encontrado", "error");
+            } else {
+              this.showNotification("Erro ao enviar email de recuperação", "error");
             }
           } finally {
             this.authLoading = false;
@@ -675,6 +938,49 @@
           }
         },
 
+        // === EDIÇÃO ===
+        openEditModal(record) {
+          this.editModal = {
+            show: true,
+            loading: false,
+            record: { ...record }
+          };
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        async updateRecord() {
+          if (!this.editModal.record.album?.trim() || !this.editModal.record.artist?.trim() || !this.editModal.record.format) {
+            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
+            return;
+          }
+          
+          this.editModal.loading = true;
+          
+          try {
+            const recordData = {
+              album: this.editModal.record.album.trim(),
+              artist: this.editModal.record.artist.trim(),
+              format: this.editModal.record.format,
+              year: this.editModal.record.year ? Number(this.editModal.record.year) : null,
+              catalog_number: this.editModal.record.catalog_number?.trim() || null,
+              edition_notes: this.editModal.record.edition_notes?.trim() || null,
+              cover_url: this.editModal.record.cover_url?.trim() || null,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection(`users/${this.user.uid}/records`).doc(this.editModal.record.id).update(recordData);
+            
+            this.showNotification("Item atualizado com sucesso! ✅", "success");
+            this.editModal.show = false;
+            
+          } catch (error) {
+            console.error('Erro ao atualizar item:', error);
+            this.showNotification("Erro ao atualizar item", "error");
+          } finally {
+            this.editModal.loading = false;
+          }
+        },
+
         async confirmDelete(id) {
           if (!confirm('Tem certeza que deseja excluir este item da sua coleção?')) {
             return;
@@ -690,6 +996,54 @@
         },
 
         // === BUSCA DE CAPA ===
+        debounceImageSearch() {
+          // Limpar timeout anterior
+          if (this.imageSearchTimeout) {
+            clearTimeout(this.imageSearchTimeout);
+          }
+          
+          // Reset busca automática
+          this.autoImageSearch = { found: false, url: '' };
+          
+          // Se tem álbum e artista, buscar após 1 segundo
+          if (this.newRecord.album.trim() && this.newRecord.artist.trim()) {
+            this.imageSearchTimeout = setTimeout(() => {
+              this.searchAlbumCoverAuto();
+            }, 1000);
+          }
+        },
+
+        async searchAlbumCoverAuto() {
+          try {
+            // Simular busca - em produção, usaria uma API real como Last.fm ou Spotify
+            const query = `${this.newRecord.artist} ${this.newRecord.album}`;
+            
+            // API simulada - retorna placeholder baseado no nome
+            const fakeImageUrl = `https://picsum.photos/300/300?random=${encodeURIComponent(query)}`;
+            
+            // Verificar se a imagem carrega
+            const img = new Image();
+            img.onload = () => {
+              this.autoImageSearch = {
+                found: true,
+                url: fakeImageUrl
+              };
+            };
+            img.onerror = () => {
+              // Se falhar, não mostra nada
+            };
+            img.src = fakeImageUrl;
+            
+          } catch (error) {
+            console.error('Erro na busca automática:', error);
+          }
+        },
+
+        useAutoImage() {
+          this.newRecord.cover_url = this.autoImageSearch.url;
+          this.autoImageSearch = { found: false, url: '' };
+        },
+
         searchCoverOnGoogle() {
           if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
             this.showNotification("Preencha álbum e artista primeiro!", "error");
@@ -703,9 +1057,115 @@
           this.showNotification("Clique com o botão direito na imagem → 'Copiar endereço da imagem'", "info");
         },
 
+        // === IMPORT EXCEL ===
+        handleFileUpload(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              
+              // Pegar a primeira planilha
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              
+              // Converter para JSON
+              const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+              
+              if (jsonData.length === 0) {
+                this.showNotification("Arquivo vazio ou inválido", "error");
+                return;
+              }
+
+              // Processar dados
+              const processedData = jsonData.map((row, index) => {
+                // Normalizar chaves (minúsculas, sem espaços)
+                const normalizedRow = {};
+                Object.keys(row).forEach(key => {
+                  const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, '_');
+                  normalizedRow[normalizedKey] = row[key];
+                });
+
+                return {
+                  album: normalizedRow.album || normalizedRow.álbum || normalizedRow.titulo || '',
+                  artist: normalizedRow.artist || normalizedRow.artista || '',
+                  format: this.normalizeFormat(normalizedRow.format || normalizedRow.formato || 'CD'),
+                  year: normalizedRow.year || normalizedRow.ano || null,
+                  catalog_number: normalizedRow.catalog_number || normalizedRow.catalogo || null,
+                  edition_notes: normalizedRow.edition_notes || normalizedRow.observacoes || null,
+                  cover_url: normalizedRow.cover_url || normalizedRow.capa || null
+                };
+              }).filter(item => item.album && item.artist); // Só itens com álbum e artista
+
+              if (processedData.length === 0) {
+                this.showNotification("Nenhum registro válido encontrado. Verifique se as colunas 'album' e 'artist' existem.", "error");
+                return;
+              }
+
+              this.importModal.data = processedData;
+              this.importModal.preview = processedData;
+              this.showNotification(`${processedData.length} itens carregados para importação!`, "success");
+              
+            } catch (error) {
+              console.error('Erro ao processar arquivo:', error);
+              this.showNotification("Erro ao ler arquivo Excel", "error");
+            }
+          };
+
+          reader.readAsArrayBuffer(file);
+        },
+
+        normalizeFormat(format) {
+          const normalizedFormat = format.toString().toLowerCase();
+          if (normalizedFormat.includes('vinil') || normalizedFormat.includes('lp')) return 'Vinil';
+          if (normalizedFormat.includes('cassete') || normalizedFormat.includes('fita')) return 'Cassete';
+          if (normalizedFormat.includes('digital') || normalizedFormat.includes('mp3')) return 'Digital';
+          return 'CD'; // Default
+        },
+
+        async importRecords() {
+          if (this.importModal.data.length === 0) return;
+
+          this.importModal.loading = true;
+          let successCount = 0;
+          let errorCount = 0;
+
+          try {
+            const batch = db.batch();
+            
+            this.importModal.data.forEach((record) => {
+              const docRef = db.collection(`users/${this.user.uid}/records`).doc();
+              batch.set(docRef, {
+                ...record,
+                year: record.year ? Number(record.year) : null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            });
+
+            await batch.commit();
+            successCount = this.importModal.data.length;
+            
+            this.showNotification(`✅ ${successCount} itens importados com sucesso!`, "success");
+            this.closeImportModal();
+            this.appView = 'collection';
+            
+          } catch (error) {
+            console.error('Erro na importação:', error);
+            this.showNotification("Erro durante a importação", "error");
+          } finally {
+            this.importModal.loading = false;
+          }
+        },
+
+        closeImportModal() {
+          this.importModal = { show: false, data: [], preview: [], loading: false };
+        },
+
         // === COMPARTILHAMENTO ===
         openShareModal() {
-          // Criar um link público para a coleção
           const baseUrl = window.location.origin + window.location.pathname;
           const shareUrl = `${baseUrl}?user=${this.user.uid}&view=public`;
           
@@ -742,6 +1202,10 @@
             edition_notes: '',
             cover_url: '' 
           };
+          this.autoImageSearch = { found: false, url: '' };
+          if (this.imageSearchTimeout) {
+            clearTimeout(this.imageSearchTimeout);
+          }
         },
 
         showNotification(message, type = 'success') {
