@@ -42,6 +42,11 @@
     .theme-light .bg-black { background-color: #1f2937 !important; color: #ffffff !important; }
     .theme-light .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
     .theme-light .text-white { color: #1f2937 !important; }
+    .theme-light aside.bg-black { background-color: #f8fafc !important; border-right: 1px solid #e2e8f0; }
+    .theme-light aside .text-white { color: #1f2937 !important; }
+    .theme-light aside .text-gray-400 { color: #64748b !important; }
+    .theme-light aside .border-custom { border-color: #e2e8f0 !important; }
+    .theme-light aside .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
     
     .btn-primary { background-color: #1DB954; color: #FFFFFF; }
     .btn-primary:hover { background-color: #1ED760; }
@@ -360,7 +365,8 @@
             <tbody>
               <template x-for="record in filteredCollection" :key="record.id">
                 <tr class="border-b border-custom hover:bg-input">
-                  <td class="p-4">
+                  <td class="p-4" x-text="record.year || '-'"></td>
+<td class="p-4">
                     <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                          class="w-12 h-12 object-cover rounded">
                   </td>
@@ -645,6 +651,12 @@
           this.formLoading = false;
         },
 
+        editRecord(record) {
+  this.newRecord = { ...record };
+  this.currentView = 'add-record';
+  this.showNotification('Editando item...', 'info');
+},
+    
         confirmDeleteRecord(recordId) {
           if (confirm('Deseja realmente excluir este item?')) {
             this.deleteRecord(recordId);
@@ -770,14 +782,10 @@
             cover_url: row.cover_url?.toString().trim() || ''
           }));
 
-          this.importModal.data = validRecords;
-          this.importModal.preview = validRecords.slice(0, 3);
-        
-                  editRecord(record) {
-          this.newRecord = { ...record };
-          this.currentView = 'add-record';
-          this.showNotification('Editando item...', 'info');
-        },
+         this.importModal.data = validRecords;
+this.importModal.preview = validRecords.slice(0, 3);
+
+if (validRecords.length === 0) {
 
           if (validRecords.length === 0) {
             this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
@@ -832,4 +840,5 @@
   </script>
 </body>
 </html>
+
 
