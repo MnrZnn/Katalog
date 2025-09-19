@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do Vinil ao Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.10.3/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #121212; color: #E0E0E0; }
+        .bg-card { background-color: #1E1E1E; }
+        .bg-input { background-color: #2A2A2A; }
+        .border-custom { border-color: #383838; }
+        .btn-primary { background-color: #1DB954; color: #FFFFFF; }
+        .btn-primary:hover { background-color: #1ED760; }
+        .btn-primary:disabled, button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
+        .placeholder-custom::placeholder { color: #888888; }
+        [x-cloak] { display: none !important; }
+        .transition-transform { transition: transform 0.2s ease-in-out; }
+        .hover\:scale-105:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen flex flex-col items-center"
+      x-data="appData()"
+      x-init="init()">
+
+    <!-- Main Container -->
+    <div class="max-w-4xl w-full">
+        <!-- Notification/Toast Component -->
+        <div x-show="notification.visible"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-90"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-300"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-90"
+             class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white"
+             :class="notification.type === 'error' ? 'bg-red-600' : 'bg-green-600'"
+             x-cloak>
+            <div class="flex items-center">
+                <span x-text="notification.message"></span>
+                <button @click="notification.visible = false" class="ml-auto text-white focus:outline-none">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">
+                Do Vinil ao Digital
+            </h1>
+            <p class="text-gray-400 mt-2 text-lg">Preservação segura de coleções musicais.</p>
+            <div x-show="isAuthReady && userId" class="mt-4 text-sm text-gray-500">
+                <p>ID do Usuário: <span class="font-mono text-xs break-all" x-text="userId"></span></p>
+            </div>
+            <div x-show="isLoading" class="mt-4 flex justify-center items-center text-green-400">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Carregando...</span>
+            </div>
+        </header>
+
+        <!-- Main Content Wrapper -->
+        <main class="bg-card p-6 sm:p-8 rounded-xl shadow-2xl space-y-8">
+            <!-- Login/Registration View -->
+            <div x-show="appView === 'login' || appView === 'register'" x-cloak>
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-semibold text-center" x-text="appView === 'login' ? 'Bem-vindo!' : 'Crie sua conta'"></h2>
+                    <p class="text-center text-gray-400" x-show="appView === 'login'">Faça login ou cadastre-se para começar.</p>
+                    <div class="flex flex-col space-y-4">
+                        <input type="email"
+                               x-model="authData.email"
+                               placeholder="Email"
+                               class="bg-input text-white p-3 rounded-lg border border-custom focus:outline-none focus:ring-2 focus:ring-green-400 transition-all placeholder-custom">
+                        <input type="password"
+                               x-model="authData.password"
+                               placeholder="Senha"
+                               class="bg-input text-white p-3 rounded-lg border border-custom focus:outline-none focus:ring-2 focus:ring-green-400 transition-all placeholder-custom">
+                    </div>
+                    <button @click="login()"
+                            x-show="appView === 'login'"
+                            class="w-full btn-primary p-3 rounded-lg font-bold text-lg hover:scale-105 transition-transform"
+                            :disabled="isLoading || !authData.email || !authData.password">
+                            <span x-text="isLoading ? 'Autenticando...' : 'Entrar'"></span>
+                    </button>
+                    <button @click="register()"
+                            x-show="appView === 'register'"
+                            class="w-full btn-primary p-3 rounded-lg font-bold text-lg hover:scale-105 transition-transform"
+                            :disabled="isLoading || !authData.email || !authData.password">
+                            <span x-text="isLoading ? 'Registrando...' : 'Criar Conta'"></span>
+                    </button>
+                    <button @click="appView = appView === 'login' ? 'register' : 'login'"
+                            class="w-full text-gray-400 mt-2 hover:underline">
+                        <span x-text="appView === 'login' ? 'Não tem uma conta? Crie uma!' : 'Já tem uma conta? Faça login!'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Collection View -->
+            <div x-show="appView === 'collection'" x-cloak>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-semibold">Minha Coleção</h2>
+                    <div class="flex space-x-2">
+                        <button @click="appView = 'addRecord'" class="btn-primary p-2 rounded-full shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        </button>
+                        <button @click="logout()" class="btn-primary p-2 rounded-full shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="collection.length === 0" class="text-center text-gray-500 mt-10">
+                    <p>Você ainda não adicionou nenhum disco. Comece agora!</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="record in collection" :key="record.id">
+                        <div class="bg-card rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                            <img :src="record.cover_url"
+                                 alt="Capa do álbum"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/400x400/2a2a2a/888888?text=Sem+Imagem';"
+                                 class="w-full h-48 object-cover rounded-t-lg">
+                            <div class="p-4">
+                                <h3 class="font-semibold text-lg" x-text="record.album"></h3>
+                                <p class="text-gray-400 text-sm" x-text="record.artist"></p>
+                                <p class="text-gray-500 text-xs mt-1" x-text="record.year"></p>
+                                <div class="mt-4 flex justify-end space-x-2">
+                                    <button @click="deleteRecord(record.id)" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Add Record View -->
+            <div x-show="appView === 'addRecord'" x-cloak>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-semibold">Adicionar Novo Disco</h2>
+                    <button @click="appView = 'collection'" class="btn-primary p-2 rounded-full shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <input type="text"
+                           x-model="newRecord.album"
+                           placeholder="Título do Álbum"
+                           class="w-full bg-input text-white p-3 rounded-lg border border-custom focus:outline-none focus:ring-2 focus:ring-green-400 transition-all placeholder-custom">
+                    <input type="text"
+                           x-model="newRecord.artist"
+                           placeholder="Artista"
+                           class="w-full bg-input text-white p-3 rounded-lg border border-custom focus:outline-none focus:ring-2 focus:ring-green-400 transition-all placeholder-custom">
+                    <input type="number"
+                           x-model.number="newRecord.year"
+                           placeholder="Ano"
+                           class="w-full bg-input text-white p-3 rounded-lg border border-custom focus:outline-none focus:ring-2 focus:ring-green-400 transition-all placeholder-custom">
+                    <input type="text"
+                           x-model="newRecord.cover_url"
+                           placeholder="URL da Capa"
+                           class="w-full bg-input text-white p-3 rounded-lg border border-custom focus:outline-none focus:ring-2 focus:ring-green-400 transition-all placeholder-custom">
+                    <button @click="addRecord()"
+                            class="w-full btn-primary p-3 rounded-lg font-bold text-lg hover:scale-105 transition-transform"
+                            :disabled="isLoading || !newRecord.album || !newRecord.artist">
+                            <span x-text="isLoading ? 'Adicionando...' : 'Adicionar Disco'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal for confirmation -->
+            <div x-data="{ open: false, recordId: null }"
+                 x-show="open"
+                 class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+                <div class="bg-card rounded-lg p-6 sm:p-8 w-full max-w-sm text-center">
+                    <h3 class="text-xl font-semibold mb-4">Confirmar Exclusão</h3>
+                    <p class="text-gray-400 mb-6">Tem certeza que deseja excluir este disco?</p>
+                    <div class="flex justify-center space-x-4">
+                        <button @click="open = false" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+                            Cancelar
+                        </button>
+                        <button @click="deleteRecord(recordId); open = false;" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- The main script that runs the application logic using Alpine.js -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        setLogLevel('debug'); // Enable Firestore debug logging
+
+        // Alpine.js data and logic
+        window.appData = function() {
+            return {
+                // Application state variables
+                app: null,
+                db: null,
+                auth: null,
+                userId: null,
+                isAuthReady: false,
+                isLoading: true,
+                appView: 'login', // 'login', 'collection', 'addRecord'
+                
+                // Data models
+                authData: {
+                    email: '',
+                    password: ''
+                },
+                collection: [],
+                newRecord: {
+                    album: '',
+                    artist: '',
+                    year: null,
+                    cover_url: ''
+                },
+                
+                // Notification system
+                notification: {
+                    visible: false,
+                    message: '',
+                    type: '' // 'success' or 'error'
+                },
+
+                // Functions
+                showNotification(message, type = 'success') {
+                    this.notification.message = message;
+                    this.notification.type = type;
+                    this.notification.visible = true;
+                    setTimeout(() => this.notification.visible = false, 3000);
+                },
+
+                async init() {
+                    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+                    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+                    this.app = initializeApp(firebaseConfig);
+                    this.db = getFirestore(this.app);
+                    this.auth = getAuth(this.app);
+
+                    // Set up the authentication state listener
+                    onAuthStateChanged(this.auth, async (user) => {
+                        this.isLoading = true;
+                        if (user) {
+                            this.userId = user.uid;
+                            this.isAuthReady = true;
+                            this.appView = 'collection'; // Go to collection view on successful auth
+                            this.showNotification('Login bem-sucedido!', 'success');
+                            this.listenForCollectionChanges(); // Start listening for data changes
+                        } else {
+                            this.isAuthReady = true;
+                            this.appView = 'login'; // Go to login view if no user
+                        }
+                        this.isLoading = false;
+                    });
+                    
+                    // Attempt to sign in with custom token, or anonymously if not available
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(this.auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(this.auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase Auth Error:", error);
+                        this.showNotification("Erro de autenticação: " + error.message, 'error');
+                        this.isLoading = false;
+                    }
+                },
+                
+                // Real-time listener for the user's collection
+                listenForCollectionChanges() {
+                    if (!this.isAuthReady || !this.userId) {
+                        console.log("Firestore listener not started: Auth not ready or userId missing.");
+                        return;
+                    }
+                    const collectionPath = `/artifacts/${__app_id}/users/${this.userId}/vinyl_collection`;
+                    const q = collection(this.db, collectionPath);
+                    
+                    onSnapshot(q, (snapshot) => {
+                        this.collection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        console.log("Coleção atualizada em tempo real:", this.collection);
+                    }, (error) => {
+                        console.error("Erro ao escutar a coleção:", error);
+                        this.showNotification("Erro ao carregar a coleção: " + error.message, 'error');
+                    });
+                },
+
+                // Authentication functions
+                async login() {
+                    this.isLoading = true;
+                    try {
+                        const { user } = await signInWithEmailAndPassword(this.auth, this.authData.email, this.authData.password);
+                        this.showNotification('Login bem-sucedido!', 'success');
+                        this.appView = 'collection';
+                    } catch (error) {
+                        console.error("Erro de login:", error);
+                        this.showNotification('Erro de login: ' + error.message, 'error');
+                    }
+                    this.isLoading = false;
+                },
+
+                async register() {
+                    this.isLoading = true;
+                    try {
+                        const { user } = await createUserWithEmailAndPassword(this.auth, this.authData.email, this.authData.password);
+                        this.showNotification('Registro bem-sucedido!', 'success');
+                        this.appView = 'collection';
+                    } catch (error) {
+                        console.error("Erro de registro:", error);
+                        this.showNotification('Erro de registro: ' + error.message, 'error');
+                    }
+                    this.isLoading = false;
+                },
+
+                async logout() {
+                    this.isLoading = true;
+                    try {
+                        await this.auth.signOut();
+                        this.showNotification('Sessão encerrada.', 'success');
+                        this.appView = 'login';
+                        this.collection = [];
+                    } catch (error) {
+                        console.error("Erro de logout:", error);
+                        this.showNotification('Erro ao encerrar a sessão: ' + error.message, 'error');
+                    }
+                    this.isLoading = false;
+                },
+
+                // Firestore data manipulation
+                async addRecord() {
+                    if (!this.isAuthReady || !this.userId) {
+                        this.showNotification('Usuário não autenticado.', 'error');
+                        return;
+                    }
+
+                    this.isLoading = true;
+                    try {
+                        const collectionRef = collection(this.db, `/artifacts/${__app_id}/users/${this.userId}/vinyl_collection`);
+                        await addDoc(collectionRef, this.newRecord);
+                        this.showNotification('Disco adicionado com sucesso!');
+                        this.newRecord = { album: '', artist: '', year: null, cover_url: '' };
+                        this.appView = 'collection';
+                    } catch (error) {
+                        console.error('Falha ao adicionar disco:', error);
+                        this.showNotification('Falha ao adicionar disco: ' + error.message, 'error');
+                    }
+                    this.isLoading = false;
+                },
+
+                async deleteRecord(recordId) {
+                    if (!this.isAuthReady || !this.userId) {
+                        this.showNotification('Usuário não autenticado.', 'error');
+                        return;
+                    }
+                    
+                    this.isLoading = true;
+                    try {
+                        const recordRef = doc(this.db, `/artifacts/${__app_id}/users/${this.userId}/vinyl_collection/${recordId}`);
+                        await deleteDoc(recordRef);
+                        this.showNotification('Disco excluído com sucesso!');
+                    } catch (error) {
+                        console.error('Falha ao excluir disco:', error);
+                        this.showNotification('Falha ao excluir disco: ' + error.message, 'error');
+                    }
+                    this.isLoading = false;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
