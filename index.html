@@ -30,7 +30,7 @@
     .theme-dark .border-custom { border-color: #383838; }
     .theme-dark .text-muted { color: #888888; }
     
-    /* Tema Claro */
+  /* Tema Claro */
     .theme-light {
       background-color: #f8fafc;
       color: #1f2937;
@@ -39,7 +39,9 @@
     .theme-light .bg-input { background-color: #f1f5f9; }
     .theme-light .border-custom { border-color: #e2e8f0; }
     .theme-light .text-muted { color: #64748b; }
-    .theme-light .bg-black { background-color: #1f2937 !important; }
+    .theme-light .bg-black { background-color: #1f2937 !important; color: #ffffff !important; }
+    .theme-light .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
+    .theme-light .text-white { color: #1f2937 !important; }
     
     .btn-primary { background-color: #1DB954; color: #FFFFFF; }
     .btn-primary:hover { background-color: #1ED760; }
@@ -322,7 +324,11 @@
                 <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                       class="format-badge" x-text="record.format || 'CD'"></span>
               </div>
-              <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
+                            <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
+                <button @click="editRecord(record)" 
+                        class="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700">
+                  <i data-lucide="edit" class="w-4 h-4"></i>
+                </button>
                 <button @click="confirmDeleteRecord(record.id)" 
                         class="bg-red-600 text-white rounded-full p-2 hover:bg-red-700">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -364,13 +370,18 @@
                     <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                           class="format-badge" x-text="record.format || 'CD'"></span>
                   </td>
-                  <td class="p-4" x-text="record.year || '-'"></td>
                   <td class="p-4">
-                    <button @click="confirmDeleteRecord(record.id)" 
-                            class="text-red-500 hover:text-red-700">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                  </td>
+  <div class="flex space-x-2">
+    <button @click="editRecord(record)" 
+            class="text-blue-500 hover:text-blue-700">
+      <i data-lucide="edit" class="w-4 h-4"></i>
+    </button>
+    <button @click="confirmDeleteRecord(record.id)" 
+            class="text-red-500 hover:text-red-700">
+      <i data-lucide="trash-2" class="w-4 h-4"></i>
+    </button>
+  </div>
+</td>
                 </tr>
               </template>
             </tbody>
@@ -761,6 +772,12 @@
 
           this.importModal.data = validRecords;
           this.importModal.preview = validRecords.slice(0, 3);
+        
+                  editRecord(record) {
+          this.newRecord = { ...record };
+          this.currentView = 'add-record';
+          this.showNotification('Editando item...', 'info');
+        },
 
           if (validRecords.length === 0) {
             this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
@@ -815,3 +832,4 @@
   </script>
 </body>
 </html>
+
