@@ -528,3 +528,290 @@
                 this.collection = [];
                 this.filteredCollection = [];
               }
+              this.loading = false;
+            });
+            
+            lucide.createIcons();
+          } catch (error) {
+            console.error('Erro na inicialização:', error);
+            this.showNotification('Erro ao carregar aplicação', 'error');
+            this.loading = false;
+          }
+        },
+
+        async setupCollection(userId) {
+          try {
+            const collectionRef = db.collection('users').doc(userId).collection('records');
+            collectionRef.onSnapshot((snapshot) => {
+              this.collection = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+              this.filterCollection();
+            });
+          } catch (error) {
+            console.error('Erro ao configurar coleção:', error);
+            this.showNotification('Erro ao carregar coleção', 'error');
+          }
+        },
+
+        async login() {
+          if (!this.email || !this.password) {
+            this.showNotification('Preencha email e senha', 'error');
+            return;
+          }
+
+          this.authLoading = true;
+          try {
+            await auth.signInWithEmailAndPassword(this.email, this.password);
+            this.showNotification('Login realizado com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro no login:', error);
+            this.showNotification('Erro no login: ' + error.message, 'error');
+          }
+          this.authLoading = false;
+        },
+
+        async register() {
+          if (!this.email || !this.password || !this.displayName) {
+            this.showNotification('Preencha todos os campos', 'error');
+            return;
+          }
+
+          if (this.password.length < 6) {
+            this.showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
+            return;
+          }
+
+          this.authLoading = true;
+          try {
+            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+            await userCredential.user.updateProfile({ displayName: this.displayName });
+            this.showNotification('Conta criada com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro no registro:', error);
+            this.showNotification('Erro no registro: ' + error.message, 'error');
+          }
+          this.authLoading = false;
+        },
+
+        confirmLogout() {
+          if (confirm('Deseja realmente sair?')) {
+            auth.signOut();
+            this.showNotification('Logout realizado com sucesso!', 'success');
+          }
+        },
+
+        async confirmAddRecord() {
+          if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
+            this.showNotification('Preencha os campos obrigatórios', 'error');
+            return;
+          }
+
+          if (confirm('Adicionar este item à coleção?')) {
+            await this.addRecord();
+          }
+        },
+
+        async addRecord() {
+          this.formLoading = true;
+          try {
+            const userId = this.user.uid;
+            const recordData = {
+              ...this.newRecord,
+              created_at: new Date(),
+              user_id: userId
+            };
+
+            await db.collection('users').doc(userId).collection('records').add(recordData);
+            this.showNotification('Item adicionado com sucesso!', 'success');
+            this.resetForm();
+            this.currentView = 'collection';
+          } catch (error) {
+            console.error('Erro ao adicionar:', error);
+            this.showNotification('Erro ao adicionar item', 'error');
+          }
+          this.formLoading = false;
+        },
+
+        confirmDeleteRecord(recordId) {
+          if (confirm('Deseja realmente excluir este item?')) {
+            this.deleteRecord(recordId);
+          }
+        },
+
+        async deleteRecord(recordId) {
+          try {
+            const userId = this.user.uid;
+            await db.collection('users').doc(userId).collection('records').doc(recordId).delete();
+            this.showNotification('Item excluído com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro ao excluir:', error);
+            this.showNotification('Erro ao excluir item', 'error');
+          }
+        },
+
+        filterCollection() {
+          if (!this.searchFilter.trim()) {
+            this.filteredCollection = this.collection;
+            return;
+          }
+
+          const filter = this.searchFilter.toLowerCase();
+          this.filteredCollection = this.collection.filter(record => 
+            record.album?.toLowerCase().includes(filter) ||
+            record.artist?.toLowerCase().includes(filter) ||
+            record.format?.toLowerCase().includes(filter) ||
+            record.year?.toString().includes(filter)
+          );
+        },
+
+        resetForm() {
+          this.newRecord = {
+            album: '', 
+            artist: '', 
+            format: '', 
+            year: '', 
+            catalog_number: '', 
+            cover_url: ''
+          };
+        },
+
+        searchCoverOnGoogle() {
+          const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
+          window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
+        },
+
+        toggleTheme() {
+          this.darkMode = !this.darkMode;
+          localStorage.setItem('katalog-theme', this.darkMode ? 'dark' : 'light');
+        },
+
+        async updateDisplayName() {
+          if (!this.newDisplayName?.trim()) return;
+
+          try {
+            await this.user.updateProfile({ displayName: this.newDisplayName.trim() });
+            this.showNotification('Nome atualizado com sucesso!', 'success');
+            this.newDisplayName = '';
+          } catch (error) {
+            console.error('Erro ao atualizar nome:', error);
+            this.showNotification('Erro ao atualizar nome', 'error');
+          }
+        },
+
+        confirmDeleteAccount() {
+          if (confirm('ATENÇÃO: Esta ação é irreversível. Deseja realmente excluir sua conta e todos os dados?')) {
+            this.deleteAccount();
+          }
+        },
+
+        async deleteAccount() {
+          try {
+            const userId = this.user.uid;
+            
+            // Deletar todos os registros
+            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+            const batch = db.batch();
+            recordsSnapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            
+            // Deletar conta
+            await this.user.delete();
+            this.showNotification('Conta excluída com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro ao excluir conta:', error);
+            this.showNotification('Erro ao excluir conta', 'error');
+          }
+        },
+
+        handleFileUpload(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+              this.processImportData(jsonData);
+            } catch (error) {
+              console.error('Erro ao processar arquivo:', error);
+              this.showNotification('Erro ao processar arquivo Excel', 'error');
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        },
+
+        processImportData(data) {
+          const validRecords = data.filter(row => 
+            row.album && row.artist && row.format
+          ).map(row => ({
+            album: row.album?.toString().trim(),
+            artist: row.artist?.toString().trim(),
+            format: row.format?.toString().trim(),
+            year: row.year ? parseInt(row.year) : '',
+            catalog_number: row.catalog_number?.toString().trim() || '',
+            cover_url: row.cover_url?.toString().trim() || ''
+          }));
+
+          this.importModal.data = validRecords;
+          this.importModal.preview = validRecords.slice(0, 3);
+
+          if (validRecords.length === 0) {
+            this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
+          }
+        },
+
+        async importRecords() {
+          if (this.importModal.data.length === 0) return;
+
+          this.importModal.loading = true;
+          try {
+            const userId = this.user.uid;
+            const batch = db.batch();
+
+            this.importModal.data.forEach(record => {
+              const docRef = db.collection('users').doc(userId).collection('records').doc();
+              batch.set(docRef, {
+                ...record,
+                created_at: new Date(),
+                user_id: userId
+              });
+            });
+
+            await batch.commit();
+            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
+            this.closeImportModal();
+          } catch (error) {
+            console.error('Erro na importação:', error);
+            this.showNotification('Erro ao importar registros', 'error');
+          }
+          this.importModal.loading = false;
+        },
+
+        closeImportModal() {
+          this.importModal = { show: false, data: [], preview: [], loading: false };
+        },
+
+        showNotification(message, type = 'success') {
+          this.notification = { show: true, message, type };
+          setTimeout(() => {
+            this.notification.show = false;
+          }, 4000);
+        }
+
+      }));
+    });
+
+    // Inicializar ícones após carregamento
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => lucide.createIcons(), 100);
+    });
+  </script>
+</body>
+</html>
