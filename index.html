@@ -329,7 +329,7 @@
                 <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                       class="format-badge" x-text="record.format || 'CD'"></span>
               </div>
-                            <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
+              <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
                 <button @click="editRecord(record)" 
                         class="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700">
                   <i data-lucide="edit" class="w-4 h-4"></i>
@@ -365,8 +365,7 @@
             <tbody>
               <template x-for="record in filteredCollection" :key="record.id">
                 <tr class="border-b border-custom hover:bg-input">
-                  <td class="p-4" x-text="record.year || '-'"></td>
-<td class="p-4">
+                  <td class="p-4">
                     <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                          class="w-12 h-12 object-cover rounded">
                   </td>
@@ -376,18 +375,19 @@
                     <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                           class="format-badge" x-text="record.format || 'CD'"></span>
                   </td>
+                  <td class="p-4" x-text="record.year || '-'"></td>
                   <td class="p-4">
-  <div class="flex space-x-2">
-    <button @click="editRecord(record)" 
-            class="text-blue-500 hover:text-blue-700">
-      <i data-lucide="edit" class="w-4 h-4"></i>
-    </button>
-    <button @click="confirmDeleteRecord(record.id)" 
-            class="text-red-500 hover:text-red-700">
-      <i data-lucide="trash-2" class="w-4 h-4"></i>
-    </button>
-  </div>
-</td>
+                    <div class="flex space-x-2">
+                      <button @click="editRecord(record)" 
+                              class="text-blue-500 hover:text-blue-700">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                      </button>
+                      <button @click="confirmDeleteRecord(record.id)" 
+                              class="text-red-500 hover:text-red-700">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               </template>
             </tbody>
@@ -640,22 +640,30 @@
               user_id: userId
             };
 
-            await db.collection('users').doc(userId).collection('records').add(recordData);
-            this.showNotification('Item adicionado com sucesso!', 'success');
+            if (this.newRecord.id) {
+              // Atualizar registro existente
+              await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
+              this.showNotification('Item atualizado com sucesso!', 'success');
+            } else {
+              // Adicionar novo registro
+              await db.collection('users').doc(userId).collection('records').add(recordData);
+              this.showNotification('Item adicionado com sucesso!', 'success');
+            }
+            
             this.resetForm();
             this.currentView = 'collection';
           } catch (error) {
-            console.error('Erro ao adicionar:', error);
-            this.showNotification('Erro ao adicionar item', 'error');
+            console.error('Erro ao salvar:', error);
+            this.showNotification('Erro ao salvar item', 'error');
           }
           this.formLoading = false;
         },
 
         editRecord(record) {
-  this.newRecord = { ...record };
-  this.currentView = 'add-record';
-  this.showNotification('Editando item...', 'info');
-},
+          this.newRecord = { ...record };
+          this.currentView = 'add-record';
+          this.showNotification('Editando item...', 'info');
+        },
     
         confirmDeleteRecord(recordId) {
           if (confirm('Deseja realmente excluir este item?')) {
@@ -782,10 +790,8 @@
             cover_url: row.cover_url?.toString().trim() || ''
           }));
 
-         this.importModal.data = validRecords;
-this.importModal.preview = validRecords.slice(0, 3);
-
-if (validRecords.length === 0) {
+          this.importModal.data = validRecords;
+          this.importModal.preview = validRecords.slice(0, 3);
 
           if (validRecords.length === 0) {
             this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
@@ -840,5 +846,3 @@ if (validRecords.length === 0) {
   </script>
 </body>
 </html>
-
-
