@@ -9,12 +9,12 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   
-  <!-- Firebase SDKs - Versão Compat -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   
-  <!-- SheetJS para Excel -->
+  <!-- SheetJS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <style>
@@ -24,38 +24,25 @@
     .border-custom { border-color: #383838; }
     .btn-primary { background-color: #1DB954; color: #FFFFFF; }
     .btn-primary:hover { background-color: #1ED760; }
-    .btn-danger { background-color: #dc2626; color: #FFFFFF; }
-    .btn-danger:hover { background-color: #b91c1c; }
     .btn-secondary { background-color: #4A4A4A; color: #FFFFFF; }
     .btn-secondary:hover { background-color: #5A5A5A; }
     .btn-primary:disabled, button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
     .placeholder-custom::placeholder { color: #888888; }
     [x-cloak] { display: none !important; }
-    .format-badge {
-      @apply px-2 py-1 text-xs font-semibold rounded-full;
-    }
+    .format-badge { @apply px-2 py-1 text-xs font-semibold rounded-full; }
     .format-cd { @apply bg-blue-500 text-white; }
     .format-vinil { @apply bg-purple-500 text-white; }
     .format-cassete { @apply bg-orange-500 text-white; }
     .format-digital { @apply bg-green-500 text-white; }
-    .footer-info { 
-      position: fixed; 
-      bottom: 20px; 
-      right: 20px; 
-      z-index: 40;
-      background: rgba(30, 30, 30, 0.9);
-      backdrop-filter: blur(10px);
-      border: 1px solid #383838;
-    }
   </style>
 </head>
 <body x-data="app" x-init="init()" x-cloak>
 
   <!-- Loading -->
-  <div x-show="isLoading" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+  <div x-show="loading" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
     <div class="flex flex-col items-center text-center p-4">
       <div class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-      <p class="text-white mt-4 text-lg" x-text="loadingMessage"></p>
+      <p class="text-white mt-4 text-lg">Carregando...</p>
     </div>
   </div>
 
@@ -67,179 +54,12 @@
     <p x-text="notification.message"></p>
   </div>
 
-  <!-- Modal Compartilhar -->
-  <div x-show="shareModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="shareModal.show = false">
-    <div class="bg-card p-8 rounded-lg max-w-md w-full mx-4">
-      <h3 class="text-xl font-bold mb-4">🎵 Compartilhar Minha Coleção</h3>
-      <p class="text-gray-400 mb-4">Copie este link para compartilhar sua coleção:</p>
-      <div class="flex space-x-2">
-        <input :value="shareModal.url" readonly 
-               class="flex-1 p-3 bg-input border border-custom rounded-md text-sm">
-        <button @click="copyShareLink()" class="px-4 py-3 btn-primary rounded-md">
-          <i data-lucide="copy" class="w-4 h-4"></i>
-        </button>
-      </div>
-      <div class="flex justify-end mt-4">
-        <button @click="shareModal.show = false" class="px-4 py-2 btn-secondary rounded-md">Fechar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Editar -->
-  <div x-show="editModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="editModal.show = false">
-    <div class="bg-card p-8 rounded-lg max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
-      <h3 class="text-xl font-bold mb-4">✏️ Editar Item</h3>
-      <form @submit.prevent="updateRecord()" class="space-y-4">
-        <div class="grid md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
-            <input x-model="editModal.record.album" required 
-                   class="w-full p-3 bg-input border border-custom rounded-md">
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Artista *</label>
-            <input x-model="editModal.record.artist" required 
-                   class="w-full p-3 bg-input border border-custom rounded-md">
-          </div>
-        </div>
-        
-        <div class="grid md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Formato *</label>
-            <select x-model="editModal.record.format" required
-                    class="w-full p-3 bg-input border border-custom rounded-md">
-              <option value="CD">📀 CD</option>
-              <option value="Vinil">🎵 Vinil</option>
-              <option value="Cassete">📼 Cassete</option>
-              <option value="Digital">💻 Digital</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Ano</label>
-            <input x-model="editModal.record.year" type="number" min="1900" max="2030"
-                   class="w-full p-3 bg-input border border-custom rounded-md">
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
-            <input x-model="editModal.record.catalog_number" 
-                   class="w-full p-3 bg-input border border-custom rounded-md">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Descrição da Edição</label>
-          <textarea x-model="editModal.record.edition_notes" 
-                    class="w-full p-3 bg-input border border-custom rounded-md resize-none"
-                    rows="3"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">URL da Capa</label>
-          <input x-model="editModal.record.cover_url" 
-                 class="w-full p-3 bg-input border border-custom rounded-md">
-          <div x-show="editModal.record.cover_url" class="mt-2">
-            <img :src="editModal.record.cover_url" class="w-20 h-20 object-cover rounded-md" 
-                 @error="editModal.record.cover_url = ''" alt="Preview">
-          </div>
-        </div>
-        
-        <div class="flex space-x-4">
-          <button type="submit" :disabled="editModal.loading" 
-                  class="flex-1 py-3 btn-primary rounded-md">
-            <span x-show="!editModal.loading">💾 Salvar Alterações</span>
-            <span x-show="editModal.loading">Salvando...</span>
-          </button>
-          <button type="button" @click="editModal.show = false" 
-                  class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal Import Excel -->
-  <div x-show="importModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="importModal.show = false">
-    <div class="bg-card p-8 rounded-lg max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
-      <h3 class="text-xl font-bold mb-4">📊 Importar do Excel</h3>
-      
-      <div class="space-y-4">
-        <!-- Instruções -->
-        <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-          <h4 class="font-semibold text-blue-300 mb-2">📋 Como preparar seu arquivo Excel:</h4>
-          <ul class="text-sm text-blue-200 space-y-1">
-            <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
-            <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
-            <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
-            <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
-            <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
-            <li>• <strong>edition_notes</strong> - Observações da edição (opcional)</li>
-            <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
-          </ul>
-        </div>
-        
-        <!-- Upload -->
-        <div>
-          <label class="block text-sm font-medium mb-2">Escolha o arquivo Excel:</label>
-          <input type="file" @change="handleFileUpload($event)" 
-                 accept=".xlsx,.xls,.csv" 
-                 class="w-full p-3 bg-input border border-custom rounded-md">
-        </div>
-        
-        <!-- Preview -->
-        <div x-show="importModal.preview.length > 0">
-          <h4 class="font-semibold mb-2">Preview (primeiros 3 itens):</h4>
-          <div class="bg-input rounded-lg p-4 max-h-40 overflow-y-auto">
-            <template x-for="item in importModal.preview.slice(0, 3)" :key="item.album">
-              <div class="text-sm py-1 border-b border-gray-600 last:border-b-0">
-                <strong x-text="item.album"></strong> - <span x-text="item.artist"></span>
-                (<span x-text="item.format"></span>)
-              </div>
-            </template>
-          </div>
-          <p class="text-sm text-gray-400 mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
-        </div>
-        
-        <div class="flex space-x-4">
-          <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
-                  class="flex-1 py-3 btn-primary rounded-md">
-            <span x-show="!importModal.loading">📥 Importar Coleção</span>
-            <span x-show="importModal.loading">Importando...</span>
-          </button>
-          <button @click="closeImportModal()" class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Info -->
-  <div x-show="infoModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="infoModal.show = false">
+  <!-- Modal Configurações -->
+  <div x-show="configModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
     <div class="bg-card p-8 rounded-lg max-w-lg w-full mx-4">
-      <h3 class="text-xl font-bold mb-4">ℹ️ Sobre o Katalog</h3>
-      <div class="space-y-4 text-gray-300">
-        <p>Este é um <strong>mockup inicial</strong> de um aplicativo desenvolvido por alunos da <strong>UMC</strong> do curso de <strong>Sistemas de Informação</strong>.</p>
-        <p>O objetivo é ajudar colecionadores a catalogar suas coleções musicais de forma objetiva e organizada.</p>
-        <p>Recursos inclusos:</p>
-        <ul class="list-disc list-inside space-y-1 text-sm">
-          <li>Catálogo completo com busca e filtros</li>
-          <li>Múltiplos formatos (CD, Vinil, Cassete, Digital)</li>
-          <li>Busca automática de capas</li>
-          <li>Importação via Excel</li>
-          <li>Compartilhamento de coleções</li>
-        </ul>
-        <p class="text-sm text-gray-400">Desenvolvido com ❤️ usando Firebase, Alpine.js e Tailwind CSS.</p>
-      </div>
-      <div class="flex justify-end mt-6">
-        <button @click="infoModal.show = false" class="px-6 py-2 btn-primary rounded-md">Fechar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Configurações do Usuário -->
-  <div x-show="userConfigModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="userConfigModal.show = false">
-    <div class="bg-card p-8 rounded-lg max-w-lg w-full mx-4 max-h-screen overflow-y-auto">
-      <h3 class="text-xl font-bold mb-4">⚙️ Configurações da Conta</h3>
+      <h3 class="text-xl font-bold mb-4">Configurações da Conta</h3>
       
       <div class="space-y-6">
-        <!-- Informações atuais -->
         <div class="bg-gray-800 p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Informações Atuais:</h4>
           <div class="space-y-2 text-sm">
@@ -248,56 +68,33 @@
           </div>
         </div>
 
-        <!-- Editar Nome -->
         <div>
-          <label class="block text-sm font-medium mb-2">Alterar Nome de Usuário:</label>
+          <label class="block text-sm font-medium mb-2">Alterar Nome:</label>
           <div class="flex space-x-2">
-            <input x-model="userConfigModal.newDisplayName" 
-                   placeholder="Digite o novo nome"
+            <input x-model="newDisplayName" placeholder="Digite o novo nome"
                    class="flex-1 p-3 bg-input border border-custom rounded-md">
-            <button @click="updateDisplayName()" 
-                    :disabled="userConfigModal.loading || !userConfigModal.newDisplayName?.trim()"
-                    class="px-4 py-3 btn-primary rounded-md">
-              <span x-show="!userConfigModal.loading">Salvar</span>
-              <span x-show="userConfigModal.loading">...</span>
-            </button>
+            <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
+                    class="px-4 py-3 btn-primary rounded-md">Salvar</button>
           </div>
         </div>
 
-        <!-- Alterar Email -->
-        <div>
-          <label class="block text-sm font-medium mb-2">Alterar Email:</label>
-          <div class="flex space-x-2">
-            <input x-model="userConfigModal.newEmail" type="email"
-                   placeholder="Digite o novo email"
-                   class="flex-1 p-3 bg-input border border-custom rounded-md">
-            <button @click="updateEmail()" 
-                    :disabled="userConfigModal.loading || !userConfigModal.newEmail?.trim()"
-                    class="px-4 py-3 btn-primary rounded-md">
-              <span x-show="!userConfigModal.loading">Alterar</span>
-              <span x-show="userConfigModal.loading">...</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Zona de Perigo -->
         <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
-          <h4 class="text-red-400 font-semibold mb-3">⚠️ Zona de Perigo</h4>
+          <h4 class="text-red-400 font-semibold mb-3">Zona de Perigo</h4>
           <button @click="confirmDeleteAccount()" 
                   class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md">
-            🗑️ Excluir Conta Permanentemente
+            Excluir Conta
           </button>
         </div>
       </div>
       
       <div class="flex justify-end mt-6">
-        <button @click="userConfigModal.show = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
+        <button @click="configModal = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
       </div>
     </div>
   </div>
 
-  <!-- Tela de Login -->
-  <div x-show="!user && !isLoading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black">
+  <!-- Login -->
+  <div x-show="!user && !loading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black">
     <div class="bg-card p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
       <div class="text-center mb-8">
         <i data-lucide="disc-3" class="mx-auto h-16 w-16 text-green-400 mb-4"></i>
@@ -306,88 +103,43 @@
       </div>
       
       <div class="space-y-4">
-        <!-- Modo Login -->
-        <div x-show="!showRegisterForm && !showForgotPassword" class="space-y-4">
-          <div>
-            <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          </div>
-          <div>
-            <input x-model="loginPassword" type="password" placeholder="Sua senha" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          </div>
-          <button @click="loginWithEmail()" 
-                  :disabled="authLoading"
+        <div x-show="!showRegister" class="space-y-4">
+          <input x-model="email" type="email" placeholder="seu@email.com" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="password" type="password" placeholder="Sua senha" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <button @click="login()" :disabled="authLoading"
                   class="w-full py-3 px-4 btn-primary rounded-md font-medium">
-            <span x-show="!authLoading">🎵 Entrar</span>
-            <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
+            <span x-show="!authLoading">Entrar</span>
+            <span x-show="authLoading">Entrando...</span>
           </button>
           
-          <div class="text-center space-y-2">
-            <button @click="showForgotPassword = true" 
-                    class="text-sm text-gray-400 hover:text-white">
-              Esqueci minha senha
+          <div class="text-center">
+            <span class="text-gray-400 text-sm">Não tem uma conta?</span>
+            <button @click="showRegister = true" class="text-green-400 hover:text-green-300 text-sm ml-1">
+              Cadastre-se
             </button>
-            <div>
-              <span class="text-gray-400 text-sm">Não tem uma conta?</span>
-              <button @click="showRegisterForm = true" 
-                      class="text-green-400 hover:text-green-300 text-sm ml-1">
-                Cadastre-se
-              </button>
-            </div>
           </div>
         </div>
 
-        <!-- Modo Cadastro -->
-        <div x-show="showRegisterForm" class="space-y-4">
+        <div x-show="showRegister" class="space-y-4">
           <h3 class="text-lg font-semibold text-center">Criar Nova Conta</h3>
-          <div>
-            <input x-model="registerData.displayName" type="text" placeholder="Nome de usuário" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          </div>
-          <div>
-            <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          </div>
-          <div>
-            <input x-model="loginPassword" type="password" placeholder="Senha (min. 6 caracteres)" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          </div>
-          <button @click="registerWithEmail()" 
-                  :disabled="authLoading"
+          <input x-model="displayName" type="text" placeholder="Nome de usuário" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="email" type="email" placeholder="seu@email.com" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="password" type="password" placeholder="Senha (min. 6 caracteres)" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <button @click="register()" :disabled="authLoading"
                   class="w-full py-3 px-4 btn-primary rounded-md font-medium">
-            <span x-show="!authLoading">📝 Cadastrar</span>
-            <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
+            <span x-show="!authLoading">Cadastrar</span>
+            <span x-show="authLoading">Cadastrando...</span>
           </button>
           
           <div class="text-center">
             <span class="text-gray-400 text-sm">Já tem uma conta?</span>
-            <button @click="showRegisterForm = false" 
-                    class="text-green-400 hover:text-green-300 text-sm ml-1">
+            <button @click="showRegister = false" class="text-green-400 hover:text-green-300 text-sm ml-1">
               Fazer login
-            </button>
-          </div>
-        </div>
-
-        <!-- Modo Esqueci Senha -->
-        <div x-show="showForgotPassword" class="space-y-4">
-          <h3 class="text-lg font-semibold text-center">Recuperar Senha</h3>
-          <p class="text-sm text-gray-400 text-center">Digite seu email para receber o link de recuperação:</p>
-          <div>
-            <input x-model="resetEmail" type="email" placeholder="seu@email.com" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          </div>
-          <button @click="resetPassword()" 
-                  :disabled="authLoading"
-                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
-            <span x-show="!authLoading">📧 Enviar Link</span>
-            <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
-          </button>
-          
-          <div class="text-center">
-            <button @click="showForgotPassword = false" 
-                    class="text-gray-400 hover:text-white text-sm">
-              ← Voltar ao login
             </button>
           </div>
         </div>
@@ -396,7 +148,7 @@
   </div>
 
   <!-- Dashboard -->
-  <div x-show="user && !isLoading" class="flex h-screen">
+  <div x-show="user && !loading" class="flex h-screen">
     <!-- Sidebar -->
     <aside class="w-64 bg-black flex-shrink-0 flex flex-col">
       <div class="p-4 flex items-center space-x-2 border-b border-custom">
@@ -404,93 +156,463 @@
         <h1 class="text-xl font-bold text-white">Katalog</h1>
       </div>
       <nav class="flex-1 p-4 space-y-2">
-        <a href="#" @click.prevent="appView = 'collection'" 
-           :class="{'bg-green-500 text-white': appView === 'collection'}"
+        <a href="#" @click.prevent="currentView = 'collection'" 
+           :class="{'bg-green-500 text-white': currentView === 'collection'}"
            class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700">
            <i data-lucide="album"></i><span>Minha Coleção</span>
         </a>
-        <a href="#" @click.prevent="appView = 'add-record'" 
-           :class="{'bg-green-500 text-white': appView === 'add-record'}"
+        <a href="#" @click.prevent="currentView = 'add-record'" 
+           :class="{'bg-green-500 text-white': currentView === 'add-record'}"
            class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700">
            <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
         </a>
-        <a href="#" @click.prevent="importModal.show = true" 
-           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
-           <i data-lucide="upload"></i><span>Importar Excel</span>
-        </a>
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
-        <button @click="openShareModal()" 
-                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-blue-600/50 hover:bg-blue-700 text-white">
-          <i data-lucide="share-2"></i><span>Compartilhar</span>
-        </button>
         <div class="px-3 py-2 text-xs text-gray-400 break-words">
-          <span class="font-semibold text-gray-300">Usuário:</span>
-          <span x-text="user?.email || user?.uid.substring(0, 8) + '...'"></span>
+          <span x-text="user?.email"></span>
         </div>
-        <a href="#" @click.prevent="confirmLogout()" 
-           class="flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
-           <i data-lucide="log-out"></i><span>Sair</span>
-        </a>
+        <button @click="confirmLogout()" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
+          <i data-lucide="log-out"></i><span>Sair</span>
+        </button>
       </div>
     </aside>
 
     <!-- Main -->
     <main class="flex-1 p-8 overflow-y-auto">
-      <!-- Header com nome do usuário -->
+      <!-- Header -->
       <div class="flex justify-between items-center mb-8">
         <div>
           <h1 class="text-2xl font-bold text-white">
-            Olá, <span x-text="user?.displayName || 'Usuário'"></span>! 👋
+            Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
           </h1>
           <p class="text-gray-400 text-sm">Bem-vindo à sua coleção musical</p>
         </div>
-        <button @click="openUserConfigModal()" 
-                class="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors">
+        <button @click="configModal = true" 
+                class="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Configurações</span>
         </button>
       </div>
 
       <!-- Coleção -->
-      <div x-show="appView === 'collection'">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-3xl font-bold">Minha Coleção (<span x-text="collection.length"></span>)</h2>
-          <div class="flex space-x-2">
-            <button @click="viewMode = 'grid'" 
-                    :class="{'btn-primary': viewMode === 'grid', 'btn-secondary': viewMode !== 'grid'}"
-                    class="px-4 py-2 rounded-md">
-              <i data-lucide="grid-3x3"></i>
-            </button>
-            <button @click="viewMode = 'list'" 
-                    :class="{'btn-primary': viewMode === 'list', 'btn-secondary': viewMode !== 'list'}"
-                    class="px-4 py-2 rounded-md">
-              <i data-lucide="list"></i>
-            </button>
-          </div>
+      <div x-show="currentView === 'collection'">
+        <h2 class="text-3xl font-bold mb-6">Minha Coleção (<span x-text="collection.length"></span>)</h2>
+        
+        <!-- Busca -->
+        <div class="mb-6">
+          <input x-model="searchFilter" @input="filterCollection()" 
+                 placeholder="Buscar por álbum, artista, formato..." 
+                 class="w-full max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
         </div>
         
-        <!-- Controles -->
-        <div class="mb-6 space-y-4">
-          <!-- Busca -->
-          <input x-model="searchFilter" @input="filterCollection()" 
-                 placeholder="🔍 Buscar por álbum, artista, formato..." 
-                 class="w-full max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
+        <!-- Grid -->
+        <div x-show="filteredCollection.length > 0" 
+             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <template x-for="record in filteredCollection" :key="record.id">
+            <div class="bg-card rounded-lg overflow-hidden shadow-lg group">
+              <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                   class="w-full aspect-square object-cover">
+              <div class="absolute top-2 left-2">
+                <span :class="`format-${record.format?.toLowerCase() || 'cd'}`" 
+                      class="format-badge" x-text="record.format || 'CD'"></span>
+              </div>
+              <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
+                <button @click="confirmDeleteRecord(record.id)" 
+                        class="bg-red-600 text-white rounded-full p-2 hover:bg-red-700">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="p-3">
+                <h3 class="font-bold text-white truncate" x-text="record.album"></h3>
+                <p class="text-sm text-gray-400 truncate" x-text="record.artist"></p>
+                <p x-show="record.year" class="text-xs text-gray-500" x-text="record.year"></p>
+              </div>
+            </div>
+          </template>
+        </div>
+        
+        <!-- Empty State -->
+        <div x-show="collection.length === 0" class="text-center py-20 bg-card rounded-lg">
+          <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-gray-500 mb-4"></i>
+          <h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
+          <p class="text-gray-400 mt-2">Comece adicionando seu primeiro item!</p>
+          <button @click="currentView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">
+            Adicionar Item
+          </button>
+        </div>
+      </div>
+
+      <!-- Form Adicionar -->
+      <div x-show="currentView === 'add-record'">
+        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Item</h2>
+        <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-8 rounded-lg space-y-6">
           
-          <!-- Filtros e Ordenação -->
-          <div class="flex flex-wrap gap-4">
-            <select x-model="formatFilter" @change="filterCollection()" 
-                    class="p-2 bg-input border border-custom rounded-md">
-              <option value="">Todos os formatos</option>
-              <option value="CD">📀 CD</option>
-              <option value="Vinil">🎵 Vinil</option>
-              <option value="Cassete">📼 Cassete</option>
-              <option value="Digital">💻 Digital</option>
-            </select>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
+              <input x-model="newRecord.album" required 
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Artista *</label>
+              <input x-model="newRecord.artist" required 
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+            </div>
+          </div>
+          
+          <div class="grid md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Formato *</label>
+              <select x-model="newRecord.format" required
+                      class="w-full p-3 bg-input border border-custom rounded-md">
+                <option value="">Selecione...</option>
+                <option value="CD">CD</option>
+                <option value="Vinil">Vinil</option>
+                <option value="Cassete">Cassete</option>
+                <option value="Digital">Digital</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Ano</label>
+              <input x-model="newRecord.year" type="number" min="1900" max="2030"
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
+              <input x-model="newRecord.catalog_number"
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
             
-            <select x-model="sortBy" @change="filterCollection()" 
-                    class="p-2 bg-input border border-custom rounded-md">
-              <option value="newest">Mais recentes</option>
-              <option value="oldest">Mais antigos</option>
-              <option value="album-asc">Álbum (A-Z)</option>
-              <option value="album-desc">Álbum (Z-A)</option>
+            <div class="mb-4">
+              <button type="button" @click="searchCoverOnGoogle()" 
+                      :disabled="!newRecord.album || !newRecord.artist"
+                      class="px-4 py-2 btn-primary rounded-md flex items-center">
+                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                Buscar Capa no Google Imagens
+              </button>
+              <p class="text-xs text-gray-400 mt-1">
+                Clique com o botão direito na imagem → "Copiar endereço da imagem"
+              </p>
+            </div>
+            
+            <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
+                   class="w-full p-3 bg-input border border-custom rounded-md mb-4">
+            
+            <div x-show="newRecord.cover_url" class="mb-4">
+              <p class="text-sm text-gray-400 mb-2">Preview:</p>
+              <img :src="newRecord.cover_url" class="w-32 h-32 object-cover rounded-md" 
+                   @error="newRecord.cover_url = ''">
+            </div>
+          </div>
+          
+          <div class="flex space-x-4">
+            <button type="submit" :disabled="formLoading" 
+                    class="flex-1 py-3 btn-primary rounded-md">
+              <span x-show="!formLoading">Salvar Item</span>
+              <span x-show="formLoading">Salvando...</span>
+            </button>
+            <button type="button" @click="resetForm()" 
+                    class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
+      authDomain: "katalog-1178e.firebaseapp.com",
+      projectId: "katalog-1178e",
+      storageBucket: "katalog-1178e.firebasestorage.app",
+      messagingSenderId: "998961219093",
+      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('app', () => ({
+        loading: true,
+        user: null,
+        authLoading: false,
+        formLoading: false,
+        
+        // UI
+        currentView: 'collection',
+        showRegister: false,
+        configModal: false,
+        searchFilter: '',
+        
+        // Data
+        collection: [],
+        filteredCollection: [],
+        newRecord: { album: '', artist: '', format: '', year: '', catalog_number: '', cover_url: '' },
+        
+        // Auth
+        email: '',
+        password: '',
+        displayName: '',
+        newDisplayName: '',
+        
+        // Notification
+        notification: { show: false, message: '', type: 'success' },
+
+        async init() {
+          try {
+            auth.onAuthStateChanged((user) => {
+              this.user = user;
+              if (user) {
+                this.setupCollection(user.uid);
+              } else {
+                this.collection = [];
+                this.filteredCollection = [];
+              }
+              this.loading = false;
+            });
+          } catch (error) {
+            console.error('Erro:', error);
+            this.loading = false;
+          }
+          
+          this.$nextTick(() => {
+            if (typeof lucide !== 'undefined') {
+              lucide.createIcons();
+            }
+          });
+        },
+
+        async login() {
+          if (!this.email || !this.password) {
+            this.showNotification("Preencha email e senha", "error");
+            return;
+          }
+          
+          this.authLoading = true;
+          try {
+            await auth.signInWithEmailAndPassword(this.email, this.password);
+            this.showNotification("Login realizado com sucesso!", "success");
+            this.email = '';
+            this.password = '';
+          } catch (error) {
+            this.showNotification("Email ou senha incorretos", "error");
+          } finally {
+            this.authLoading = false;
+          }
+        },
+
+        async register() {
+          if (!this.displayName?.trim()) {
+            this.showNotification("Preencha o nome de usuário", "error");
+            return;
+          }
+          if (!this.email || !this.password) {
+            this.showNotification("Preencha email e senha", "error");
+            return;
+          }
+          if (this.password.length < 6) {
+            this.showNotification("Senha deve ter pelo menos 6 caracteres", "error");
+            return;
+          }
+
+          if (!confirm(`Deseja criar uma conta com o email "${this.email}"?`)) {
+            return;
+          }
+          
+          this.authLoading = true;
+          try {
+            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+            await userCredential.user.updateProfile({
+              displayName: this.displayName.trim()
+            });
+
+            this.showNotification("Conta criada com sucesso!", "success");
+            this.email = '';
+            this.password = '';
+            this.displayName = '';
+            this.showRegister = false;
+          } catch (error) {
+            if (error.code === 'auth/email-already-in-use') {
+              this.showNotification("Este email já está em uso!", "error");
+            } else {
+              this.showNotification("Erro ao criar conta", "error");
+            }
+          } finally {
+            this.authLoading = false;
+          }
+        },
+
+        confirmLogout() {
+          if (confirm('Deseja sair da sua conta?')) {
+            this.logout();
+          }
+        },
+
+        async logout() {
+          try {
+            await auth.signOut();
+            this.showNotification("Logout realizado com sucesso", "success");
+            this.currentView = 'collection';
+          } catch (error) {
+            this.showNotification("Erro ao sair", "error");
+          }
+        },
+
+        async updateDisplayName() {
+          if (!this.newDisplayName?.trim()) {
+            this.showNotification("Digite um nome válido", "error");
+            return;
+          }
+
+          try {
+            await this.user.updateProfile({
+              displayName: this.newDisplayName.trim()
+            });
+            this.showNotification("Nome atualizado com sucesso!", "success");
+            this.newDisplayName = '';
+          } catch (error) {
+            this.showNotification("Erro ao atualizar nome", "error");
+          }
+        },
+
+        confirmDeleteAccount() {
+          if (confirm('ATENÇÃO: Esta ação irá excluir permanentemente sua conta e todos os seus dados. Deseja continuar?')) {
+            this.deleteAccount();
+          }
+        },
+
+        async deleteAccount() {
+          try {
+            const batch = db.batch();
+            const userRecords = await db.collection(`users/${this.user.uid}/records`).get();
+            
+            userRecords.docs.forEach((doc) => {
+              batch.delete(doc.ref);
+            });
+            
+            await batch.commit();
+            await this.user.delete();
+            
+            this.showNotification("Conta excluída com sucesso", "success");
+          } catch (error) {
+            this.showNotification("Erro ao excluir conta", "error");
+          }
+        },
+
+        setupCollection(userId) {
+          db.collection(`users/${userId}/records`)
+            .orderBy('createdAt', 'desc')
+            .onSnapshot((snapshot) => {
+              this.collection = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+              this.filterCollection();
+            });
+        },
+
+        filterCollection() {
+          let filtered = [...this.collection];
+          
+          if (this.searchFilter.trim()) {
+            const filter = this.searchFilter.toLowerCase();
+            filtered = filtered.filter(record => 
+              record.album.toLowerCase().includes(filter) ||
+              record.artist.toLowerCase().includes(filter) ||
+              record.format?.toLowerCase().includes(filter)
+            );
+          }
+          
+          this.filteredCollection = filtered;
+        },
+
+        confirmAddRecord() {
+          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim() || !this.newRecord.format) {
+            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
+            return;
+          }
+
+          if (confirm(`Deseja adicionar "${this.newRecord.album}" de "${this.newRecord.artist}" à sua coleção?`)) {
+            this.addRecord();
+          }
+        },
+
+        async addRecord() {
+          this.formLoading = true;
+          
+          try {
+            const recordData = {
+              album: this.newRecord.album.trim(),
+              artist: this.newRecord.artist.trim(),
+              format: this.newRecord.format,
+              year: this.newRecord.year ? Number(this.newRecord.year) : null,
+              catalog_number: this.newRecord.catalog_number?.trim() || null,
+              cover_url: this.newRecord.cover_url?.trim() || null,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection(`users/${this.user.uid}/records`).add(recordData);
+            
+            this.showNotification("Item adicionado com sucesso!", "success");
+            this.resetForm();
+            this.currentView = 'collection';
+            
+          } catch (error) {
+            this.showNotification("Erro ao salvar item", "error");
+          } finally {
+            this.formLoading = false;
+          }
+        },
+
+        confirmDeleteRecord(id) {
+          const record = this.collection.find(r => r.id === id);
+          const albumName = record ? `"${record.album}"` : 'este item';
+          
+          if (confirm(`Tem certeza que deseja excluir ${albumName} da sua coleção?`)) {
+            this.deleteRecord(id);
+          }
+        },
+
+        async deleteRecord(id) {
+          try {
+            await db.collection(`users/${this.user.uid}/records`).doc(id).delete();
+            this.showNotification("Item excluído com sucesso!", "success");
+          } catch (error) {
+            this.showNotification("Erro ao excluir item", "error");
+          }
+        },
+
+        searchCoverOnGoogle() {
+          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
+            this.showNotification("Preencha álbum e artista primeiro!", "error");
+            return;
+          }
+          
+          const query = `${this.newRecord.artist} ${this.newRecord.album} album cover capa`;
+          const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+          
+          window.open(googleUrl, '_blank');
+          this.showNotification("Nova aba aberta! Clique com botão direito na imagem → 'Copiar endereço da imagem'", "info");
+        },
+
+        resetForm() {
+          this.newRecord = { album: '', artist: '', format: '', year: '', catalog_number: '', cover_url: '' };
+        },
+
+        showNotification(message, type = 'success') {
+          this.notification = { message, type, show: true };
+          setTimeout(() => { this.notification.show = false; }, 4000);
+        }
+      }))
+    });
+  </script>
+</body>
+</html>
