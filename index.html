@@ -50,12 +50,10 @@
     
     /* Correções de visibilidade para modo claro */
     .theme-light h1, .theme-light h2, .theme-light h3, .theme-light h4 { color: #1f2937 !important; }
-    .theme-light table th { color: #374151 !important; }
-    .theme-light table td { color: #4b5563 !important; }
+    .theme-light table th { color: #1f2937 !important; }
+    .theme-light table td { color: #1f2937 !important; }
     .theme-light .font-bold { color: #1f2937 !important; }
-    .theme-light .font-semibold { color: #374151 !important; }
-    .theme-light .text-sm { color: #6b7280 !important; }
-    .theme-light .text-xs { color: #6b7280 !important; }
+    .theme-light .font-semibold { color: #1f2937 !important; }
     
     /* Estilos para ordenação */
     .sort-button {
@@ -127,7 +125,7 @@
         <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Informações Atuais:</h4>
           <div class="space-y-2 text-sm text-muted">
-            <div><span>Email:</span> <span x-text="user?.email || 'Não definido'"></span></div>
+            <div><span>Email:</span> <span x-text="user?.email"></span></div>
             <div><span>Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
           </div>
         </div>
@@ -290,7 +288,7 @@
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
         <div class="px-3 py-2 text-xs text-gray-400 break-words">
-          <span x-text="user?.email || 'Usuário'"></span>
+          <span x-text="user?.email"></span>
         </div>
         <button @click="confirmLogout()" 
                 class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
@@ -399,7 +397,6 @@
                 <th class="text-left p-4 font-semibold">Artista</th>
                 <th class="text-left p-4 font-semibold">Formato</th>
                 <th class="text-left p-4 font-semibold">Ano</th>
-                <th class="text-left p-4 font-semibold">Código</th>
                 <th class="text-left p-4 font-semibold">Ações</th>
               </tr>
             </thead>
@@ -417,7 +414,6 @@
                           class="format-badge" x-text="record.format || 'CD'"></span>
                   </td>
                   <td class="p-4" x-text="record.year || '-'"></td>
-                  <td class="p-4 text-sm" x-text="record.catalog_number || '-'"></td>
                   <td class="p-4">
                     <div class="flex space-x-2">
                       <button @click="editRecord(record)" 
@@ -449,10 +445,7 @@
 
       <!-- Form Adicionar -->
       <div x-show="currentView === 'add-record'">
-        <h2 class="text-3xl font-bold mb-6">
-          <span x-show="!editingRecord">Adicionar Novo Item</span>
-          <span x-show="editingRecord">Editar Item</span>
-        </h2>
+        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Item</h2>
         <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-8 rounded-lg space-y-6">
           
           <div class="grid md:grid-cols-2 gap-4">
@@ -491,24 +484,40 @@
                      class="w-full p-3 bg-input border border-custom rounded-md">
             </div>
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium mb-1">URL da Capa</label>
-            <input x-model="newRecord.cover_url" type="url" 
-                   placeholder="https://exemplo.com/capa.jpg"
-                   class="w-full p-3 bg-input border border-custom rounded-md">
+            <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
+            
+            <div class="mb-4">
+              <button type="button" @click="searchCoverOnGoogle()" 
+                      :disabled="!newRecord.album || !newRecord.artist"
+                      class="px-4 py-2 btn-primary rounded-md flex items-center">
+                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                Buscar Capa no Google Imagens
+              </button>
+              <p class="text-xs text-muted mt-1">
+                Clique com o botão direito na imagem → "Copiar endereço da imagem"
+              </p>
+            </div>
+            
+            <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
+                   class="w-full p-3 bg-input border border-custom rounded-md mb-4">
+            
+            <div x-show="newRecord.cover_url" class="mb-4">
+              <p class="text-sm text-muted mb-2">Preview:</p>
+              <img :src="newRecord.cover_url" class="w-32 h-32 object-cover rounded-md" 
+                   @error="newRecord.cover_url = ''">
+            </div>
           </div>
           
           <div class="flex space-x-4">
-            <button type="submit" :disabled="!newRecord.album || !newRecord.artist || !newRecord.format"
+            <button type="submit" :disabled="formLoading" 
                     class="flex-1 py-3 btn-primary rounded-md">
-              <span x-show="!editingRecord">Adicionar à Coleção</span>
-              <span x-show="editingRecord">Salvar Alterações</span>
+              <span x-show="!formLoading">Salvar Item</span>
+              <span x-show="formLoading">Salvando...</span>
             </button>
-            <button type="button" @click="resetForm()" class="px-6 py-3 btn-secondary rounded-md">
-              <span x-show="!editingRecord">Limpar</span>
-              <span x-show="editingRecord">Cancelar</span>
-            </button>
+            <button type="button" @click="resetForm()" 
+                    class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
           </div>
         </form>
       </div>
@@ -516,122 +525,100 @@
   </div>
 
   <script>
-    // Configuração Firebase (substitua pelas suas credenciais)
-const firebaseConfig = {
-  apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
-  authDomain: "katalog-1178e.firebaseapp.com",
-  projectId: "katalog-1178e",
-  storageBucket: "katalog-1178e.firebasestorage.app",
-  messagingSenderId: "998961219093",
-  appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
-};
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
+      authDomain: "katalog-1178e.firebaseapp.com",
+      projectId: "katalog-1178e",
+      storageBucket: "katalog-1178e.firebasestorage.app",
+      messagingSenderId: "998961219093",
+      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
+    };
 
-    // Inicializar Firebase se não estiver em demo
-    let db, auth;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      auth = firebase.auth();
-    } catch (error) {
-      console.log('Firebase não configurado, usando modo demo');
-    }
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    function app() {
-      return {
-        // Estados
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('app', () => ({
         loading: true,
         user: null,
-        darkMode: true,
+        authLoading: false,
+        formLoading: false,
+        
+        // Tema
+        darkMode: localStorage.getItem('katalog-theme') !== 'light',
+        
+        // UI
         currentView: 'collection',
         viewMode: 'grid',
+        showRegister: false,
+        configModal: false,
+        searchFilter: '',
+        
+        // Modals
+        importModal: { show: false, data: [], preview: [], loading: false },
+        
+        // Data
+        collection: [],
+        filteredCollection: [],
+        sortBy: 'album',
+        sortOrder: 'asc',
+        newRecord: { album: '', artist: '', format: '', year: '', catalog_number: '', cover_url: '' },
         
         // Auth
         email: '',
         password: '',
         displayName: '',
-        showRegister: false,
-        authLoading: false,
         newDisplayName: '',
         
-        // Modais
-        configModal: false,
-        
-        // Dados
-        collection: [],
-        filteredCollection: [],
-        
-        // Busca e filtros
-        searchFilter: '',
-        sortBy: 'album',
-        sortOrder: 'asc',
-        
-        // Form
-        newRecord: {
-          album: '',
-          artist: '',
-          format: '',
-          year: '',
-          catalog_number: '',
-          cover_url: ''
-        },
-        editingRecord: null,
-        
-        // Import
-        importModal: {
-          show: false,
-          data: [],
-          preview: [],
-          loading: false
-        },
-        
-        // Notificações
-        notification: {
-          show: false,
-          message: '',
-          type: 'info'
-        },
+        // Notification
+        notification: { show: false, message: '', type: 'success' },
 
-        init() {
-          this.loadTheme();
-          this.initAuth();
-        },
-
-        loadTheme() {
-          const saved = localStorage.getItem('darkMode');
-          this.darkMode = saved !== null ? JSON.parse(saved) : true;
-        },
-
-        saveTheme() {
-          localStorage.setItem('darkMode', JSON.stringify(this.darkMode));
-        },
-
-        toggleTheme() {
-          this.darkMode = !this.darkMode;
-          this.saveTheme();
-        },
-
-        initAuth() {
-          if (auth) {
+        async init() {
+          try {
             auth.onAuthStateChanged((user) => {
               this.user = user;
               if (user) {
-                this.loadCollection();
+                this.setupCollection(user.uid);
+              } else {
+                this.collection = [];
+                this.filteredCollection = [];
               }
               this.loading = false;
+              // Re-criar ícones após mudanças
+              setTimeout(() => lucide.createIcons(), 100);
             });
-          } else {
-            // Modo demo
-            setTimeout(() => {
-              this.user = { email: 'demo@katalog.com', displayName: 'Usuário Demo' };
-              this.loadDemoData();
-              this.loading = false;
-            }, 1000);
+            
+            lucide.createIcons();
+            // Garantir que os ícones sejam criados após qualquer mudança
+            setTimeout(() => lucide.createIcons(), 50);
+          } catch (error) {
+            console.error('Erro na inicialização:', error);
+            this.showNotification('Erro ao carregar aplicação', 'error');
+            this.loading = false;
+          }
+        },
+
+        async setupCollection(userId) {
+          try {
+            const collectionRef = db.collection('users').doc(userId).collection('records');
+            collectionRef.onSnapshot((snapshot) => {
+              this.collection = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+              this.filterAndSortCollection();
+            });
+          } catch (error) {
+            console.error('Erro ao configurar coleção:', error);
+            this.showNotification('Erro ao carregar coleção', 'error');
           }
         },
 
         async login() {
-          if (!auth) {
-            this.showNotification('Modo demo ativo', 'info');
+          if (!this.email || !this.password) {
+            this.showNotification('Preencha email e senha', 'error');
             return;
           }
 
@@ -640,184 +627,152 @@ const firebaseConfig = {
             await auth.signInWithEmailAndPassword(this.email, this.password);
             this.showNotification('Login realizado com sucesso!', 'success');
           } catch (error) {
-            this.showNotification(this.getAuthErrorMessage(error.code), 'error');
+            console.error('Erro no login:', error);
+            this.showNotification('Erro no login: ' + error.message, 'error');
           }
           this.authLoading = false;
         },
 
         async register() {
-          if (!auth) {
-            this.showNotification('Modo demo ativo', 'info');
+          if (!this.email || !this.password || !this.displayName) {
+            this.showNotification('Preencha todos os campos', 'error');
             return;
           }
 
-          if (!this.displayName.trim()) {
-            this.showNotification('Nome de usuário é obrigatório', 'error');
+          if (this.password.length < 6) {
+            this.showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
             return;
           }
 
           this.authLoading = true;
           try {
-            const result = await auth.createUserWithEmailAndPassword(this.email, this.password);
-            await result.user.updateProfile({ displayName: this.displayName });
+            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+            await userCredential.user.updateProfile({ displayName: this.displayName });
             this.showNotification('Conta criada com sucesso!', 'success');
           } catch (error) {
-            this.showNotification(this.getAuthErrorMessage(error.code), 'error');
+            console.error('Erro no registro:', error);
+            this.showNotification('Erro no registro: ' + error.message, 'error');
           }
           this.authLoading = false;
         },
 
-        async updateDisplayName() {
-          if (!this.newDisplayName?.trim()) return;
-
-          if (!auth || !this.user) {
-            this.showNotification('Modo demo ativo', 'info');
-            return;
-          }
-
-          try {
-            await this.user.updateProfile({ displayName: this.newDisplayName });
-            this.user = { ...this.user, displayName: this.newDisplayName };
-            this.newDisplayName = '';
-            this.showNotification('Nome atualizado com sucesso!', 'success');
-          } catch (error) {
-            this.showNotification('Erro ao atualizar nome', 'error');
-          }
-        },
-
         confirmLogout() {
-          if (confirm('Tem certeza que deseja sair?')) {
-            this.logout();
+          if (confirm('Deseja realmente sair?')) {
+            auth.signOut();
+            this.showNotification('Logout realizado com sucesso!', 'success');
           }
         },
 
-        async logout() {
-          if (auth) {
-            await auth.signOut();
-          } else {
-            this.user = null;
-            this.collection = [];
-            this.filteredCollection = [];
-          }
-          this.resetForm();
-          this.currentView = 'collection';
-        },
-
-        confirmDeleteAccount() {
-          if (confirm('ATENÇÃO: Esta ação é irreversível!\n\nTem certeza que deseja excluir sua conta e todos os dados?')) {
-            this.deleteAccount();
-          }
-        },
-
-        async deleteAccount() {
-          if (!auth || !this.user) {
-            this.showNotification('Modo demo ativo', 'info');
+        async confirmAddRecord() {
+          if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
+            this.showNotification('Preencha os campos obrigatórios', 'error');
             return;
           }
 
-          try {
-            // Deletar dados do Firestore
-            const batch = db.batch();
-            const snapshot = await db.collection('records')
-              .where('userId', '==', this.user.uid)
-              .get();
-            
-            snapshot.docs.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-            
-            // Deletar conta
-            await this.user.delete();
-            
-            this.showNotification('Conta excluída com sucesso', 'success');
-            this.configModal = false;
-          } catch (error) {
-            this.showNotification('Erro ao excluir conta', 'error');
+          if (confirm('Adicionar este item à coleção?')) {
+            await this.addRecord();
           }
         },
 
-        async loadCollection() {
-          if (!db || !this.user) {
-            this.loadDemoData();
-            return;
-          }
-
+        async addRecord() {
+          this.formLoading = true;
           try {
-            const snapshot = await db.collection('records')
-              .where('userId', '==', this.user.uid)
-              .get();
-            
-            this.collection = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-            
-            this.filterCollection();
-          } catch (error) {
-            this.showNotification('Erro ao carregar coleção', 'error');
-            this.loadDemoData();
-          }
-        },
+            const userId = this.user.uid;
+            const recordData = {
+              ...this.newRecord,
+              created_at: new Date(),
+              user_id: userId
+            };
 
-        loadDemoData() {
-          this.collection = [
-            {
-              id: '1',
-              album: 'Thriller',
-              artist: 'Michael Jackson',
-              format: 'Vinil',
-              year: 1982,
-              cover_url: 'https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png'
-            },
-            {
-              id: '2',
-              album: 'The Dark Side of the Moon',
-              artist: 'Pink Floyd',
-              format: 'CD',
-              year: 1973,
-              cover_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png'
-            },
-            {
-              id: '3',
-              album: 'Back in Black',
-              artist: 'AC/DC',
-              format: 'Cassete',
-              year: 1980
+            if (this.newRecord.id) {
+              // Atualizar registro existente
+              await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
+              this.showNotification('Item atualizado com sucesso!', 'success');
+            } else {
+              // Adicionar novo registro
+              await db.collection('users').doc(userId).collection('records').add(recordData);
+              this.showNotification('Item adicionado com sucesso!', 'success');
             }
-          ];
-          this.filterCollection();
+            
+            this.resetForm();
+            this.currentView = 'collection';
+          } catch (error) {
+            console.error('Erro ao salvar:', error);
+            this.showNotification('Erro ao salvar item', 'error');
+          }
+          this.formLoading = false;
         },
 
-        filterCollection() {
-          let filtered = [...this.collection];
+        editRecord(record) {
+          this.newRecord = { ...record };
+          this.currentView = 'add-record';
+          this.showNotification('Editando item...', 'info');
+        },
+    
+        confirmDeleteRecord(recordId) {
+          if (confirm('Deseja realmente excluir este item?')) {
+            this.deleteRecord(recordId);
+          }
+        },
 
+        async deleteRecord(recordId) {
+          try {
+            const userId = this.user.uid;
+            await db.collection('users').doc(userId).collection('records').doc(recordId).delete();
+            this.showNotification('Item excluído com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro ao excluir:', error);
+            this.showNotification('Erro ao excluir item', 'error');
+          }
+        },
+
+        filterAndSortCollection() {
+          let filtered = this.collection;
+          
           // Aplicar filtro de busca
           if (this.searchFilter.trim()) {
-            const search = this.searchFilter.toLowerCase();
-            filtered = filtered.filter(record =>
-              record.album.toLowerCase().includes(search) ||
-              record.artist.toLowerCase().includes(search) ||
-              (record.format || '').toLowerCase().includes(search)
+            const filter = this.searchFilter.toLowerCase();
+            filtered = filtered.filter(record => 
+              record.album?.toLowerCase().includes(filter) ||
+              record.artist?.toLowerCase().includes(filter) ||
+              record.format?.toLowerCase().includes(filter) ||
+              record.year?.toString().includes(filter)
             );
           }
-
+          
           // Aplicar ordenação
           filtered.sort((a, b) => {
-            let aVal = a[this.sortBy] || '';
-            let bVal = b[this.sortBy] || '';
+            let valueA, valueB;
             
-            if (typeof aVal === 'string') {
-              aVal = aVal.toLowerCase();
-              bVal = bVal.toLowerCase();
+            switch(this.sortBy) {
+              case 'album':
+                valueA = (a.album || '').toLowerCase();
+                valueB = (b.album || '').toLowerCase();
+                break;
+              case 'artist':
+                valueA = (a.artist || '').toLowerCase();
+                valueB = (b.artist || '').toLowerCase();
+                break;
+              case 'year':
+                valueA = parseInt(a.year) || 0;
+                valueB = parseInt(b.year) || 0;
+                break;
+              default:
+                return 0;
             }
             
             if (this.sortOrder === 'asc') {
-              return aVal > bVal ? 1 : -1;
+              return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
             } else {
-              return aVal < bVal ? 1 : -1;
+              return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
             }
           });
-
+          
           this.filteredCollection = filtered;
+        },
+
+        filterCollection() {
+          this.filterAndSortCollection();
         },
 
         setSortBy(field) {
@@ -827,114 +782,75 @@ const firebaseConfig = {
             this.sortBy = field;
             this.sortOrder = 'asc';
           }
-          this.filterCollection();
+          this.filterAndSortCollection();
+          // Re-criar ícones após mudança de estado
+          setTimeout(() => lucide.createIcons(), 10);
         },
 
         toggleSortOrder() {
           this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-          this.filterCollection();
-        },
-
-        confirmAddRecord() {
-          if (this.editingRecord) {
-            if (confirm('Salvar as alterações feitas no item?')) {
-              this.saveRecord();
-            }
-          } else {
-            if (confirm('Adicionar este item à sua coleção?')) {
-              this.addRecord();
-            }
-          }
-        },
-
-        async addRecord() {
-          const record = {
-            ...this.newRecord,
-            userId: this.user?.uid || 'demo',
-            createdAt: new Date()
-          };
-
-          if (db && this.user) {
-            try {
-              const docRef = await db.collection('records').add(record);
-              record.id = docRef.id;
-            } catch (error) {
-              this.showNotification('Erro ao salvar no banco de dados', 'error');
-              return;
-            }
-          } else {
-            record.id = Date.now().toString();
-          }
-
-          this.collection.push(record);
-          this.filterCollection();
-          this.resetForm();
-          this.showNotification('Item adicionado à coleção!', 'success');
-          this.currentView = 'collection';
-        },
-
-        async saveRecord() {
-          if (!this.editingRecord) return;
-
-          const updates = { ...this.newRecord };
-
-          if (db && this.user) {
-            try {
-              await db.collection('records').doc(this.editingRecord.id).update(updates);
-            } catch (error) {
-              this.showNotification('Erro ao salvar alterações', 'error');
-              return;
-            }
-          }
-
-          const index = this.collection.findIndex(r => r.id === this.editingRecord.id);
-          if (index !== -1) {
-            this.collection[index] = { ...this.editingRecord, ...updates };
-          }
-
-          this.filterCollection();
-          this.resetForm();
-          this.showNotification('Item atualizado com sucesso!', 'success');
-          this.currentView = 'collection';
-        },
-
-        editRecord(record) {
-          this.editingRecord = record;
-          this.newRecord = { ...record };
-          this.currentView = 'add-record';
-        },
-
-        confirmDeleteRecord(id) {
-          if (confirm('Tem certeza que deseja excluir este item?')) {
-            this.deleteRecord(id);
-          }
-        },
-
-        async deleteRecord(id) {
-          if (db && this.user) {
-            try {
-              await db.collection('records').doc(id).delete();
-            } catch (error) {
-              this.showNotification('Erro ao excluir do banco de dados', 'error');
-              return;
-            }
-          }
-
-          this.collection = this.collection.filter(r => r.id !== id);
-          this.filterCollection();
-          this.showNotification('Item excluído da coleção', 'success');
+          this.filterAndSortCollection();
+          // Re-criar ícones após mudança de estado
+          setTimeout(() => lucide.createIcons(), 10);
         },
 
         resetForm() {
           this.newRecord = {
-            album: '',
-            artist: '',
-            format: '',
-            year: '',
-            catalog_number: '',
+            album: '', 
+            artist: '', 
+            format: '', 
+            year: '', 
+            catalog_number: '', 
             cover_url: ''
           };
-          this.editingRecord = null;
+        },
+
+        searchCoverOnGoogle() {
+          const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
+          window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
+        },
+
+        toggleTheme() {
+          this.darkMode = !this.darkMode;
+          localStorage.setItem('katalog-theme', this.darkMode ? 'dark' : 'light');
+        },
+
+        async updateDisplayName() {
+          if (!this.newDisplayName?.trim()) return;
+
+          try {
+            await this.user.updateProfile({ displayName: this.newDisplayName.trim() });
+            this.showNotification('Nome atualizado com sucesso!', 'success');
+            this.newDisplayName = '';
+          } catch (error) {
+            console.error('Erro ao atualizar nome:', error);
+            this.showNotification('Erro ao atualizar nome', 'error');
+          }
+        },
+
+        confirmDeleteAccount() {
+          if (confirm('ATENÇÃO: Esta ação é irreversível. Deseja realmente excluir sua conta e todos os dados?')) {
+            this.deleteAccount();
+          }
+        },
+
+        async deleteAccount() {
+          try {
+            const userId = this.user.uid;
+            
+            // Deletar todos os registros
+            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+            const batch = db.batch();
+            recordsSnapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            
+            // Deletar conta
+            await this.user.delete();
+            this.showNotification('Conta excluída com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro ao excluir conta:', error);
+            this.showNotification('Erro ao excluir conta', 'error');
+          }
         },
 
         handleFileUpload(event) {
@@ -944,109 +860,90 @@ const firebaseConfig = {
           const reader = new FileReader();
           reader.onload = (e) => {
             try {
-              const data = e.target.result;
-              const workbook = XLSX.read(data, { type: 'binary' });
-              const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-              const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-              const records = jsonData.map(row => ({
-                album: row.album || row.Album || '',
-                artist: row.artist || row.Artist || '',
-                format: row.format || row.Format || 'CD',
-                year: row.year || row.Year || '',
-                catalog_number: row.catalog_number || row['Catalog Number'] || '',
-                cover_url: row.cover_url || row['Cover URL'] || ''
-              })).filter(record => record.album && record.artist);
-
-              this.importModal.data = records;
-              this.importModal.preview = records;
-              
-              if (records.length === 0) {
-                this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
-              }
+              this.processImportData(jsonData);
             } catch (error) {
-              this.showNotification('Erro ao ler o arquivo Excel', 'error');
+              console.error('Erro ao processar arquivo:', error);
+              this.showNotification('Erro ao processar arquivo Excel', 'error');
             }
           };
-          reader.readAsBinaryString(file);
+          reader.readAsArrayBuffer(file);
+        },
+
+        processImportData(data) {
+          const validRecords = data.filter(row => 
+            row.album && row.artist && row.format
+          ).map(row => ({
+            album: row.album?.toString().trim(),
+            artist: row.artist?.toString().trim(),
+            format: row.format?.toString().trim(),
+            year: row.year ? parseInt(row.year) : '',
+            catalog_number: row.catalog_number?.toString().trim() || '',
+            cover_url: row.cover_url?.toString().trim() || ''
+          }));
+
+          this.importModal.data = validRecords;
+          this.importModal.preview = validRecords.slice(0, 3);
+
+          if (validRecords.length === 0) {
+            this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
+          }
         },
 
         async importRecords() {
           if (this.importModal.data.length === 0) return;
 
           this.importModal.loading = true;
-          let imported = 0;
-
           try {
-            for (const record of this.importModal.data) {
-              const newRecord = {
+            const userId = this.user.uid;
+            const batch = db.batch();
+
+            this.importModal.data.forEach(record => {
+              const docRef = db.collection('users').doc(userId).collection('records').doc();
+              batch.set(docRef, {
                 ...record,
-                userId: this.user?.uid || 'demo',
-                createdAt: new Date()
-              };
+                created_at: new Date(),
+                user_id: userId
+              });
+            });
 
-              if (db && this.user) {
-                const docRef = await db.collection('records').add(newRecord);
-                newRecord.id = docRef.id;
-              } else {
-                newRecord.id = Date.now().toString() + imported;
-              }
-
-              this.collection.push(newRecord);
-              imported++;
-            }
-
-            this.filterCollection();
-            this.showNotification(`${imported} itens importados com sucesso!`, 'success');
+            await batch.commit();
+            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
             this.closeImportModal();
           } catch (error) {
-            this.showNotification(`Erro na importação. ${imported} itens foram importados.`, 'error');
+            console.error('Erro na importação:', error);
+            this.showNotification('Erro ao importar registros', 'error');
           }
-
           this.importModal.loading = false;
         },
 
         closeImportModal() {
-          this.importModal.show = false;
-          this.importModal.data = [];
-          this.importModal.preview = [];
-          this.importModal.loading = false;
+          this.importModal = { show: false, data: [], preview: [], loading: false };
         },
 
-        showNotification(message, type = 'info') {
+        showNotification(message, type = 'success') {
           this.notification = { show: true, message, type };
           setTimeout(() => {
             this.notification.show = false;
-          }, 3000);
-        },
-
-        getAuthErrorMessage(code) {
-          const messages = {
-            'auth/user-not-found': 'Usuário não encontrado',
-            'auth/wrong-password': 'Senha incorreta',
-            'auth/email-already-in-use': 'Este email já está em uso',
-            'auth/weak-password': 'Senha muito fraca (mín. 6 caracteres)',
-            'auth/invalid-email': 'Email inválido'
-          };
-          return messages[code] || 'Erro de autenticação';
+          }, 4000);
+          // Re-criar ícones após notificações
+          setTimeout(() => lucide.createIcons(), 10);
         }
-      };
-    }
 
-    // Inicializar ícones Lucide após o DOM carregar
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-      }
+      }));
     });
 
-    // Re-criar ícones quando o Alpine atualizar o DOM
-    document.addEventListener('alpine:updated', () => {
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-      }
+    // Inicializar ícones após carregamento
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => lucide.createIcons(), 100);
+      // Re-criar ícones periodicamente para garantir que apareçam
+      setInterval(() => lucide.createIcons(), 1000);
     });
   </script>
 </body>
 </html>
-
