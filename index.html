@@ -18,10 +18,29 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #121212; color: #E0E0E0; }
-    .bg-card { background-color: #1E1E1E; }
-    .bg-input { background-color: #2A2A2A; }
-    .border-custom { border-color: #383838; }
+    body { font-family: 'Inter', sans-serif; }
+    
+    /* Tema Escuro (padrão) */
+    .theme-dark {
+      background-color: #121212;
+      color: #E0E0E0;
+    }
+    .theme-dark .bg-card { background-color: #1E1E1E; }
+    .theme-dark .bg-input { background-color: #2A2A2A; }
+    .theme-dark .border-custom { border-color: #383838; }
+    .theme-dark .text-muted { color: #888888; }
+    
+    /* Tema Claro */
+    .theme-light {
+      background-color: #f8fafc;
+      color: #1f2937;
+    }
+    .theme-light .bg-card { background-color: #ffffff; }
+    .theme-light .bg-input { background-color: #f1f5f9; }
+    .theme-light .border-custom { border-color: #e2e8f0; }
+    .theme-light .text-muted { color: #64748b; }
+    .theme-light .bg-black { background-color: #1f2937 !important; }
+    
     .btn-primary { background-color: #1DB954; color: #FFFFFF; }
     .btn-primary:hover { background-color: #1ED760; }
     .btn-secondary { background-color: #4A4A4A; color: #FFFFFF; }
@@ -29,6 +48,7 @@
     .btn-primary:disabled, button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
     .placeholder-custom::placeholder { color: #888888; }
     [x-cloak] { display: none !important; }
+    
     .format-badge { @apply px-2 py-1 text-xs font-semibold rounded-full; }
     .format-cd { @apply bg-blue-500 text-white; }
     .format-vinil { @apply bg-purple-500 text-white; }
@@ -36,7 +56,7 @@
     .format-digital { @apply bg-green-500 text-white; }
   </style>
 </head>
-<body x-data="app" x-init="init()" x-cloak>
+<body x-data="app" x-init="init()" x-cloak :class="`theme-${darkMode ? 'dark' : 'light'}`">
 
   <!-- Loading -->
   <div x-show="loading" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
@@ -60,11 +80,25 @@
       <h3 class="text-xl font-bold mb-4">Configurações da Conta</h3>
       
       <div class="space-y-6">
-        <div class="bg-gray-800 p-4 rounded-lg">
+        <!-- Tema -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Tema</h4>
+          <div class="flex items-center justify-between">
+            <span class="text-sm">Modo Escuro</span>
+            <button @click="toggleTheme()" 
+                    class="relative inline-flex h-6 w-11 items-center rounded-full"
+                    :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
+              <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    :class="darkMode ? 'translate-x-6' : 'translate-x-1'"></span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Informações Atuais:</h4>
-          <div class="space-y-2 text-sm">
-            <div><span class="text-gray-400">Email:</span> <span x-text="user?.email"></span></div>
-            <div><span class="text-gray-400">Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
+          <div class="space-y-2 text-sm text-muted">
+            <div><span>Email:</span> <span x-text="user?.email"></span></div>
+            <div><span>Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
           </div>
         </div>
 
@@ -89,6 +123,59 @@
       
       <div class="flex justify-end mt-6">
         <button @click="configModal = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Import Excel -->
+  <div x-show="importModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="importModal.show = false">
+    <div class="bg-card p-8 rounded-lg max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">Importar do Excel</h3>
+      
+      <div class="space-y-4">
+        <!-- Instruções -->
+        <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-300 mb-2">Como preparar seu arquivo Excel:</h4>
+          <ul class="text-sm text-blue-200 space-y-1">
+            <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
+            <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
+            <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
+            <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
+            <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
+            <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
+          </ul>
+        </div>
+        
+        <!-- Upload -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Escolha o arquivo Excel:</label>
+          <input type="file" @change="handleFileUpload($event)" 
+                 accept=".xlsx,.xls,.csv" 
+                 class="w-full p-3 bg-input border border-custom rounded-md">
+        </div>
+        
+        <!-- Preview -->
+        <div x-show="importModal.preview.length > 0">
+          <h4 class="font-semibold mb-2">Preview (primeiros 3 itens):</h4>
+          <div class="bg-input rounded-lg p-4 max-h-40 overflow-y-auto">
+            <template x-for="item in importModal.preview.slice(0, 3)" :key="item.album">
+              <div class="text-sm py-1 border-b border-custom last:border-b-0">
+                <strong x-text="item.album"></strong> - <span x-text="item.artist"></span>
+                (<span x-text="item.format"></span>)
+              </div>
+            </template>
+          </div>
+          <p class="text-sm text-muted mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
+        </div>
+        
+        <div class="flex space-x-4">
+          <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
+                  class="flex-1 py-3 btn-primary rounded-md">
+            <span x-show="!importModal.loading">Importar Coleção</span>
+            <span x-show="importModal.loading">Importando...</span>
+          </button>
+          <button @click="closeImportModal()" class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -158,14 +245,18 @@
       <nav class="flex-1 p-4 space-y-2">
         <a href="#" @click.prevent="currentView = 'collection'" 
            :class="{'bg-green-500 text-white': currentView === 'collection'}"
-           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700">
+           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
            <i data-lucide="album"></i><span>Minha Coleção</span>
         </a>
         <a href="#" @click.prevent="currentView = 'add-record'" 
            :class="{'bg-green-500 text-white': currentView === 'add-record'}"
-           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700">
+           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
            <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
         </a>
+        <button @click="importModal.show = true" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+          <i data-lucide="upload"></i><span>Importar Excel</span>
+        </button>
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
         <div class="px-3 py-2 text-xs text-gray-400 break-words">
@@ -183,13 +274,13 @@
       <!-- Header -->
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-white">
+          <h1 class="text-2xl font-bold">
             Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
           </h1>
-          <p class="text-gray-400 text-sm">Bem-vindo à sua coleção musical</p>
+          <p class="text-sm text-muted">Bem-vindo à sua coleção musical</p>
         </div>
         <button @click="configModal = true" 
-                class="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white">
+                class="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-card rounded-lg border border-custom">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Configurações</span>
         </button>
@@ -197,7 +288,21 @@
 
       <!-- Coleção -->
       <div x-show="currentView === 'collection'">
-        <h2 class="text-3xl font-bold mb-6">Minha Coleção (<span x-text="collection.length"></span>)</h2>
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-3xl font-bold">Minha Coleção (<span x-text="collection.length"></span>)</h2>
+          <div class="flex space-x-2">
+            <button @click="viewMode = 'grid'" 
+                    :class="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
+                    class="px-4 py-2 rounded-md">
+              <i data-lucide="grid-3x3"></i>
+            </button>
+            <button @click="viewMode = 'list'" 
+                    :class="viewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
+                    class="px-4 py-2 rounded-md">
+              <i data-lucide="list"></i>
+            </button>
+          </div>
+        </div>
         
         <!-- Busca -->
         <div class="mb-6">
@@ -206,15 +311,15 @@
                  class="w-full max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
         </div>
         
-        <!-- Grid -->
-        <div x-show="filteredCollection.length > 0" 
+        <!-- Grid View -->
+        <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           <template x-for="record in filteredCollection" :key="record.id">
-            <div class="bg-card rounded-lg overflow-hidden shadow-lg group">
+            <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
               <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                    class="w-full aspect-square object-cover">
               <div class="absolute top-2 left-2">
-                <span :class="`format-${record.format?.toLowerCase() || 'cd'}`" 
+                <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                       class="format-badge" x-text="record.format || 'CD'"></span>
               </div>
               <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
@@ -224,19 +329,59 @@
                 </button>
               </div>
               <div class="p-3">
-                <h3 class="font-bold text-white truncate" x-text="record.album"></h3>
-                <p class="text-sm text-gray-400 truncate" x-text="record.artist"></p>
-                <p x-show="record.year" class="text-xs text-gray-500" x-text="record.year"></p>
+                <h3 class="font-bold truncate" x-text="record.album"></h3>
+                <p class="text-sm text-muted truncate" x-text="record.artist"></p>
+                <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
               </div>
             </div>
           </template>
         </div>
+
+        <!-- List View -->
+        <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
+             class="bg-card rounded-lg overflow-hidden shadow-lg">
+          <table class="w-full">
+            <thead class="bg-input">
+              <tr>
+                <th class="text-left p-4 font-semibold">Capa</th>
+                <th class="text-left p-4 font-semibold">Álbum</th>
+                <th class="text-left p-4 font-semibold">Artista</th>
+                <th class="text-left p-4 font-semibold">Formato</th>
+                <th class="text-left p-4 font-semibold">Ano</th>
+                <th class="text-left p-4 font-semibold">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="record in filteredCollection" :key="record.id">
+                <tr class="border-b border-custom hover:bg-input">
+                  <td class="p-4">
+                    <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                         class="w-12 h-12 object-cover rounded">
+                  </td>
+                  <td class="p-4 font-semibold" x-text="record.album"></td>
+                  <td class="p-4" x-text="record.artist"></td>
+                  <td class="p-4">
+                    <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                          class="format-badge" x-text="record.format || 'CD'"></span>
+                  </td>
+                  <td class="p-4" x-text="record.year || '-'"></td>
+                  <td class="p-4">
+                    <button @click="confirmDeleteRecord(record.id)" 
+                            class="text-red-500 hover:text-red-700">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
         
         <!-- Empty State -->
         <div x-show="collection.length === 0" class="text-center py-20 bg-card rounded-lg">
-          <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-gray-500 mb-4"></i>
+          <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-muted mb-4"></i>
           <h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
-          <p class="text-gray-400 mt-2">Comece adicionando seu primeiro item!</p>
+          <p class="text-muted mt-2">Comece adicionando seu primeiro item!</p>
           <button @click="currentView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">
             Adicionar Item
           </button>
@@ -295,7 +440,7 @@
                 <i data-lucide="search" class="w-4 h-4 mr-2"></i>
                 Buscar Capa no Google Imagens
               </button>
-              <p class="text-xs text-gray-400 mt-1">
+              <p class="text-xs text-muted mt-1">
                 Clique com o botão direito na imagem → "Copiar endereço da imagem"
               </p>
             </div>
@@ -304,7 +449,7 @@
                    class="w-full p-3 bg-input border border-custom rounded-md mb-4">
             
             <div x-show="newRecord.cover_url" class="mb-4">
-              <p class="text-sm text-gray-400 mb-2">Preview:</p>
+              <p class="text-sm text-muted mb-2">Preview:</p>
               <img :src="newRecord.cover_url" class="w-32 h-32 object-cover rounded-md" 
                    @error="newRecord.cover_url = ''">
             </div>
@@ -346,11 +491,18 @@
         authLoading: false,
         formLoading: false,
         
+        // Tema
+        darkMode: localStorage.getItem('katalog-theme') !== 'light',
+        
         // UI
         currentView: 'collection',
+        viewMode: 'grid',
         showRegister: false,
         configModal: false,
         searchFilter: '',
+        
+        // Modals
+        importModal: { show: false, data: [], preview: [], loading: false },
         
         // Data
         collection: [],
@@ -376,243 +528,3 @@
                 this.collection = [];
                 this.filteredCollection = [];
               }
-              this.loading = false;
-            });
-          } catch (error) {
-            console.error('Erro:', error);
-            this.loading = false;
-          }
-          
-          this.$nextTick(() => {
-            if (typeof lucide !== 'undefined') {
-              lucide.createIcons();
-            }
-          });
-        },
-
-        async login() {
-          if (!this.email || !this.password) {
-            this.showNotification("Preencha email e senha", "error");
-            return;
-          }
-          
-          this.authLoading = true;
-          try {
-            await auth.signInWithEmailAndPassword(this.email, this.password);
-            this.showNotification("Login realizado com sucesso!", "success");
-            this.email = '';
-            this.password = '';
-          } catch (error) {
-            this.showNotification("Email ou senha incorretos", "error");
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        async register() {
-          if (!this.displayName?.trim()) {
-            this.showNotification("Preencha o nome de usuário", "error");
-            return;
-          }
-          if (!this.email || !this.password) {
-            this.showNotification("Preencha email e senha", "error");
-            return;
-          }
-          if (this.password.length < 6) {
-            this.showNotification("Senha deve ter pelo menos 6 caracteres", "error");
-            return;
-          }
-
-          if (!confirm(`Deseja criar uma conta com o email "${this.email}"?`)) {
-            return;
-          }
-          
-          this.authLoading = true;
-          try {
-            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
-            await userCredential.user.updateProfile({
-              displayName: this.displayName.trim()
-            });
-
-            this.showNotification("Conta criada com sucesso!", "success");
-            this.email = '';
-            this.password = '';
-            this.displayName = '';
-            this.showRegister = false;
-          } catch (error) {
-            if (error.code === 'auth/email-already-in-use') {
-              this.showNotification("Este email já está em uso!", "error");
-            } else {
-              this.showNotification("Erro ao criar conta", "error");
-            }
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        confirmLogout() {
-          if (confirm('Deseja sair da sua conta?')) {
-            this.logout();
-          }
-        },
-
-        async logout() {
-          try {
-            await auth.signOut();
-            this.showNotification("Logout realizado com sucesso", "success");
-            this.currentView = 'collection';
-          } catch (error) {
-            this.showNotification("Erro ao sair", "error");
-          }
-        },
-
-        async updateDisplayName() {
-          if (!this.newDisplayName?.trim()) {
-            this.showNotification("Digite um nome válido", "error");
-            return;
-          }
-
-          try {
-            await this.user.updateProfile({
-              displayName: this.newDisplayName.trim()
-            });
-            this.showNotification("Nome atualizado com sucesso!", "success");
-            this.newDisplayName = '';
-          } catch (error) {
-            this.showNotification("Erro ao atualizar nome", "error");
-          }
-        },
-
-        confirmDeleteAccount() {
-          if (confirm('ATENÇÃO: Esta ação irá excluir permanentemente sua conta e todos os seus dados. Deseja continuar?')) {
-            this.deleteAccount();
-          }
-        },
-
-        async deleteAccount() {
-          try {
-            const batch = db.batch();
-            const userRecords = await db.collection(`users/${this.user.uid}/records`).get();
-            
-            userRecords.docs.forEach((doc) => {
-              batch.delete(doc.ref);
-            });
-            
-            await batch.commit();
-            await this.user.delete();
-            
-            this.showNotification("Conta excluída com sucesso", "success");
-          } catch (error) {
-            this.showNotification("Erro ao excluir conta", "error");
-          }
-        },
-
-        setupCollection(userId) {
-          db.collection(`users/${userId}/records`)
-            .orderBy('createdAt', 'desc')
-            .onSnapshot((snapshot) => {
-              this.collection = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              }));
-              this.filterCollection();
-            });
-        },
-
-        filterCollection() {
-          let filtered = [...this.collection];
-          
-          if (this.searchFilter.trim()) {
-            const filter = this.searchFilter.toLowerCase();
-            filtered = filtered.filter(record => 
-              record.album.toLowerCase().includes(filter) ||
-              record.artist.toLowerCase().includes(filter) ||
-              record.format?.toLowerCase().includes(filter)
-            );
-          }
-          
-          this.filteredCollection = filtered;
-        },
-
-        confirmAddRecord() {
-          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim() || !this.newRecord.format) {
-            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
-            return;
-          }
-
-          if (confirm(`Deseja adicionar "${this.newRecord.album}" de "${this.newRecord.artist}" à sua coleção?`)) {
-            this.addRecord();
-          }
-        },
-
-        async addRecord() {
-          this.formLoading = true;
-          
-          try {
-            const recordData = {
-              album: this.newRecord.album.trim(),
-              artist: this.newRecord.artist.trim(),
-              format: this.newRecord.format,
-              year: this.newRecord.year ? Number(this.newRecord.year) : null,
-              catalog_number: this.newRecord.catalog_number?.trim() || null,
-              cover_url: this.newRecord.cover_url?.trim() || null,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            await db.collection(`users/${this.user.uid}/records`).add(recordData);
-            
-            this.showNotification("Item adicionado com sucesso!", "success");
-            this.resetForm();
-            this.currentView = 'collection';
-            
-          } catch (error) {
-            this.showNotification("Erro ao salvar item", "error");
-          } finally {
-            this.formLoading = false;
-          }
-        },
-
-        confirmDeleteRecord(id) {
-          const record = this.collection.find(r => r.id === id);
-          const albumName = record ? `"${record.album}"` : 'este item';
-          
-          if (confirm(`Tem certeza que deseja excluir ${albumName} da sua coleção?`)) {
-            this.deleteRecord(id);
-          }
-        },
-
-        async deleteRecord(id) {
-          try {
-            await db.collection(`users/${this.user.uid}/records`).doc(id).delete();
-            this.showNotification("Item excluído com sucesso!", "success");
-          } catch (error) {
-            this.showNotification("Erro ao excluir item", "error");
-          }
-        },
-
-        searchCoverOnGoogle() {
-          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
-            this.showNotification("Preencha álbum e artista primeiro!", "error");
-            return;
-          }
-          
-          const query = `${this.newRecord.artist} ${this.newRecord.album} album cover capa`;
-          const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-          
-          window.open(googleUrl, '_blank');
-          this.showNotification("Nova aba aberta! Clique com botão direito na imagem → 'Copiar endereço da imagem'", "info");
-        },
-
-        resetForm() {
-          this.newRecord = { album: '', artist: '', format: '', year: '', catalog_number: '', cover_url: '' };
-        },
-
-        showNotification(message, type = 'success') {
-          this.notification = { message, type, show: true };
-          setTimeout(() => { this.notification.show = false; }, 4000);
-        }
-      }))
-    });
-  </script>
-</body>
-</html>
