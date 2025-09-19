@@ -210,63 +210,6 @@
     </div>
   </div>
 
-  <!-- Modal Confirmar Exclusão de Conta -->
-  <div x-show="deleteAccountModal.show" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" @click.self="deleteAccountModal.show = false">
-    <div class="bg-red-900 border border-red-600 p-8 rounded-lg max-w-md w-full mx-4">
-      <h3 class="text-xl font-bold mb-4 text-red-100">⚠️ Excluir Conta</h3>
-      <div class="space-y-4 text-red-200">
-        <p><strong>ATENÇÃO:</strong> Esta ação não pode ser desfeita!</p>
-        <p>Todos os seus dados serão permanentemente excluídos:</p>
-        <ul class="list-disc list-inside text-sm space-y-1 text-red-300">
-          <li>Toda sua coleção musical</li>
-          <li>Sua conta de usuário</li>
-          <li>Configurações e preferências</li>
-        </ul>
-        <p>Digite seu email para confirmar:</p>
-        <input x-model="deleteAccountModal.confirmEmail" type="email" 
-               placeholder="Confirme seu email"
-               class="w-full p-3 bg-red-800 border border-red-600 rounded-md text-white placeholder-red-300">
-        <p class="text-sm">Digite "EXCLUIR" para confirmar:</p>
-        <input x-model="deleteAccountModal.confirmText" 
-               placeholder="Digite EXCLUIR"
-               class="w-full p-3 bg-red-800 border border-red-600 rounded-md text-white placeholder-red-300">
-      </div>
-      <div class="flex space-x-4 mt-6">
-        <button @click="deleteAccount()" 
-                :disabled="deleteAccountModal.loading || deleteAccountModal.confirmEmail !== user?.email || deleteAccountModal.confirmText !== 'EXCLUIR'"
-                class="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-md font-semibold">
-          <span x-show="!deleteAccountModal.loading">🗑️ Excluir Permanentemente</span>
-          <span x-show="deleteAccountModal.loading">Excluindo...</span>
-        </button>
-        <button @click="closeDeleteModal()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Alterar Nome -->
-  <div x-show="nameModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="nameModal.show = false">
-    <div class="bg-card p-8 rounded-lg max-w-md w-full mx-4">
-      <h3 class="text-xl font-bold mb-4">✏️ Alterar Nome de Exibição</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Novo nome:</label>
-          <input x-model="nameModal.newName" 
-                 placeholder="Digite seu nome"
-                 class="w-full p-3 bg-input border border-custom rounded-md">
-        </div>
-      </div>
-      <div class="flex space-x-4 mt-6">
-        <button @click="updateDisplayName()" 
-                :disabled="nameModal.loading || !nameModal.newName.trim()"
-                class="flex-1 py-3 btn-primary rounded-md">
-          <span x-show="!nameModal.loading">💾 Salvar Nome</span>
-          <span x-show="nameModal.loading">Salvando...</span>
-        </button>
-        <button @click="nameModal.show = false" class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Modal Info -->
   <div x-show="infoModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="infoModal.show = false">
     <div class="bg-card p-8 rounded-lg max-w-lg w-full mx-4">
@@ -336,10 +279,6 @@
         <div x-show="showRegisterForm" class="space-y-4">
           <h3 class="text-lg font-semibold text-center">Criar Nova Conta</h3>
           <div>
-            <input x-model="registerData.displayName" type="text" placeholder="Seu nome completo" 
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom mb-3">
-          </div>
-          <div>
             <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
                    class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
           </div>
@@ -347,15 +286,10 @@
             <input x-model="loginPassword" type="password" placeholder="Senha (min. 6 caracteres)" 
                    class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
           </div>
-          <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
-            <p class="text-xs text-blue-200">
-              📧 Será enviado um email de verificação. Você precisa confirmar para ativar sua conta.
-            </p>
-          </div>
           <button @click="registerWithEmail()" 
                   :disabled="authLoading"
                   class="w-full py-3 px-4 btn-primary rounded-md font-medium">
-            <span x-show="!authLoading">📝 Criar Conta</span>
+            <span x-show="!authLoading">📝 Cadastrar</span>
             <span x-show="authLoading" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></span>
           </button>
           
@@ -416,11 +350,6 @@
         <a href="#" @click.prevent="importModal.show = true" 
            class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
            <i data-lucide="upload"></i><span>Importar Excel</span>
-        </a>
-        <a href="#" @click.prevent="appView = 'settings'" 
-           :class="{'bg-green-500 text-white': appView === 'settings'}"
-           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-gray-300">
-           <i data-lucide="settings"></i><span>Configurações</span>
         </a>
       </nav>
       <div class="p-4 border-t border-custom space-y-2">
@@ -624,10 +553,10 @@
               <select x-model="newRecord.format" required
                       class="w-full p-3 bg-input border border-custom rounded-md">
                 <option value="">Selecione...</option>
-                <option value="CD">📀 CD</option>
-                <option value="Vinil">🎵 Vinil</option>
-                <option value="Cassete">📼 Cassete</option>
-                <option value="Digital">💻 Digital</option>
+                <option value="CD">CD</option>
+                <option value="Vinil">Vinil</option>
+                <option value="Cassete">Cassete</option>
+                <option value="Digital">Digital</option>
               </select>
             </div>
             <div>
@@ -657,17 +586,17 @@
             
             <!-- Busca automática -->
             <div x-show="autoImageSearch.found" class="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-              <p class="text-sm text-green-300 mb-2">✨ Capa encontrada automaticamente!</p>
+              <p class="text-sm text-green-300 mb-2">Capa encontrada automaticamente!</p>
               <div class="flex items-center space-x-3">
                 <img :src="autoImageSearch.url" class="w-16 h-16 object-cover rounded-md" alt="Capa encontrada">
                 <div class="flex-1">
                   <button type="button" @click="useAutoImage()" 
                           class="px-4 py-2 btn-primary rounded-md text-sm mr-2">
-                    ✅ Usar esta capa
+                    Usar esta capa
                   </button>
                   <button type="button" @click="autoImageSearch = {found: false, url: ''}" 
                           class="px-4 py-2 btn-secondary rounded-md text-sm">
-                    ❌ Ignorar
+                    Ignorar
                   </button>
                 </div>
               </div>
@@ -679,13 +608,13 @@
                       :disabled="!newRecord.album || !newRecord.artist || coverSearchLoading"
                       class="px-4 py-2 btn-primary rounded-md flex items-center">
                 <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                <span x-show="!coverSearchLoading">🔍 Buscar Capa no Google</span>
+                <span x-show="!coverSearchLoading">Buscar Capa no Google</span>
                 <span x-show="coverSearchLoading">Buscando...</span>
               </button>
             </div>
             
             <!-- URL Manual -->
-            <input x-model="newRecord.cover_url" placeholder="🌐 Cole aqui a URL da capa..."
+            <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
                    class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom mb-4">
             
             <!-- Preview -->
@@ -699,7 +628,7 @@
           <div class="flex space-x-4">
             <button type="submit" :disabled="formLoading" 
                     class="flex-1 py-3 font-semibold rounded-md btn-primary flex items-center justify-center">
-              <span x-show="!formLoading">💾 Salvar Item</span>
+              <span x-show="!formLoading">Salvar Item</span>
               <span x-show="formLoading" class="flex items-center">
                 <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                 Salvando...
@@ -709,132 +638,6 @@
                     class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
           </div>
         </form>
-      </div>
-
-      <!-- Configurações -->
-      <div x-show="appView === 'settings'">
-        <h2 class="text-3xl font-bold mb-6">⚙️ Configurações da Conta</h2>
-        
-        <div class="max-w-2xl space-y-6">
-          <!-- Informações da Conta -->
-          <div class="bg-card p-6 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4 flex items-center">
-              <i data-lucide="user" class="w-5 h-5 mr-2"></i>
-              Informações da Conta
-            </h3>
-            <div class="space-y-3">
-              <div>
-                <label class="text-sm text-gray-400">Email:</label>
-                <p class="text-white" x-text="user?.email || 'Não informado'"></p>
-              </div>
-              <div>
-                <label class="text-sm text-gray-400">Nome de exibição:</label>
-                <div class="flex items-center justify-between">
-                  <p class="text-white" x-text="user?.displayName || 'Não informado'"></p>
-                  <button @click="openNameModal()" class="text-blue-400 hover:text-blue-300 text-sm">
-                    <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>Alterar
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label class="text-sm text-gray-400">Status da conta:</label>
-                <p :class="user?.emailVerified ? 'text-green-400' : 'text-yellow-400'">
-                  <i :data-lucide="user?.emailVerified ? 'check-circle' : 'alert-circle'" class="w-4 h-4 inline mr-1"></i>
-                  <span x-text="user?.emailVerified ? 'Verificada' : 'Aguardando verificação'"></span>
-                </p>
-                <button x-show="!user?.emailVerified" @click="resendVerification()" 
-                        class="text-blue-400 hover:text-blue-300 text-sm mt-1">
-                  📧 Reenviar email de verificação
-                </button>
-              </div>
-              <div>
-                <label class="text-sm text-gray-400">Criada em:</label>
-                <p class="text-white" x-text="formatDate(user?.metadata?.creationTime)"></p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Segurança -->
-          <div class="bg-card p-6 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4 flex items-center">
-              <i data-lucide="shield" class="w-5 h-5 mr-2"></i>
-              Segurança
-            </h3>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                <div>
-                  <p class="font-medium">Alterar Senha</p>
-                  <p class="text-sm text-gray-400">Redefina sua senha atual</p>
-                </div>
-                <button @click="changePassword()" class="btn-secondary px-4 py-2 rounded-md">
-                  <i data-lucide="key" class="w-4 h-4 mr-1"></i>Alterar
-                </button>
-              </div>
-
-              <div class="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                <div>
-                  <p class="font-medium">Autenticação de Dois Fatores (2FA)</p>
-                  <p class="text-sm text-gray-400">Adicione uma camada extra de segurança</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <span class="text-sm text-yellow-400">Em breve</span>
-                  <button disabled class="btn-secondary px-4 py-2 rounded-md opacity-50 cursor-not-allowed">
-                    <i data-lucide="smartphone" class="w-4 h-4 mr-1"></i>Configurar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Estatísticas -->
-          <div class="bg-card p-6 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4 flex items-center">
-              <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2"></i>
-              Estatísticas da Coleção
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="text-center p-4 bg-gray-800 rounded-lg">
-                <p class="text-2xl font-bold text-green-400" x-text="collection.length"></p>
-                <p class="text-sm text-gray-400">Total de Itens</p>
-              </div>
-              <div class="text-center p-4 bg-gray-800 rounded-lg">
-                <p class="text-2xl font-bold text-blue-400" x-text="collection.filter(r => r.format === 'CD').length"></p>
-                <p class="text-sm text-gray-400">CDs</p>
-              </div>
-              <div class="text-center p-4 bg-gray-800 rounded-lg">
-                <p class="text-2xl font-bold text-purple-400" x-text="collection.filter(r => r.format === 'Vinil').length"></p>
-                <p class="text-sm text-gray-400">Vinis</p>
-              </div>
-              <div class="text-center p-4 bg-gray-800 rounded-lg">
-                <p class="text-2xl font-bold text-orange-400" x-text="collection.filter(r => r.format === 'Cassete').length"></p>
-                <p class="text-sm text-gray-400">Cassetes</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Zona de Perigo -->
-          <div class="bg-red-900/20 border border-red-500/30 p-6 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4 flex items-center text-red-400">
-              <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i>
-              Zona de Perigo
-            </h3>
-            <div class="space-y-3">
-              <p class="text-red-300 text-sm">As ações abaixo são irreversíveis. Proceda com cautela.</p>
-              <div class="flex flex-col sm:flex-row gap-3">
-                <button @click="exportData()" 
-                        class="flex-1 py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white rounded-md flex items-center justify-center">
-                  <i data-lucide="download" class="w-4 h-4 mr-2"></i>
-                  Exportar Dados
-                </button>
-                <button @click="openDeleteModal()" 
-                        class="flex-1 py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md flex items-center justify-center">
-                  <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
-                  Excluir Conta
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   </div>
@@ -847,7 +650,7 @@
   </button>
 
   <script>
-    // 🔥 SUAS CONFIGURAÇÕES DO FIREBASE
+    // SUAS CONFIGURAÇÕES DO FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
       authDomain: "katalog-1178e.firebaseapp.com",
@@ -886,13 +689,6 @@
         editModal: { show: false, record: {}, loading: false },
         importModal: { show: false, data: [], preview: [], loading: false },
         infoModal: { show: false },
-        deleteAccountModal: { 
-          show: false, 
-          loading: false, 
-          confirmEmail: '', 
-          confirmText: '' 
-        },
-        nameModal: { show: false, newName: '', loading: false },
         
         // Dados
         collection: [],
@@ -911,7 +707,6 @@
         loginEmail: '',
         loginPassword: '',
         resetEmail: '',
-        registerData: { displayName: '' },
         
         // Busca automática de imagem
         autoImageSearch: { found: false, url: '' },
@@ -973,11 +768,6 @@
         },
 
         async registerWithEmail() {
-          if (!this.registerData.displayName?.trim()) {
-            this.showNotification("Preencha seu nome completo", "error");
-            return;
-          }
-          
           if (!this.loginEmail || !this.loginPassword) {
             this.showNotification("Preencha email e senha", "error");
             return;
@@ -990,255 +780,7 @@
           
           this.authLoading = true;
           try {
-            // Criar conta
-            const userCredential = await auth.createUserWithEmailAndPassword(this.loginEmail, this.loginPassword);
-            
-            // Atualizar nome de exibição
-            await userCredential.user.updateProfile({
-              displayName: this.registerData.displayName.trim()
-            });
-            
-            // Enviar email de verificação
-            await userCredential.user.sendEmailVerification({
-              url: window.location.origin,
-              handleCodeInApp: true
-            });
-            
-            this.showNotification("Conta criada! Verifique seu email para ativá-la 📧", "success");
-            this.loginEmail = '';
-            this.loginPassword = '';
-            this.registerData.displayName = '';
-            this.showRegisterForm = false;
-            
-          } catch (error) {
-            console.error('Erro ao registrar:', error);
-            if (error.code === 'auth/email-already-in-use') {
-              this.showNotification("Este email já está em uso", "error");
-            } else if (error.code === 'auth/weak-password') {
-              this.showNotification("Senha muito fraca", "error");
-            } else if (error.code === 'auth/invalid-email') {
-              this.showNotification("Email inválido", "error");
-            } else {
-              this.showNotification("Erro ao criar conta: " + error.message, "error");
-            }
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        async resetPassword() {
-          if (!this.resetEmail) {
-            this.showNotification("Digite seu email", "error");
-            return;
-          }
-          
-          this.authLoading = true;
-          try {
-            await auth.sendPasswordResetEmail(this.resetEmail, {
-              url: window.location.origin,
-              handleCodeInApp: true
-            });
-            this.showNotification("Link de recuperação enviado! Verifique seu email 📧", "success");
-            this.resetEmail = '';
-            this.showForgotPassword = false;
-          } catch (error) {
-            console.error('Erro ao enviar email:', error);
-            if (error.code === 'auth/user-not-found') {
-              this.showNotification("Email não encontrado", "error");
-            } else if (error.code === 'auth/invalid-email') {
-              this.showNotification("Email inválido", "error");
-            } else {
-              this.showNotification("Erro ao enviar email: " + error.message, "error");
-            }
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        async resendVerification() {
-          if (!this.user) return;
-          
-          try {
-            await this.user.sendEmailVerification({
-              url: window.location.origin,
-              handleCodeInApp: true
-            });
-            this.showNotification("Email de verificação reenviado! 📧", "success");
-          } catch (error) {
-            console.error('Erro ao reenviar email:', error);
-            this.showNotification("Erro ao reenviar email: " + error.message, "error");
-          }
-        },
-
-        // === GERENCIAMENTO DE CONTA ===
-        openNameModal() {
-          this.nameModal = {
-            show: true,
-            newName: this.user?.displayName || '',
-            loading: false
-          };
-        },
-
-        async updateDisplayName() {
-          if (!this.nameModal.newName.trim()) {
-            this.showNotification("Digite um nome válido", "error");
-            return;
-          }
-          
-          this.nameModal.loading = true;
-          try {
-            await this.user.updateProfile({
-              displayName: this.nameModal.newName.trim()
-            });
-            
-            this.showNotification("Nome atualizado com sucesso! ✅", "success");
-            this.nameModal.show = false;
-            
-          } catch (error) {
-            console.error('Erro ao atualizar nome:', error);
-            this.showNotification("Erro ao atualizar nome: " + error.message, "error");
-          } finally {
-            this.nameModal.loading = false;
-          }
-        },
-
-        async changePassword() {
-          if (!this.user?.email) {
-            this.showNotification("Email não disponível", "error");
-            return;
-          }
-          
-          try {
-            await auth.sendPasswordResetEmail(this.user.email, {
-              url: window.location.origin,
-              handleCodeInApp: true
-            });
-            this.showNotification("Link para alterar senha enviado para seu email! 📧", "success");
-          } catch (error) {
-            console.error('Erro ao enviar email:', error);
-            this.showNotification("Erro ao enviar email: " + error.message, "error");
-          }
-        },
-
-        openDeleteModal() {
-          this.deleteAccountModal = {
-            show: true,
-            loading: false,
-            confirmEmail: '',
-            confirmText: ''
-          };
-        },
-
-        closeDeleteModal() {
-          this.deleteAccountModal = {
-            show: false,
-            loading: false,
-            confirmEmail: '',
-            confirmText: ''
-          };
-        },
-
-        async deleteAccount() {
-          if (!this.user) return;
-          
-          if (this.deleteAccountModal.confirmEmail !== this.user.email) {
-            this.showNotification("Email de confirmação não confere", "error");
-            return;
-          }
-          
-          if (this.deleteAccountModal.confirmText !== 'EXCLUIR') {
-            this.showNotification("Digite 'EXCLUIR' para confirmar", "error");
-            return;
-          }
-          
-          this.deleteAccountModal.loading = true;
-          
-          try {
-            // Excluir todos os dados do usuário no Firestore
-            const batch = db.batch();
-            const userRecords = await db.collection(`users/${this.user.uid}/records`).get();
-            
-            userRecords.docs.forEach((doc) => {
-              batch.delete(doc.ref);
-            });
-            
-            // Excluir documento do usuário
-            const userDoc = db.collection('users').doc(this.user.uid);
-            batch.delete(userDoc);
-            
-            await batch.commit();
-            
-            // Excluir conta de autenticação
-            await this.user.delete();
-            
-            this.showNotification("Conta excluída com sucesso", "success");
-            
-          } catch (error) {
-            console.error('Erro ao excluir conta:', error);
-            if (error.code === 'auth/requires-recent-login') {
-              this.showNotification("Por segurança, faça login novamente antes de excluir sua conta", "error");
-              await this.logout();
-            } else {
-              this.showNotification("Erro ao excluir conta: " + error.message, "error");
-            }
-          } finally {
-            this.deleteAccountModal.loading = false;
-            this.closeDeleteModal();
-          }
-        },
-
-        async exportData() {
-          try {
-            // Preparar dados para exportação
-            const exportData = {
-              account: {
-                email: this.user?.email,
-                displayName: this.user?.displayName,
-                created: this.user?.metadata?.creationTime,
-                exported: new Date().toISOString()
-              },
-              collection: this.collection.map(record => ({
-                album: record.album,
-                artist: record.artist,
-                format: record.format,
-                year: record.year,
-                catalog_number: record.catalog_number,
-                edition_notes: record.edition_notes,
-                cover_url: record.cover_url,
-                created: record.createdAt?.toDate?.()?.toISOString()
-              }))
-            };
-            
-            // Criar arquivo JSON
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
-            // Download
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `katalog-backup-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            this.showNotification("Dados exportados com sucesso! 📥", "success");
-            
-          } catch (error) {
-            console.error('Erro ao exportar dados:', error);
-            this.showNotification("Erro ao exportar dados", "error");
-          }
-        },
-
-        formatDate(timestamp) {
-          if (!timestamp) return 'Não disponível';
-          return new Date(timestamp).toLocaleDateString('pt-BR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-        },d);
+            await auth.createUserWithEmailAndPassword(this.loginEmail, this.loginPassword);
             this.showNotification("Conta criada com sucesso!", "success");
             this.loginEmail = '';
             this.loginPassword = '';
@@ -1263,21 +805,16 @@
           
           this.authLoading = true;
           try {
-            await auth.sendPasswordResetEmail(this.resetEmail, {
-              url: window.location.origin,
-              handleCodeInApp: true
-            });
-            this.showNotification("Link de recuperação enviado! Verifique seu email 📧", "success");
+            await auth.sendPasswordResetEmail(this.resetEmail);
+            this.showNotification("Link de recuperação enviado! Verifique seu email", "success");
             this.resetEmail = '';
             this.showForgotPassword = false;
           } catch (error) {
             console.error('Erro ao enviar email:', error);
             if (error.code === 'auth/user-not-found') {
               this.showNotification("Email não encontrado", "error");
-            } else if (error.code === 'auth/invalid-email') {
-              this.showNotification("Email inválido", "error");
             } else {
-              this.showNotification("Erro ao enviar email: " + error.message, "error");
+              this.showNotification("Erro ao enviar email de recuperação", "error");
             }
           } finally {
             this.authLoading = false;
@@ -1389,7 +926,7 @@
             
             await db.collection(`users/${this.user.uid}/records`).add(recordData);
             
-            this.showNotification("Item adicionado com sucesso! 🎉", "success");
+            this.showNotification("Item adicionado com sucesso!", "success");
             this.resetForm();
             this.appView = 'collection';
             
@@ -1403,56 +940,37 @@
 
         // === EDIÇÃO ===
         openEditModal(record) {
-          // Garantir que todos os campos existam, mesmo que vazios
-          const cleanRecord = {
-            id: record.id,
-            album: record.album || '',
-            artist: record.artist || '',
-            format: record.format || 'CD',
-            year: record.year || '',
-            catalog_number: record.catalog_number || '',
-            edition_notes: record.edition_notes || '',
-            cover_url: record.cover_url || ''
-          };
-          
           this.editModal = {
             show: true,
             loading: false,
-            record: cleanRecord
+            record: { ...record }
           };
           this.$nextTick(() => lucide.createIcons());
         },
 
         async updateRecord() {
-          const record = this.editModal.record;
-          
-          // Validação básica com valores seguros
-          if (!record.album?.trim() || !record.artist?.trim()) {
-            this.showNotification("Álbum e Artista são obrigatórios", "error");
+          if (!this.editModal.record.album?.trim() || !this.editModal.record.artist?.trim() || !this.editModal.record.format) {
+            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
             return;
-          }
-          
-          if (!record.format) {
-            record.format = 'CD'; // Valor padrão
           }
           
           this.editModal.loading = true;
           
           try {
             const recordData = {
-              album: record.album.trim(),
-              artist: record.artist.trim(),
-              format: record.format,
-              year: record.year ? Number(record.year) : null,
-              catalog_number: record.catalog_number?.trim() || null,
-              edition_notes: record.edition_notes?.trim() || null,
-              cover_url: record.cover_url?.trim() || null,
+              album: this.editModal.record.album.trim(),
+              artist: this.editModal.record.artist.trim(),
+              format: this.editModal.record.format,
+              year: this.editModal.record.year ? Number(this.editModal.record.year) : null,
+              catalog_number: this.editModal.record.catalog_number?.trim() || null,
+              edition_notes: this.editModal.record.edition_notes?.trim() || null,
+              cover_url: this.editModal.record.cover_url?.trim() || null,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             
-            await db.collection(`users/${this.user.uid}/records`).doc(record.id).update(recordData);
+            await db.collection(`users/${this.user.uid}/records`).doc(this.editModal.record.id).update(recordData);
             
-            this.showNotification("Item atualizado com sucesso! ✅", "success");
+            this.showNotification("Item atualizado com sucesso!", "success");
             this.editModal.show = false;
             
           } catch (error) {
@@ -1483,6 +1001,18 @@
           if (this.imageSearchTimeout) {
             clearTimeout(this.imageSearchTimeout);
           }
+        },
+
+        showNotification(message, type = 'success') {
+          this.notification = { message, type, show: true };
+          setTimeout(() => { this.notification.show = false; }, 4000);
+        }
+      }))
+    });
+  </script>
+</body>
+</html>this.imageSearchTimeout);
+          }
           
           // Reset busca automática
           this.autoImageSearch = { found: false, url: '' };
@@ -1497,107 +1027,27 @@
 
         async searchAlbumCoverAuto() {
           try {
-            const artist = this.newRecord.artist.trim();
-            const album = this.newRecord.album.trim();
+            // Simular busca - em produção, usaria uma API real como Last.fm ou Spotify
+            const query = `${this.newRecord.artist} ${this.newRecord.album}`;
             
-            if (!artist || !album) return;
+            // API simulada - retorna placeholder baseado no nome
+            const fakeImageUrl = `https://picsum.photos/300/300?random=${encodeURIComponent(query)}`;
             
-            // Buscar usando API do Last.fm (gratuita)
-            const apiKey = 'b25b959554ed76058ac220b7b2e0a026'; // API key pública do Last.fm
-            const url = `https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${apiKey}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&format=json`;
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.album && data.album.image) {
-              // Pegar a imagem de maior qualidade disponível
-              const images = data.album.image;
-              const largeImage = images.find(img => img.size === 'extralarge') || 
-                               images.find(img => img.size === 'large') || 
-                               images.find(img => img.size === 'medium');
-              
-              if (largeImage && largeImage['#text']) {
-                this.autoImageSearch = {
-                  found: true,
-                  url: largeImage['#text']
-                };
-                return;
-              }
-            }
-            
-            // Fallback: Busca via MusicBrainz + Cover Art Archive
-            await this.searchCoverArtArchive(artist, album);
-            
-          } catch (error) {
-            console.error('Erro na busca automática Last.fm:', error);
-            // Fallback silencioso
-            await this.searchCoverArtArchive(artist, album);
-          }
-        },
-
-        async searchCoverArtArchive(artist, album) {
-          try {
-            // Buscar álbum no MusicBrainz
-            const mbUrl = `https://musicbrainz.org/ws/2/release?query=artist:"${encodeURIComponent(artist)}" AND release:"${encodeURIComponent(album)}"&fmt=json&limit=1`;
-            
-            const mbResponse = await fetch(mbUrl);
-            const mbData = await mbResponse.json();
-            
-            if (mbData.releases && mbData.releases.length > 0) {
-              const releaseId = mbData.releases[0].id;
-              
-              // Buscar capa no Cover Art Archive
-              const coverUrl = `https://coverartarchive.org/release/${releaseId}/front-500`;
-              
-              // Testar se a imagem existe
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.onload = () => {
-                this.autoImageSearch = {
-                  found: true,
-                  url: coverUrl
-                };
-              };
-              img.onerror = () => {
-                // Se falhar, usar busca do Google Images API (limitada)
-                this.searchGoogleImages(artist, album);
-              };
-              img.src = coverUrl;
-              
-            } else {
-              this.searchGoogleImages(artist, album);
-            }
-            
-          } catch (error) {
-            console.error('Erro na busca Cover Art Archive:', error);
-            this.searchGoogleImages(artist, album);
-          }
-        },
-
-        async searchGoogleImages(artist, album) {
-          try {
-            // Usar API do Unsplash como fallback (mais confiável que random)
-            const query = `${artist} ${album} album cover music`;
-            const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&client_id=jKs7hJfhqE3V7FhQcDw2dPzqZzT9hNRjn8vUMYzqVlE&per_page=1`;
-            
-            const response = await fetch(unsplashUrl);
-            const data = await response.json();
-            
-            if (data.results && data.results.length > 0) {
+            // Verificar se a imagem carrega
+            const img = new Image();
+            img.onload = () => {
               this.autoImageSearch = {
                 found: true,
-                url: data.results[0].urls.regular
+                url: fakeImageUrl
               };
-            }
+            };
+            img.onerror = () => {
+              // Se falhar, não mostra nada
+            };
+            img.src = fakeImageUrl;
             
           } catch (error) {
-            console.error('Erro na busca Unsplash:', error);
-            // Último fallback - imagem placeholder temática
-            const fallbackUrl = `https://via.placeholder.com/300x300/1a1a1a/ffffff?text=${encodeURIComponent(album.charAt(0) + artist.charAt(0))}`;
-            this.autoImageSearch = {
-              found: true,
-              url: fallbackUrl
-            };
+            console.error('Erro na busca automática:', error);
           }
         },
 
@@ -1612,10 +1062,11 @@
             return;
           }
           
-          this.coverSearchLoading = true;
-          this.searchAlbumCoverAuto().finally(() => {
-            this.coverSearchLoading = false;
-          });
+          const query = `${this.newRecord.artist} ${this.newRecord.album} album cover`;
+          const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+          
+          window.open(googleUrl, '_blank');
+          this.showNotification("Clique com o botão direito na imagem → 'Copiar endereço da imagem'", "info");
         },
 
         // === IMPORT EXCEL ===
@@ -1691,8 +1142,6 @@
           if (this.importModal.data.length === 0) return;
 
           this.importModal.loading = true;
-          let successCount = 0;
-          let errorCount = 0;
 
           try {
             const batch = db.batch();
@@ -1707,9 +1156,8 @@
             });
 
             await batch.commit();
-            successCount = this.importModal.data.length;
             
-            this.showNotification(`✅ ${successCount} itens importados com sucesso!`, "success");
+            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, "success");
             this.closeImportModal();
             this.appView = 'collection';
             
@@ -1739,7 +1187,7 @@
         async copyShareLink() {
           try {
             await navigator.clipboard.writeText(this.shareModal.url);
-            this.showNotification("Link copiado! 📋", "success");
+            this.showNotification("Link copiado!", "success");
           } catch (error) {
             // Fallback para navegadores mais antigos
             const textArea = document.createElement('textarea');
@@ -1748,7 +1196,7 @@
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            this.showNotification("Link copiado! 📋", "success");
+            this.showNotification("Link copiado!", "success");
           }
         },
 
@@ -1765,16 +1213,4 @@
           };
           this.autoImageSearch = { found: false, url: '' };
           if (this.imageSearchTimeout) {
-            clearTimeout(this.imageSearchTimeout);
-          }
-        },
-
-        showNotification(message, type = 'success') {
-          this.notification = { message, type, show: true };
-          setTimeout(() => { this.notification.show = false; }, 4000);
-        }
-      }))
-    });
-  </script>
-</body>
-</html>
+            clearTimeout(
