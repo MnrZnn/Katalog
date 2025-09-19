@@ -233,6 +233,69 @@
     </div>
   </div>
 
+  <!-- Modal Configurações do Usuário -->
+  <div x-show="userConfigModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="userConfigModal.show = false">
+    <div class="bg-card p-8 rounded-lg max-w-lg w-full mx-4 max-h-screen overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">⚙️ Configurações da Conta</h3>
+      
+      <div class="space-y-6">
+        <!-- Informações atuais -->
+        <div class="bg-gray-800 p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Informações Atuais:</h4>
+          <div class="space-y-2 text-sm">
+            <div><span class="text-gray-400">Email:</span> <span x-text="user?.email"></span></div>
+            <div><span class="text-gray-400">Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
+          </div>
+        </div>
+
+        <!-- Editar Nome -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Alterar Nome de Usuário:</label>
+          <div class="flex space-x-2">
+            <input x-model="userConfigModal.newDisplayName" 
+                   placeholder="Digite o novo nome"
+                   class="flex-1 p-3 bg-input border border-custom rounded-md">
+            <button @click="updateDisplayName()" 
+                    :disabled="userConfigModal.loading || !userConfigModal.newDisplayName?.trim()"
+                    class="px-4 py-3 btn-primary rounded-md">
+              <span x-show="!userConfigModal.loading">Salvar</span>
+              <span x-show="userConfigModal.loading">...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Alterar Email -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Alterar Email:</label>
+          <div class="flex space-x-2">
+            <input x-model="userConfigModal.newEmail" type="email"
+                   placeholder="Digite o novo email"
+                   class="flex-1 p-3 bg-input border border-custom rounded-md">
+            <button @click="updateEmail()" 
+                    :disabled="userConfigModal.loading || !userConfigModal.newEmail?.trim()"
+                    class="px-4 py-3 btn-primary rounded-md">
+              <span x-show="!userConfigModal.loading">Alterar</span>
+              <span x-show="userConfigModal.loading">...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Zona de Perigo -->
+        <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
+          <h4 class="text-red-400 font-semibold mb-3">⚠️ Zona de Perigo</h4>
+          <button @click="confirmDeleteAccount()" 
+                  class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md">
+            🗑️ Excluir Conta Permanentemente
+          </button>
+        </div>
+      </div>
+      
+      <div class="flex justify-end mt-6">
+        <button @click="userConfigModal.show = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Tela de Login -->
   <div x-show="!user && !isLoading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black">
     <div class="bg-card p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -278,6 +341,10 @@
         <!-- Modo Cadastro -->
         <div x-show="showRegisterForm" class="space-y-4">
           <h3 class="text-lg font-semibold text-center">Criar Nova Conta</h3>
+          <div>
+            <input x-model="registerData.displayName" type="text" placeholder="Nome de usuário" 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          </div>
           <div>
             <input x-model="loginEmail" type="email" placeholder="seu@email.com" 
                    class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
@@ -361,7 +428,7 @@
           <span class="font-semibold text-gray-300">Usuário:</span>
           <span x-text="user?.email || user?.uid.substring(0, 8) + '...'"></span>
         </div>
-        <a href="#" @click.prevent="logout()" 
+        <a href="#" @click.prevent="confirmLogout()" 
            class="flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
            <i data-lucide="log-out"></i><span>Sair</span>
         </a>
@@ -370,6 +437,21 @@
 
     <!-- Main -->
     <main class="flex-1 p-8 overflow-y-auto">
+      <!-- Header com nome do usuário -->
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-white">
+            Olá, <span x-text="user?.displayName || 'Usuário'"></span>! 👋
+          </h1>
+          <p class="text-gray-400 text-sm">Bem-vindo à sua coleção musical</p>
+        </div>
+        <button @click="openUserConfigModal()" 
+                class="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>Configurações</span>
+        </button>
+      </div>
+
       <!-- Coleção -->
       <div x-show="appView === 'collection'">
         <div class="flex justify-between items-center mb-6">
@@ -412,805 +494,3 @@
               <option value="oldest">Mais antigos</option>
               <option value="album-asc">Álbum (A-Z)</option>
               <option value="album-desc">Álbum (Z-A)</option>
-              <option value="artist-asc">Artista (A-Z)</option>
-              <option value="artist-desc">Artista (Z-A)</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- Grid View -->
-        <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
-             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          <template x-for="record in filteredCollection" :key="record.id">
-            <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative transform hover:scale-105 transition-transform">
-              <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                   class="w-full aspect-square object-cover"
-                   :alt="`Capa do álbum ${record.album}`">
-              <div class="absolute top-2 left-2">
-                <span :class="`format-${record.format?.toLowerCase() || 'cd'}`" 
-                      class="format-badge" 
-                      x-text="record.format || 'CD'"></span>
-              </div>
-              <div class="absolute top-2 right-2 flex space-x-1">
-                <button @click="openEditModal(record)" 
-                        class="bg-blue-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-700">
-                  <i data-lucide="edit" class="w-4 h-4"></i>
-                </button>
-                <button @click="confirmDelete(record.id)" 
-                        class="bg-red-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-              </div>
-              <div class="p-3">
-                <h3 class="font-bold text-white truncate" x-text="record.album" :title="record.album"></h3>
-                <p class="text-sm text-gray-400 truncate" x-text="record.artist" :title="record.artist"></p>
-                <div class="flex justify-between items-center mt-1">
-                  <p x-show="record.year" class="text-xs text-gray-500" x-text="record.year"></p>
-                  <p x-show="record.catalog_number" class="text-xs text-gray-500 font-mono" x-text="record.catalog_number"></p>
-                </div>
-                <p x-show="record.edition_notes" class="text-xs text-gray-400 mt-1 truncate" 
-                   x-text="record.edition_notes" :title="record.edition_notes"></p>
-              </div>
-            </div>
-          </template>
-        </div>
-        
-        <!-- List View -->
-        <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
-             class="bg-card rounded-lg overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-gray-800">
-              <tr>
-                <th class="text-left p-4 font-semibold">Capa</th>
-                <th class="text-left p-4 font-semibold">Álbum</th>
-                <th class="text-left p-4 font-semibold">Artista</th>
-                <th class="text-left p-4 font-semibold">Formato</th>
-                <th class="text-left p-4 font-semibold">Ano</th>
-                <th class="text-left p-4 font-semibold">Catálogo</th>
-                <th class="text-left p-4 font-semibold">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="record in filteredCollection" :key="record.id">
-                <tr class="border-b border-gray-700 hover:bg-gray-800">
-                  <td class="p-4">
-                    <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                         class="w-12 h-12 object-cover rounded">
-                  </td>
-                  <td class="p-4">
-                    <div>
-                      <p class="font-semibold" x-text="record.album"></p>
-                      <p x-show="record.edition_notes" class="text-xs text-gray-400" x-text="record.edition_notes"></p>
-                    </div>
-                  </td>
-                  <td class="p-4" x-text="record.artist"></td>
-                  <td class="p-4">
-                    <span :class="`format-${record.format?.toLowerCase() || 'cd'}`" 
-                          class="format-badge" 
-                          x-text="record.format || 'CD'"></span>
-                  </td>
-                  <td class="p-4" x-text="record.year || '-'"></td>
-                  <td class="p-4">
-                    <span x-show="record.catalog_number" class="font-mono text-sm" x-text="record.catalog_number"></span>
-                    <span x-show="!record.catalog_number" class="text-gray-500">-</span>
-                  </td>
-                  <td class="p-4">
-                    <div class="flex space-x-2">
-                      <button @click="openEditModal(record)" 
-                              class="text-blue-400 hover:text-blue-300" title="Editar">
-                        <i data-lucide="edit" class="w-4 h-4"></i>
-                      </button>
-                      <button @click="confirmDelete(record.id)" 
-                              class="text-red-400 hover:text-red-300" title="Excluir">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Empty State -->
-        <div x-show="collection.length === 0" class="text-center py-20 bg-card rounded-lg">
-          <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-gray-500 mb-4"></i>
-          <h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
-          <p class="text-gray-400 mt-2">Comece adicionando seu primeiro item!</p>
-          <button @click="appView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">Adicionar Item</button>
-        </div>
-        
-        <!-- No Results -->
-        <div x-show="collection.length > 0 && filteredCollection.length === 0" class="text-center py-10">
-          <p class="text-gray-400">Nenhum resultado encontrado</p>
-          <button @click="clearFilters()" class="mt-2 px-4 py-2 btn-secondary rounded-md">Limpar Filtros</button>
-        </div>
-      </div>
-
-      <!-- Form Adicionar -->
-      <div x-show="appView === 'add-record'">
-        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Item</h2>
-        <form @submit.prevent="addRecord" class="max-w-3xl mx-auto bg-card p-8 rounded-lg space-y-6">
-          
-          <!-- Informações Básicas -->
-          <div class="grid md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
-              <input x-model="newRecord.album" @input="debounceImageSearch()" required 
-                     class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Artista *</label>
-              <input x-model="newRecord.artist" @input="debounceImageSearch()" required 
-                     class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-            </div>
-          </div>
-          
-          <!-- Formato e Ano -->
-          <div class="grid md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Formato *</label>
-              <select x-model="newRecord.format" required
-                      class="w-full p-3 bg-input border border-custom rounded-md">
-                <option value="">Selecione...</option>
-                <option value="CD">CD</option>
-                <option value="Vinil">Vinil</option>
-                <option value="Cassete">Cassete</option>
-                <option value="Digital">Digital</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Ano</label>
-              <input x-model="newRecord.year" type="number" min="1900" max="2030"
-                     class="w-full p-3 bg-input border border-custom rounded-md">
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
-              <input x-model="newRecord.catalog_number" placeholder="Ex: EVIL0023"
-                     class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-            </div>
-          </div>
-
-          <!-- Descrição da Edição -->
-          <div>
-            <label class="block text-sm font-medium mb-1">Descrição da Edição</label>
-            <textarea x-model="newRecord.edition_notes" 
-                      placeholder="Ex: Edição limitada com capa dourada, remasterizado..."
-                      class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom resize-none"
-                      rows="3"></textarea>
-          </div>
-
-          <!-- Capa -->
-          <div>
-            <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
-            
-            <!-- Busca automática -->
-            <div x-show="autoImageSearch.found" class="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-              <p class="text-sm text-green-300 mb-2">Capa encontrada automaticamente!</p>
-              <div class="flex items-center space-x-3">
-                <img :src="autoImageSearch.url" class="w-16 h-16 object-cover rounded-md" alt="Capa encontrada">
-                <div class="flex-1">
-                  <button type="button" @click="useAutoImage()" 
-                          class="px-4 py-2 btn-primary rounded-md text-sm mr-2">
-                    Usar esta capa
-                  </button>
-                  <button type="button" @click="autoImageSearch = {found: false, url: ''}" 
-                          class="px-4 py-2 btn-secondary rounded-md text-sm">
-                    Ignorar
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Botão de busca manual -->
-            <div class="mb-4">
-              <button type="button" @click="searchCoverOnGoogle()" 
-                      :disabled="!newRecord.album || !newRecord.artist || coverSearchLoading"
-                      class="px-4 py-2 btn-primary rounded-md flex items-center">
-                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                <span x-show="!coverSearchLoading">Buscar Capa no Google</span>
-                <span x-show="coverSearchLoading">Buscando...</span>
-              </button>
-            </div>
-            
-            <!-- URL Manual -->
-            <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
-                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom mb-4">
-            
-            <!-- Preview -->
-            <div x-show="newRecord.cover_url" class="mb-4">
-              <p class="text-sm text-gray-400 mb-2">Preview:</p>
-              <img :src="newRecord.cover_url" class="w-32 h-32 object-cover rounded-md" 
-                   @error="newRecord.cover_url = ''" alt="Preview da capa">
-            </div>
-          </div>
-          
-          <div class="flex space-x-4">
-            <button type="submit" :disabled="formLoading" 
-                    class="flex-1 py-3 font-semibold rounded-md btn-primary flex items-center justify-center">
-              <span x-show="!formLoading">Salvar Item</span>
-              <span x-show="formLoading" class="flex items-center">
-                <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Salvando...
-              </span>
-            </button>
-            <button type="button" @click="resetForm()" 
-                    class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
-          </div>
-        </form>
-      </div>
-    </main>
-  </div>
-
-  <!-- Botão Info -->
-  <button @click="infoModal.show = true" 
-          class="footer-info p-3 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-          title="Sobre o Katalog">
-    <i data-lucide="info" class="w-5 h-5"></i>
-  </button>
-
-  <script>
-    // SUAS CONFIGURAÇÕES DO FIREBASE
-    const firebaseConfig = {
-      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
-      authDomain: "katalog-1178e.firebaseapp.com",
-      projectId: "katalog-1178e",
-      storageBucket: "katalog-1178e.firebasestorage.app",
-      messagingSenderId: "998961219093",
-      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
-    };
-
-    // Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    document.addEventListener('alpine:init', () => {
-      Alpine.data('app', () => ({
-        // Estados principais
-        isLoading: true,
-        loadingMessage: 'Inicializando...',
-        user: null,
-        authLoading: false,
-        formLoading: false,
-        coverSearchLoading: false,
-        
-        // UI
-        appView: 'collection',
-        viewMode: 'grid',
-        showRegisterForm: false,
-        showForgotPassword: false,
-        searchFilter: '',
-        formatFilter: '',
-        sortBy: 'newest',
-        
-        // Modals
-        shareModal: { show: false, url: '' },
-        editModal: { show: false, record: {}, loading: false },
-        importModal: { show: false, data: [], preview: [], loading: false },
-        infoModal: { show: false },
-        
-        // Dados
-        collection: [],
-        filteredCollection: [],
-        newRecord: { 
-          album: '', 
-          artist: '', 
-          format: '',
-          year: '', 
-          catalog_number: '',
-          edition_notes: '',
-          cover_url: '' 
-        },
-        
-        // Auth
-        loginEmail: '',
-        loginPassword: '',
-        resetEmail: '',
-        
-        // Busca automática de imagem
-        autoImageSearch: { found: false, url: '' },
-        imageSearchTimeout: null,
-        
-        // Notificação
-        notification: { show: false, message: '', type: 'success' },
-        collectionListener: null,
-
-        async init() {
-          try {
-            this.loadingMessage = 'Conectando...';
-            
-            // Configurar listener de autenticação
-            auth.onAuthStateChanged((user) => {
-              this.user = user;
-              if (user) {
-                this.setupCollection(user.uid);
-              } else {
-                this.collection = [];
-                this.filteredCollection = [];
-              }
-              this.isLoading = false;
-            });
-            
-          } catch (error) {
-            console.error('Erro ao inicializar:', error);
-            this.showNotification("Erro ao inicializar aplicação", "error");
-            this.isLoading = false;
-          }
-          
-          // Inicializar ícones
-          this.$nextTick(() => {
-            if (typeof lucide !== 'undefined') {
-              lucide.createIcons();
-            }
-          });
-        },
-
-        // === AUTENTICAÇÃO ===
-        async loginWithEmail() {
-          if (!this.loginEmail || !this.loginPassword) {
-            this.showNotification("Preencha email e senha", "error");
-            return;
-          }
-          
-          this.authLoading = true;
-          try {
-            await auth.signInWithEmailAndPassword(this.loginEmail, this.loginPassword);
-            this.showNotification("Login realizado com sucesso!", "success");
-            this.loginEmail = '';
-            this.loginPassword = '';
-          } catch (error) {
-            console.error('Erro no login:', error);
-            this.showNotification("Email ou senha incorretos", "error");
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        async registerWithEmail() {
-          if (!this.loginEmail || !this.loginPassword) {
-            this.showNotification("Preencha email e senha", "error");
-            return;
-          }
-          
-          if (this.loginPassword.length < 6) {
-            this.showNotification("Senha deve ter pelo menos 6 caracteres", "error");
-            return;
-          }
-          
-          this.authLoading = true;
-          try {
-            await auth.createUserWithEmailAndPassword(this.loginEmail, this.loginPassword);
-            this.showNotification("Conta criada com sucesso!", "success");
-            this.loginEmail = '';
-            this.loginPassword = '';
-            this.showRegisterForm = false;
-          } catch (error) {
-            console.error('Erro ao registrar:', error);
-            if (error.code === 'auth/email-already-in-use') {
-              this.showNotification("Este email já está em uso", "error");
-            } else {
-              this.showNotification("Erro ao criar conta", "error");
-            }
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        async resetPassword() {
-          if (!this.resetEmail) {
-            this.showNotification("Digite seu email", "error");
-            return;
-          }
-          
-          this.authLoading = true;
-          try {
-            await auth.sendPasswordResetEmail(this.resetEmail);
-            this.showNotification("Link de recuperação enviado! Verifique seu email", "success");
-            this.resetEmail = '';
-            this.showForgotPassword = false;
-          } catch (error) {
-            console.error('Erro ao enviar email:', error);
-            if (error.code === 'auth/user-not-found') {
-              this.showNotification("Email não encontrado", "error");
-            } else {
-              this.showNotification("Erro ao enviar email de recuperação", "error");
-            }
-          } finally {
-            this.authLoading = false;
-          }
-        },
-
-        async logout() {
-          try {
-            await auth.signOut();
-            this.showNotification("Logout realizado com sucesso", "success");
-            this.appView = 'collection';
-          } catch (error) {
-            console.error('Erro ao sair:', error);
-            this.showNotification("Erro ao sair", "error");
-          }
-        },
-
-        // === FIRESTORE ===
-        setupCollection(userId) {
-          if (this.collectionListener) {
-            this.collectionListener();
-          }
-          
-          this.collectionListener = db.collection(`users/${userId}/records`)
-            .orderBy('createdAt', 'desc')
-            .onSnapshot((snapshot) => {
-              this.collection = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              }));
-              this.filterCollection();
-            }, (error) => {
-              console.error('Erro ao carregar coleção:', error);
-              this.showNotification("Erro ao carregar coleção", "error");
-            });
-        },
-
-        filterCollection() {
-          let filtered = [...this.collection];
-          
-          // Filtro por texto
-          if (this.searchFilter.trim()) {
-            const filter = this.searchFilter.toLowerCase();
-            filtered = filtered.filter(record => 
-              record.album.toLowerCase().includes(filter) ||
-              record.artist.toLowerCase().includes(filter) ||
-              record.format?.toLowerCase().includes(filter) ||
-              record.catalog_number?.toLowerCase().includes(filter) ||
-              record.edition_notes?.toLowerCase().includes(filter)
-            );
-          }
-          
-          // Filtro por formato
-          if (this.formatFilter) {
-            filtered = filtered.filter(record => record.format === this.formatFilter);
-          }
-          
-          // Ordenação
-          switch (this.sortBy) {
-            case 'newest':
-              filtered.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-              break;
-            case 'oldest':
-              filtered.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-              break;
-            case 'album-asc':
-              filtered.sort((a, b) => a.album.localeCompare(b.album));
-              break;
-            case 'album-desc':
-              filtered.sort((a, b) => b.album.localeCompare(a.album));
-              break;
-            case 'artist-asc':
-              filtered.sort((a, b) => a.artist.localeCompare(b.artist));
-              break;
-            case 'artist-desc':
-              filtered.sort((a, b) => b.artist.localeCompare(a.artist));
-              break;
-          }
-          
-          this.filteredCollection = filtered;
-        },
-
-        clearFilters() {
-          this.searchFilter = '';
-          this.formatFilter = '';
-          this.sortBy = 'newest';
-          this.filterCollection();
-        },
-
-        async addRecord() {
-          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim() || !this.newRecord.format) {
-            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
-            return;
-          }
-          
-          this.formLoading = true;
-          
-          try {
-            const recordData = {
-              album: this.newRecord.album.trim(),
-              artist: this.newRecord.artist.trim(),
-              format: this.newRecord.format,
-              year: this.newRecord.year ? Number(this.newRecord.year) : null,
-              catalog_number: this.newRecord.catalog_number?.trim() || null,
-              edition_notes: this.newRecord.edition_notes?.trim() || null,
-              cover_url: this.newRecord.cover_url?.trim() || null,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            await db.collection(`users/${this.user.uid}/records`).add(recordData);
-            
-            this.showNotification("Item adicionado com sucesso!", "success");
-            this.resetForm();
-            this.appView = 'collection';
-            
-          } catch (error) {
-            console.error('Erro ao adicionar item:', error);
-            this.showNotification("Erro ao salvar item", "error");
-          } finally {
-            this.formLoading = false;
-          }
-        },
-
-        // === EDIÇÃO ===
-        openEditModal(record) {
-          this.editModal = {
-            show: true,
-            loading: false,
-            record: { ...record }
-          };
-          this.$nextTick(() => lucide.createIcons());
-        },
-
-        async updateRecord() {
-          if (!this.editModal.record.album?.trim() || !this.editModal.record.artist?.trim() || !this.editModal.record.format) {
-            this.showNotification("Álbum, Artista e Formato são obrigatórios", "error");
-            return;
-          }
-          
-          this.editModal.loading = true;
-          
-          try {
-            const recordData = {
-              album: this.editModal.record.album.trim(),
-              artist: this.editModal.record.artist.trim(),
-              format: this.editModal.record.format,
-              year: this.editModal.record.year ? Number(this.editModal.record.year) : null,
-              catalog_number: this.editModal.record.catalog_number?.trim() || null,
-              edition_notes: this.editModal.record.edition_notes?.trim() || null,
-              cover_url: this.editModal.record.cover_url?.trim() || null,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            await db.collection(`users/${this.user.uid}/records`).doc(this.editModal.record.id).update(recordData);
-            
-            this.showNotification("Item atualizado com sucesso!", "success");
-            this.editModal.show = false;
-            
-          } catch (error) {
-            console.error('Erro ao atualizar item:', error);
-            this.showNotification("Erro ao atualizar item", "error");
-          } finally {
-            this.editModal.loading = false;
-          }
-        },
-
-        async confirmDelete(id) {
-          if (!confirm('Tem certeza que deseja excluir este item da sua coleção?')) {
-            return;
-          }
-          
-          try {
-            await db.collection(`users/${this.user.uid}/records`).doc(id).delete();
-            this.showNotification("Item excluído com sucesso!", "success");
-          } catch (error) {
-            console.error('Erro ao excluir:', error);
-            this.showNotification("Erro ao excluir item", "error");
-          }
-        },
-
-        // === BUSCA DE CAPA ===
-        debounceImageSearch() {
-          // Limpar timeout anterior
-          if (this.imageSearchTimeout) {
-            clearTimeout(this.imageSearchTimeout);
-          }
-        },
-
-        showNotification(message, type = 'success') {
-          this.notification = { message, type, show: true };
-          setTimeout(() => { this.notification.show = false; }, 4000);
-        }
-      }))
-    });
-  </script>
-</body>
-</html>this.imageSearchTimeout);
-          }
-          
-          // Reset busca automática
-          this.autoImageSearch = { found: false, url: '' };
-          
-          // Se tem álbum e artista, buscar após 1 segundo
-          if (this.newRecord.album.trim() && this.newRecord.artist.trim()) {
-            this.imageSearchTimeout = setTimeout(() => {
-              this.searchAlbumCoverAuto();
-            }, 1000);
-          }
-        },
-
-        async searchAlbumCoverAuto() {
-          try {
-            // Simular busca - em produção, usaria uma API real como Last.fm ou Spotify
-            const query = `${this.newRecord.artist} ${this.newRecord.album}`;
-            
-            // API simulada - retorna placeholder baseado no nome
-            const fakeImageUrl = `https://picsum.photos/300/300?random=${encodeURIComponent(query)}`;
-            
-            // Verificar se a imagem carrega
-            const img = new Image();
-            img.onload = () => {
-              this.autoImageSearch = {
-                found: true,
-                url: fakeImageUrl
-              };
-            };
-            img.onerror = () => {
-              // Se falhar, não mostra nada
-            };
-            img.src = fakeImageUrl;
-            
-          } catch (error) {
-            console.error('Erro na busca automática:', error);
-          }
-        },
-
-        useAutoImage() {
-          this.newRecord.cover_url = this.autoImageSearch.url;
-          this.autoImageSearch = { found: false, url: '' };
-        },
-
-        searchCoverOnGoogle() {
-          if (!this.newRecord.album.trim() || !this.newRecord.artist.trim()) {
-            this.showNotification("Preencha álbum e artista primeiro!", "error");
-            return;
-          }
-          
-          const query = `${this.newRecord.artist} ${this.newRecord.album} album cover`;
-          const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-          
-          window.open(googleUrl, '_blank');
-          this.showNotification("Clique com o botão direito na imagem → 'Copiar endereço da imagem'", "info");
-        },
-
-        // === IMPORT EXCEL ===
-        handleFileUpload(event) {
-          const file = event.target.files[0];
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const data = new Uint8Array(e.target.result);
-              const workbook = XLSX.read(data, { type: 'array' });
-              
-              // Pegar a primeira planilha
-              const sheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[sheetName];
-              
-              // Converter para JSON
-              const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-              
-              if (jsonData.length === 0) {
-                this.showNotification("Arquivo vazio ou inválido", "error");
-                return;
-              }
-
-              // Processar dados
-              const processedData = jsonData.map((row, index) => {
-                // Normalizar chaves (minúsculas, sem espaços)
-                const normalizedRow = {};
-                Object.keys(row).forEach(key => {
-                  const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, '_');
-                  normalizedRow[normalizedKey] = row[key];
-                });
-
-                return {
-                  album: normalizedRow.album || normalizedRow.álbum || normalizedRow.titulo || '',
-                  artist: normalizedRow.artist || normalizedRow.artista || '',
-                  format: this.normalizeFormat(normalizedRow.format || normalizedRow.formato || 'CD'),
-                  year: normalizedRow.year || normalizedRow.ano || null,
-                  catalog_number: normalizedRow.catalog_number || normalizedRow.catalogo || null,
-                  edition_notes: normalizedRow.edition_notes || normalizedRow.observacoes || null,
-                  cover_url: normalizedRow.cover_url || normalizedRow.capa || null
-                };
-              }).filter(item => item.album && item.artist); // Só itens com álbum e artista
-
-              if (processedData.length === 0) {
-                this.showNotification("Nenhum registro válido encontrado. Verifique se as colunas 'album' e 'artist' existem.", "error");
-                return;
-              }
-
-              this.importModal.data = processedData;
-              this.importModal.preview = processedData;
-              this.showNotification(`${processedData.length} itens carregados para importação!`, "success");
-              
-            } catch (error) {
-              console.error('Erro ao processar arquivo:', error);
-              this.showNotification("Erro ao ler arquivo Excel", "error");
-            }
-          };
-
-          reader.readAsArrayBuffer(file);
-        },
-
-        normalizeFormat(format) {
-          const normalizedFormat = format.toString().toLowerCase();
-          if (normalizedFormat.includes('vinil') || normalizedFormat.includes('lp')) return 'Vinil';
-          if (normalizedFormat.includes('cassete') || normalizedFormat.includes('fita')) return 'Cassete';
-          if (normalizedFormat.includes('digital') || normalizedFormat.includes('mp3')) return 'Digital';
-          return 'CD'; // Default
-        },
-
-        async importRecords() {
-          if (this.importModal.data.length === 0) return;
-
-          this.importModal.loading = true;
-
-          try {
-            const batch = db.batch();
-            
-            this.importModal.data.forEach((record) => {
-              const docRef = db.collection(`users/${this.user.uid}/records`).doc();
-              batch.set(docRef, {
-                ...record,
-                year: record.year ? Number(record.year) : null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            });
-
-            await batch.commit();
-            
-            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, "success");
-            this.closeImportModal();
-            this.appView = 'collection';
-            
-          } catch (error) {
-            console.error('Erro na importação:', error);
-            this.showNotification("Erro durante a importação", "error");
-          } finally {
-            this.importModal.loading = false;
-          }
-        },
-
-        closeImportModal() {
-          this.importModal = { show: false, data: [], preview: [], loading: false };
-        },
-
-        // === COMPARTILHAMENTO ===
-        openShareModal() {
-          const baseUrl = window.location.origin + window.location.pathname;
-          const shareUrl = `${baseUrl}?user=${this.user.uid}&view=public`;
-          
-          this.shareModal = {
-            show: true,
-            url: shareUrl
-          };
-        },
-
-        async copyShareLink() {
-          try {
-            await navigator.clipboard.writeText(this.shareModal.url);
-            this.showNotification("Link copiado!", "success");
-          } catch (error) {
-            // Fallback para navegadores mais antigos
-            const textArea = document.createElement('textarea');
-            textArea.value = this.shareModal.url;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            this.showNotification("Link copiado!", "success");
-          }
-        },
-
-        // === UTILITÁRIOS ===
-        resetForm() {
-          this.newRecord = { 
-            album: '', 
-            artist: '', 
-            format: '',
-            year: '', 
-            catalog_number: '',
-            edition_notes: '',
-            cover_url: '' 
-          };
-          this.autoImageSearch = { found: false, url: '' };
-          if (this.imageSearchTimeout) {
-            clearTimeout(
