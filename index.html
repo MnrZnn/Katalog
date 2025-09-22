@@ -82,6 +82,119 @@
     .format-vinil { @apply bg-purple-500 text-white; }
     .format-cassete { @apply bg-orange-500 text-white; }
     .format-digital { @apply bg-green-500 text-white; }
+
+    /* Mobile-first responsive design */
+    
+    /* Bottom Navigation for Mobile */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      border-top: 1px solid var(--border-color);
+      z-index: 40;
+    }
+    
+    .theme-dark .mobile-bottom-nav {
+      background-color: #1E1E1E;
+      border-color: #383838;
+    }
+    
+    .theme-light .mobile-bottom-nav {
+      background-color: #ffffff;
+      border-color: #e2e8f0;
+    }
+
+    /* Mobile Sidebar Overlay */
+    .mobile-sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 45;
+    }
+
+    .mobile-sidebar {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 80%;
+      max-width: 300px;
+      height: 100%;
+      transition: left 0.3s ease;
+      z-index: 50;
+    }
+
+    .mobile-sidebar.open {
+      left: 0;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      .desktop-sidebar {
+        display: none;
+      }
+      
+      .main-content {
+        padding-bottom: 80px; /* Space for bottom nav */
+      }
+      
+      .mobile-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+      
+      .theme-dark .mobile-header {
+        border-color: #383838;
+      }
+      
+      .theme-light .mobile-header {
+        border-color: #e2e8f0;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-only {
+        display: none !important;
+      }
+      
+      .mobile-bottom-nav {
+        display: none;
+      }
+    }
+
+    /* Floating Action Button for Mobile */
+    .fab {
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 30;
+    }
+
+    @media (min-width: 769px) {
+      .fab {
+        display: none;
+      }
+    }
+
+    /* Mobile Modal Adjustments */
+    @media (max-width: 768px) {
+      .modal-content {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+      }
+    }
   </style>
 </head>
 <body x-data="app" x-init="init()" x-cloak :class="`theme-${darkMode ? 'dark' : 'light'}`">
@@ -102,9 +215,54 @@
     <p x-text="notification.message"></p>
   </div>
 
+  <!-- Mobile Sidebar Overlay -->
+  <div x-show="showMobileSidebar && isMobile" class="mobile-sidebar-overlay mobile-only" @click="showMobileSidebar = false"></div>
+
+  <!-- Mobile Sidebar -->
+  <aside x-show="showMobileSidebar && isMobile" class="mobile-sidebar bg-black mobile-only" :class="{'open': showMobileSidebar}">
+    <div class="p-4 flex items-center justify-between border-b border-custom">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="disc-3" class="text-green-400"></i>
+        <h1 class="text-xl font-bold text-white">Katalog</h1>
+      </div>
+      <button @click="showMobileSidebar = false" class="text-white">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+    <nav class="flex-1 p-4 space-y-2">
+      <a href="#" @click.prevent="currentView = 'collection'; showMobileSidebar = false" 
+         :class="{'bg-green-500 text-white': currentView === 'collection'}"
+         class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+         <i data-lucide="album"></i><span>Minha Coleção</span>
+      </a>
+      <a href="#" @click.prevent="currentView = 'add-record'; showMobileSidebar = false" 
+         :class="{'bg-green-500 text-white': currentView === 'add-record'}"
+         class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+         <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
+      </a>
+      <button @click="importModal.show = true; showMobileSidebar = false" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+        <i data-lucide="upload"></i><span>Importar Excel</span>
+      </button>
+    </nav>
+    <div class="p-4 border-t border-custom space-y-2">
+      <div class="px-3 py-2 text-xs text-gray-400 break-words">
+        <span x-text="user?.email"></span>
+      </div>
+      <button @click="configModal = true; showMobileSidebar = false" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+        <i data-lucide="settings"></i><span>Configurações</span>
+      </button>
+      <button @click="confirmLogout()" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
+        <i data-lucide="log-out"></i><span>Sair</span>
+      </button>
+    </div>
+  </aside>
+
   <!-- Modal Configurações -->
   <div x-show="configModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-    <div class="bg-card p-8 rounded-lg max-w-lg w-full mx-4">
+    <div class="bg-card p-6 md:p-8 rounded-lg max-w-lg w-full modal-content">
       <h3 class="text-xl font-bold mb-4">Configurações da Conta</h3>
       
       <div class="space-y-6">
@@ -132,7 +290,7 @@
 
         <div>
           <label class="block text-sm font-medium mb-2">Alterar Nome:</label>
-          <div class="flex space-x-2">
+          <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
             <input x-model="newDisplayName" placeholder="Digite o novo nome"
                    class="flex-1 p-3 bg-input border border-custom rounded-md">
             <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
@@ -157,7 +315,7 @@
 
   <!-- Modal Import Excel -->
   <div x-show="importModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="importModal.show = false">
-    <div class="bg-card p-8 rounded-lg max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+    <div class="bg-card p-6 md:p-8 rounded-lg max-w-2xl w-full modal-content">
       <h3 class="text-xl font-bold mb-4">Importar do Excel</h3>
       
       <div class="space-y-4">
@@ -196,7 +354,7 @@
           <p class="text-sm text-muted mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
         </div>
         
-        <div class="flex space-x-4">
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
           <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
                   class="flex-1 py-3 btn-primary rounded-md">
             <span x-show="!importModal.loading">Importar Coleção</span>
@@ -209,11 +367,11 @@
   </div>
 
   <!-- Login -->
-  <div x-show="!user && !loading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black">
-    <div class="bg-card p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
-      <div class="text-center mb-8">
-        <i data-lucide="disc-3" class="mx-auto h-16 w-16 text-green-400 mb-4"></i>
-        <h1 class="text-3xl font-bold text-white">Katalog</h1>
+  <div x-show="!user && !loading" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black p-4">
+    <div class="bg-card p-6 md:p-8 rounded-lg shadow-xl max-w-md w-full">
+      <div class="text-center mb-6 md:mb-8">
+        <i data-lucide="disc-3" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-green-400 mb-4"></i>
+        <h1 class="text-2xl md:text-3xl font-bold text-white">Katalog</h1>
         <p class="text-gray-400 mt-2">Organize sua coleção musical</p>
       </div>
       
@@ -264,8 +422,8 @@
 
   <!-- Dashboard -->
   <div x-show="user && !loading" class="flex h-screen">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-black flex-shrink-0 flex flex-col">
+    <!-- Desktop Sidebar -->
+    <aside class="w-64 bg-black flex-shrink-0 flex-col desktop-sidebar hidden md:flex">
       <div class="p-4 flex items-center space-x-2 border-b border-custom">
         <i data-lucide="disc-3" class="text-green-400"></i>
         <h1 class="text-xl font-bold text-white">Katalog</h1>
@@ -298,231 +456,329 @@
     </aside>
 
     <!-- Main -->
-    <main class="flex-1 p-8 overflow-y-auto">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <h1 class="text-2xl font-bold">
-            Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
-          </h1>
-          <p class="text-sm text-muted">Bem-vindo à sua coleção musical</p>
-        </div>
-        <button @click="configModal = true" 
-                class="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-card rounded-lg border border-custom">
-          <i data-lucide="settings" class="w-4 h-4"></i>
-          <span>Configurações</span>
-        </button>
-      </div>
-
-      <!-- Coleção -->
-      <div x-show="currentView === 'collection'">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-3xl font-bold">Minha Coleção (<span x-text="collection.length"></span>)</h2>
-          <div class="flex space-x-2">
-            <button @click="viewMode = 'grid'" 
-                    :class="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
-                    class="px-4 py-2 rounded-md">
-              <i data-lucide="grid-3x3"></i>
-            </button>
-            <button @click="viewMode = 'list'" 
-                    :class="viewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
-                    class="px-4 py-2 rounded-md">
-              <i data-lucide="list"></i>
-            </button>
-          </div>
-        </div>
-        
-        <!-- Busca e Ordenação -->
-        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <input x-model="searchFilter" @input="filterCollection()" 
-                 placeholder="Buscar por álbum, artista, formato..." 
-                 class="w-full sm:max-w-md p-3 bg-input border border-custom rounded-md placeholder-custom">
-          
+    <main class="flex-1 overflow-y-auto main-content">
+      <!-- Mobile Header -->
+      <div class="mobile-header mobile-only md:hidden bg-card">
+        <div class="flex justify-between items-center">
+          <button @click="showMobileSidebar = true" class="p-2 rounded-md hover:bg-input">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
           <div class="flex items-center space-x-2">
-            <span class="text-sm font-medium">Ordenar por:</span>
-            <button @click="setSortBy('album')" 
-                    :class="sortBy === 'album' ? 'sort-active' : 'sort-inactive'"
-                    class="sort-button">Álbum</button>
-            <button @click="setSortBy('artist')" 
-                    :class="sortBy === 'artist' ? 'sort-active' : 'sort-inactive'"
-                    class="sort-button">Artista</button>
-            <button @click="setSortBy('year')" 
-                    :class="sortBy === 'year' ? 'sort-active' : 'sort-inactive'"
-                    class="sort-button">Ano</button>
-            <button @click="toggleSortOrder()" 
-                    class="sort-button sort-inactive">
-              <i :data-lucide="sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'" class="w-3 h-3"></i>
-            </button>
+            <i data-lucide="disc-3" class="text-green-400"></i>
+            <h1 class="text-xl font-bold">Katalog</h1>
           </div>
-        </div>
-        
-        <!-- Grid View -->
-        <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
-             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          <template x-for="record in filteredCollection" :key="record.id">
-            <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
-              <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                   class="w-full aspect-square object-cover">
-              <div class="absolute top-2 left-2">
-                <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                      class="format-badge" x-text="record.format || 'CD'"></span>
-              </div>
-              <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100">
-                <button @click="editRecord(record)" 
-                        class="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700">
-                  <i data-lucide="edit" class="w-4 h-4"></i>
-                </button>
-                <button @click="confirmDeleteRecord(record.id)" 
-                        class="bg-red-600 text-white rounded-full p-2 hover:bg-red-700">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-              </div>
-              <div class="p-3">
-                <h3 class="font-bold truncate" x-text="record.album"></h3>
-                <p class="text-sm text-muted truncate" x-text="record.artist"></p>
-                <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <!-- List View -->
-        <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
-             class="bg-card rounded-lg overflow-hidden shadow-lg">
-          <table class="w-full">
-            <thead class="bg-input">
-              <tr>
-                <th class="text-left p-4 font-semibold">Capa</th>
-                <th class="text-left p-4 font-semibold">Álbum</th>
-                <th class="text-left p-4 font-semibold">Artista</th>
-                <th class="text-left p-4 font-semibold">Formato</th>
-                <th class="text-left p-4 font-semibold">Ano</th>
-                <th class="text-left p-4 font-semibold">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="record in filteredCollection" :key="record.id">
-                <tr class="border-b border-custom hover:bg-input">
-                  <td class="p-4">
-                    <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                         class="w-12 h-12 object-cover rounded">
-                  </td>
-                  <td class="p-4 font-semibold" x-text="record.album"></td>
-                  <td class="p-4" x-text="record.artist"></td>
-                  <td class="p-4">
-                    <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                          class="format-badge" x-text="record.format || 'CD'"></span>
-                  </td>
-                  <td class="p-4" x-text="record.year || '-'"></td>
-                  <td class="p-4">
-                    <div class="flex space-x-2">
-                      <button @click="editRecord(record)" 
-                              class="text-blue-500 hover:text-blue-700">
-                        <i data-lucide="edit" class="w-4 h-4"></i>
-                      </button>
-                      <button @click="confirmDeleteRecord(record.id)" 
-                              class="text-red-500 hover:text-red-700">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Empty State -->
-        <div x-show="collection.length === 0" class="text-center py-20 bg-card rounded-lg">
-          <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-muted mb-4"></i>
-          <h3 class="text-xl font-semibold">Sua coleção está vazia</h3>
-          <p class="text-muted mt-2">Comece adicionando seu primeiro item!</p>
-          <button @click="currentView = 'add-record'" class="mt-6 px-6 py-2 rounded-full btn-primary">
-            Adicionar Item
+          <button @click="configModal = true" class="p-2 rounded-md hover:bg-input">
+            <i data-lucide="settings" class="w-6 h-6"></i>
           </button>
         </div>
       </div>
 
-      <!-- Form Adicionar -->
-      <div x-show="currentView === 'add-record'">
-        <h2 class="text-3xl font-bold mb-6">Adicionar Novo Item</h2>
-        <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-8 rounded-lg space-y-6">
-          
-          <div class="grid md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
-              <input x-model="newRecord.album" required 
-                     class="w-full p-3 bg-input border border-custom rounded-md">
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Artista *</label>
-              <input x-model="newRecord.artist" required 
-                     class="w-full p-3 bg-input border border-custom rounded-md">
+      <!-- Content -->
+      <div class="p-4 md:p-8">
+        <!-- Desktop Header -->
+        <div class="hidden md:flex justify-between items-center mb-8">
+          <div>
+            <h1 class="text-2xl font-bold">
+              Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
+            </h1>
+            <p class="text-sm text-muted">Bem-vindo à sua coleção musical</p>
+          </div>
+          <button @click="configModal = true" 
+                  class="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-card rounded-lg border border-custom">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span>Configurações</span>
+          </button>
+        </div>
+
+        <!-- Mobile Welcome -->
+        <div class="md:hidden mb-6">
+          <h2 class="text-xl font-bold">
+            Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
+          </h2>
+          <p class="text-sm text-muted">Bem-vindo à sua coleção</p>
+        </div>
+
+        <!-- Coleção -->
+        <div x-show="currentView === 'collection'">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+            <h2 class="text-2xl md:text-3xl font-bold">Minha Coleção (<span x-text="collection.length"></span>)</h2>
+            <div class="flex space-x-2">
+              <button @click="viewMode = 'grid'" 
+                      :class="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
+                      class="px-3 py-2 md:px-4 md:py-2 rounded-md">
+                <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+              </button>
+              <button @click="viewMode = 'list'" 
+                      :class="viewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
+                      class="px-3 py-2 md:px-4 md:py-2 rounded-md">
+                <i data-lucide="list" class="w-4 h-4"></i>
+              </button>
             </div>
           </div>
           
-          <div class="grid md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Formato *</label>
-              <select x-model="newRecord.format" required
-                      class="w-full p-3 bg-input border border-custom rounded-md">
-                <option value="">Selecione...</option>
-                <option value="CD">CD</option>
-                <option value="Vinil">Vinil</option>
-                <option value="Cassete">Cassete</option>
-                <option value="Digital">Digital</option>
-              </select>
+          <!-- Busca e Ordenação -->
+          <div class="mb-6 space-y-4">
+            <input x-model="searchFilter" @input="filterCollection()" 
+                   placeholder="Buscar por álbum, artista, formato..." 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm font-medium">Ordenar por:</span>
+              <button @click="setSortBy('album')" 
+                      :class="sortBy === 'album' ? 'sort-active' : 'sort-inactive'"
+                      class="sort-button">Álbum</button>
+              <button @click="setSortBy('artist')" 
+                      :class="sortBy === 'artist' ? 'sort-active' : 'sort-inactive'"
+                      class="sort-button">Artista</button>
+              <button @click="setSortBy('year')" 
+                      :class="sortBy === 'year' ? 'sort-active' : 'sort-inactive'"
+                      class="sort-button">Ano</button>
+              <button @click="toggleSortOrder()" 
+                      class="sort-button sort-inactive">
+                <i :data-lucide="sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'" class="w-3 h-3"></i>
+              </button>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Ano</label>
-              <input x-model="newRecord.year" type="number" min="1900" max="2030"
-                     class="w-full p-3 bg-input border border-custom rounded-md">
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
-              <input x-model="newRecord.catalog_number"
-                     class="w-full p-3 bg-input border border-custom rounded-md">
-            </div>
+          </div>
+          
+          <!-- Grid View -->
+          <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
+               class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+            <template x-for="record in filteredCollection" :key="record.id">
+              <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
+                <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                     class="w-full aspect-square object-cover">
+                <div class="absolute top-2 left-2">
+                  <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                        class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+                </div>
+                <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                  <button @click="editRecord(record)" 
+                          class="bg-blue-600 text-white rounded-full p-1.5 md:p-2 hover:bg-blue-700">
+                    <i data-lucide="edit" class="w-3 h-3 md:w-4 md:h-4"></i>
+                  </button>
+                  <button @click="confirmDeleteRecord(record.id)" 
+                          class="bg-red-600 text-white rounded-full p-1.5 md:p-2 hover:bg-red-700">
+                    <i data-lucide="trash-2" class="w-3 h-3 md:w-4 md:h-4"></i>
+                  </button>
+                </div>
+                <!-- Mobile: Always show buttons -->
+                <div class="absolute bottom-2 right-2 flex space-x-1 md:hidden">
+                  <button @click="editRecord(record)" 
+                          class="bg-blue-600 text-white rounded-full p-1.5 hover:bg-blue-700">
+                    <i data-lucide="edit" class="w-3 h-3"></i>
+                  </button>
+                  <button @click="confirmDeleteRecord(record.id)" 
+                          class="bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                  </button>
+                </div>
+                <div class="p-2 md:p-3">
+                  <h3 class="font-bold text-sm md:text-base truncate" x-text="record.album"></h3>
+                  <p class="text-xs md:text-sm text-muted truncate" x-text="record.artist"></p>
+                  <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
+                </div>
+              </div>
+            </template>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
-            
-            <div class="mb-4">
-              <button type="button" @click="searchCoverOnGoogle()" 
-                      :disabled="!newRecord.album || !newRecord.artist"
-                      class="px-4 py-2 btn-primary rounded-md flex items-center">
-                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                Buscar Capa no Google Imagens
-              </button>
-              <p class="text-xs text-muted mt-1">
-                Clique com o botão direito na imagem → "Copiar endereço da imagem"
-              </p>
+          <!-- List View -->
+          <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
+               class="bg-card rounded-lg overflow-hidden shadow-lg">
+            <!-- Mobile List View -->
+            <div class="md:hidden">
+              <template x-for="record in filteredCollection" :key="record.id">
+                <div class="border-b border-custom p-4 flex items-center space-x-3">
+                  <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                       class="w-12 h-12 object-cover rounded">
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-sm truncate" x-text="record.album"></h3>
+                    <p class="text-xs text-muted truncate" x-text="record.artist"></p>
+                    <div class="flex items-center space-x-2 mt-1">
+                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                            class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+                      <span x-show="record.year" class="text-xs text-muted" x-text="record.year"></span>
+                    </div>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button @click="editRecord(record)" 
+                            class="text-blue-500 hover:text-blue-700 p-1">
+                      <i data-lucide="edit" class="w-4 h-4"></i>
+                    </button>
+                    <button @click="confirmDeleteRecord(record.id)" 
+                            class="text-red-500 hover:text-red-700 p-1">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              </template>
             </div>
             
-            <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
-                   class="w-full p-3 bg-input border border-custom rounded-md mb-4">
-            
-            <div x-show="newRecord.cover_url" class="mb-4">
-              <p class="text-sm text-muted mb-2">Preview:</p>
-              <img :src="newRecord.cover_url" class="w-32 h-32 object-cover rounded-md" 
-                   @error="newRecord.cover_url = ''">
-            </div>
+            <!-- Desktop Table View -->
+            <table class="w-full hidden md:table">
+              <thead class="bg-input">
+                <tr>
+                  <th class="text-left p-4 font-semibold">Capa</th>
+                  <th class="text-left p-4 font-semibold">Álbum</th>
+                  <th class="text-left p-4 font-semibold">Artista</th>
+                  <th class="text-left p-4 font-semibold">Formato</th>
+                  <th class="text-left p-4 font-semibold">Ano</th>
+                  <th class="text-left p-4 font-semibold">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="record in filteredCollection" :key="record.id">
+                  <tr class="border-b border-custom hover:bg-input">
+                    <td class="p-4">
+                      <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                           class="w-12 h-12 object-cover rounded">
+                    </td>
+                    <td class="p-4 font-semibold" x-text="record.album"></td>
+                    <td class="p-4" x-text="record.artist"></td>
+                    <td class="p-4">
+                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                            class="format-badge" x-text="record.format || 'CD'"></span>
+                    </td>
+                    <td class="p-4" x-text="record.year || '-'"></td>
+                    <td class="p-4">
+                      <div class="flex space-x-2">
+                        <button @click="editRecord(record)" 
+                                class="text-blue-500 hover:text-blue-700">
+                          <i data-lucide="edit" class="w-4 h-4"></i>
+                        </button>
+                        <button @click="confirmDeleteRecord(record.id)" 
+                                class="text-red-500 hover:text-red-700">
+                          <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
           
-          <div class="flex space-x-4">
-            <button type="submit" :disabled="formLoading" 
-                    class="flex-1 py-3 btn-primary rounded-md">
-              <span x-show="!formLoading">Salvar Item</span>
-              <span x-show="formLoading">Salvando...</span>
+          <!-- Empty State -->
+          <div x-show="collection.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
+            <i data-lucide="folder-x" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-muted mb-4"></i>
+            <h3 class="text-lg md:text-xl font-semibold">Sua coleção está vazia</h3>
+            <p class="text-muted mt-2">Comece adicionando seu primeiro item!</p>
+            <button @click="currentView = 'add-record'" class="mt-4 md:mt-6 px-4 py-2 md:px-6 md:py-2 rounded-full btn-primary">
+              Adicionar Item
             </button>
-            <button type="button" @click="resetForm()" 
-                    class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
           </div>
-        </form>
+        </div>
+
+        <!-- Form Adicionar -->
+        <div x-show="currentView === 'add-record'">
+          <h2 class="text-2xl md:text-3xl font-bold mb-6">Adicionar Novo Item</h2>
+          <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-4 md:p-8 rounded-lg space-y-4 md:space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
+                <input x-model="newRecord.album" required 
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Artista *</label>
+                <input x-model="newRecord.artist" required 
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Formato *</label>
+                <select x-model="newRecord.format" required
+                        class="w-full p-3 bg-input border border-custom rounded-md">
+                  <option value="">Selecione...</option>
+                  <option value="CD">CD</option>
+                  <option value="Vinil">Vinil</option>
+                  <option value="Cassete">Cassete</option>
+                  <option value="Digital">Digital</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Ano</label>
+                <input x-model="newRecord.year" type="number" min="1900" max="2030"
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
+                <input x-model="newRecord.catalog_number"
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
+              
+              <div class="mb-4">
+                <button type="button" @click="searchCoverOnGoogle()" 
+                        :disabled="!newRecord.album || !newRecord.artist"
+                        class="w-full md:w-auto px-4 py-2 btn-primary rounded-md flex items-center justify-center">
+                  <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                  Buscar Capa no Google Imagens
+                </button>
+                <p class="text-xs text-muted mt-1">
+                  Clique com o botão direito na imagem → "Copiar endereço da imagem"
+                </p>
+              </div>
+              
+              <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
+                     class="w-full p-3 bg-input border border-custom rounded-md mb-4">
+              
+              <div x-show="newRecord.cover_url" class="mb-4">
+                <p class="text-sm text-muted mb-2">Preview:</p>
+                <img :src="newRecord.cover_url" class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-md" 
+                     @error="newRecord.cover_url = ''">
+              </div>
+            </div>
+            
+            <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
+              <button type="submit" :disabled="formLoading" 
+                      class="flex-1 py-3 btn-primary rounded-md">
+                <span x-show="!formLoading">Salvar Item</span>
+                <span x-show="formLoading">Salvando...</span>
+              </button>
+              <button type="button" @click="resetForm()" 
+                      class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
+            </div>
+          </form>
+        </div>
       </div>
     </main>
   </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav mobile-only md:hidden">
+    <div class="flex justify-around items-center py-3">
+      <button @click="currentView = 'collection'" 
+              :class="{'text-green-400': currentView === 'collection'}"
+              class="flex flex-col items-center space-y-1 px-3 py-2">
+        <i data-lucide="album" class="w-5 h-5"></i>
+        <span class="text-xs">Coleção</span>
+      </button>
+      <button @click="currentView = 'add-record'" 
+              :class="{'text-green-400': currentView === 'add-record'}"
+              class="flex flex-col items-center space-y-1 px-3 py-2">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        <span class="text-xs">Adicionar</span>
+      </button>
+      <button @click="importModal.show = true" 
+              class="flex flex-col items-center space-y-1 px-3 py-2 text-blue-300">
+        <i data-lucide="upload" class="w-5 h-5"></i>
+        <span class="text-xs">Importar</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Floating Action Button (Mobile) -->
+  <button x-show="currentView === 'collection' && collection.length === 0" 
+          @click="currentView = 'add-record'"
+          class="fab btn-primary mobile-only">
+    <i data-lucide="plus" class="w-6 h-6"></i>
+  </button>
 
   <script>
     // Firebase Config
@@ -545,6 +801,10 @@
         user: null,
         authLoading: false,
         formLoading: false,
+        
+        // Device Detection
+        isMobile: window.innerWidth < 769,
+        showMobileSidebar: false,
         
         // Tema
         darkMode: localStorage.getItem('katalog-theme') !== 'light',
@@ -577,6 +837,12 @@
 
         async init() {
           try {
+            // Device detection
+            this.checkDevice();
+            window.addEventListener('resize', () => {
+              this.checkDevice();
+            });
+
             auth.onAuthStateChanged((user) => {
               this.user = user;
               if (user) {
@@ -597,6 +863,13 @@
             console.error('Erro na inicialização:', error);
             this.showNotification('Erro ao carregar aplicação', 'error');
             this.loading = false;
+          }
+        },
+
+        checkDevice() {
+          this.isMobile = window.innerWidth < 769;
+          if (!this.isMobile) {
+            this.showMobileSidebar = false;
           }
         },
 
@@ -707,6 +980,8 @@
           this.newRecord = { ...record };
           this.currentView = 'add-record';
           this.showNotification('Editando item...', 'info');
+          // Close mobile sidebar if open
+          this.showMobileSidebar = false;
         },
     
         confirmDeleteRecord(recordId) {
@@ -946,4 +1221,4 @@
     });
   </script>
 </body>
-</html>
+</html> 
