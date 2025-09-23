@@ -859,8 +859,8 @@
     </main>
   </div>
 
-  <!-- Mobile Bottom Navigation -->
-  <nav class="mobile-bottom-nav mobile-only md:hidden">
+    <!-- Mobile Bottom Navigation -->
+  <nav x-show="user" class="mobile-bottom-nav mobile-only md:hidden">
     <div class="flex justify-around items-center py-3">
       <button @click="currentView = 'collection'" 
               :class="{'text-green-400': currentView === 'collection'}"
@@ -1533,3 +1533,4 @@
   </script>
 </body>
 </html>
+
