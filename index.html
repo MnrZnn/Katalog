@@ -219,12 +219,7 @@
         display: none;
       }
     }
-    
-        .modal-content {
-      max-width: 800px !important;
-      width: 90vw;
-    }
-    
+
     /* Mobile Modal Adjustments */
     @media (max-width: 768px) {
       .modal-content {
@@ -298,74 +293,84 @@
     </div>
   </aside>
 
-  <!-- Modal Configurações -->
+<!-- Modal Configurações -->
   <div x-show="configModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-    <div class="bg-card p-6 md:p-8 rounded-lg max-w-4xl w-full modal-content" style="max-width: 800px;">
-      <h3 class="text-xl font-bold mb-4">Configurações da Conta</h3>
+    <div class="bg-card p-6 md:p-8 rounded-lg max-w-lg md:max-w-4xl w-full modal-content">
+      <h3 class="text-xl font-bold mb-6">Configurações da Conta</h3>
       
-      <div class="space-y-6">
-        <!-- Tema -->
-        <div class="bg-input p-4 rounded-lg">
-          <h4 class="font-semibold mb-3">Tema</h4>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">Modo Escuro</span>
-            <button @click="toggleTheme()" 
-                    class="relative inline-flex h-6 w-11 items-center rounded-full"
-                    :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
-              <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                    :class="darkMode ? 'translate-x-6' : 'translate-x-1'"></span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Backup da Coleção -->
-        <div class="bg-input p-4 rounded-lg">
-          <h4 class="font-semibold mb-3">Backup da Coleção</h4>
-          <button @click="exportToExcel()" 
-                  :disabled="collection.length === 0"
-                  class="w-full py-2 px-4 btn-primary rounded-md disabled:bg-gray-600 disabled:cursor-not-allowed">
-            <div class="flex items-center justify-center space-x-2">
-              <i data-lucide="download" class="w-4 h-4"></i>
-              <span>Salvar Backup em Planilha</span>
+      <!-- Layout Desktop: Grid de 2 colunas -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Coluna 1 -->
+        <div class="space-y-6">
+          <!-- Tema -->
+          <div class="bg-input p-4 rounded-lg">
+            <h4 class="font-semibold mb-3">Tema</h4>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Modo Escuro</span>
+              <button @click="toggleTheme()" 
+                      class="relative inline-flex h-6 w-11 items-center rounded-full"
+                      :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
+                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                      :class="darkMode ? 'translate-x-6' : 'translate-x-1'"></span>
+              </button>
             </div>
-          </button>
-          <p class="text-xs text-muted mt-2">
-            Gera um arquivo Excel com toda sua coleção
-          </p>
-        </div>
-        
-        <!-- Informações da Conta -->
-        <div class="bg-input p-4 rounded-lg">
-          <h4 class="font-semibold mb-3">Informações Atuais:</h4>
-          <div class="space-y-2 text-sm text-muted">
-            <div><span>Email:</span> <span x-text="user?.email"></span></div>
-            <div><span>Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
+          </div>
+
+          <!-- Backup da Coleção -->
+          <div class="bg-input p-4 rounded-lg">
+            <h4 class="font-semibold mb-3">Backup da Coleção</h4>
+            <button @click="exportToExcel()" 
+                    :disabled="collection.length === 0"
+                    class="w-full py-2 px-4 btn-primary rounded-md disabled:bg-gray-600 disabled:cursor-not-allowed">
+              <div class="flex items-center justify-center space-x-2">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Salvar Backup em Planilha</span>
+              </div>
+            </button>
+            <p class="text-xs text-muted mt-2">
+              Gera um arquivo Excel com toda sua coleção
+            </p>
+          </div>
+          
+          <!-- Informações da Conta -->
+          <div class="bg-input p-4 rounded-lg">
+            <h4 class="font-semibold mb-3">Informações Atuais:</h4>
+            <div class="space-y-2 text-sm text-muted">
+              <div><span>Email:</span> <span x-text="user?.email"></span></div>
+              <div><span>Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
+            </div>
           </div>
         </div>
 
-        <!-- Alterar Nome -->
-        <div class="bg-input p-4 rounded-lg">
-          <label class="block text-sm font-medium mb-2">Alterar Nome:</label>
-          <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <input x-model="newDisplayName" placeholder="Digite o novo nome"
-                   class="flex-1 p-3 bg-input border border-custom rounded-md">
-            <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
-                    class="px-4 py-3 btn-primary rounded-md">Salvar</button>
+        <!-- Coluna 2 -->
+        <div class="space-y-6">
+          <!-- Alterar Nome -->
+          <div class="bg-input p-4 rounded-lg">
+            <label class="block text-sm font-medium mb-2">Alterar Nome:</label>
+            <div class="flex flex-col space-y-2">
+              <input x-model="newDisplayName" placeholder="Digite o novo nome"
+                     class="w-full p-3 bg-input border border-custom rounded-md">
+              <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
+                      class="w-full py-3 btn-primary rounded-md">Salvar Nome</button>
+            </div>
           </div>
-        </div>
 
-        <!-- Zona de Perigo -->
-        <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
-          <h4 class="text-red-400 font-semibold mb-3">Zona de Perigo</h4>
-          <button @click="confirmDeleteAccount()" 
-                  class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md">
-            Excluir Conta
-          </button>
+          <!-- Zona de Perigo -->
+          <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
+            <h4 class="text-red-400 font-semibold mb-3">Zona de Perigo</h4>
+            <button @click="confirmDeleteAccount()" 
+                    class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md">
+              Excluir Conta
+            </button>
+            <p class="text-xs text-red-300 mt-2">
+              Esta ação é irreversível e todos os seus dados serão perdidos
+            </p>
+          </div>
         </div>
       </div>
       
-      <div class="flex justify-end mt-6">
-        <button @click="configModal = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
+      <div class="flex justify-end mt-8 pt-6 border-t border-custom">
+        <button @click="configModal = false" class="px-8 py-2 btn-secondary rounded-md">Fechar</button>
       </div>
     </div>
   </div>
@@ -524,7 +529,6 @@
     </div>
   </div>
 
-  
   <!-- Dashboard -->
   <div x-show="user && !loading" class="flex h-screen">
     <!-- Desktop Sidebar -->
@@ -553,29 +557,6 @@
         <div class="px-3 py-2 text-xs text-gray-400 break-words">
           <span x-text="user?.email"></span>
         </div>
-        
-        <!-- Theme Toggle Slider for Desktop -->
-        <div class="px-3 py-2 hidden md:block">
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-400">Tema</span>
-            <button @click="toggleTheme()" 
-                    class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                    :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
-              <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
-                    :class="darkMode ? 'translate-x-5' : 'translate-x-1'"></span>
-            </button>
-          </div>
-        </div>
-        
-        <button @click="configModal = true" 
-                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
-          <i data-lucide="settings"></i><span>Configurações</span>
-        </button>
-        <button @click="confirmLogout()" 
-                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
-          <i data-lucide="log-out"></i><span>Sair</span>
-        </button>
-      </div>
         <button @click="confirmLogout()" 
                 class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
           <i data-lucide="log-out"></i><span>Sair</span>
@@ -1552,8 +1533,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
