@@ -1359,33 +1359,66 @@
             this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
           }
         },
-
-        async importRecords() {
-          if (this.importModal.data.length === 0) return;
-
-          this.importModal.loading = true;
-          try {
-            const userId = this.user.uid;
-            const batch = db.batch();
-
-            this.importModal.data.forEach(record => {
-              const docRef = db.collection('users').doc(userId).collection('records').doc();
-              batch.set(docRef, {
-                ...record,
-                created_at: new Date(),
-                user_id: userId
-              });
-            });
-
-            await batch.commit();
-            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
-            this.closeImportModal();
-          } catch (error) {
-            console.error('Erro na importação:', error);
-            this.showNotification('Erro ao importar registros', 'error');
+      
+      async importRecords() {
+        if (this.importModal.data.length === 0) return;
+      
+        this.importModal.loading = true;
+        try {
+          const userId = this.user.uid;
+          const batch = db.batch();
+      
+          // Buscar capas para itens que não têm cover_url
+          for (let i = 0; i < this.importModal.data.length; i++) {
+            const record = this.importModal.data[i];
+            
+            // Se não tem capa, tenta buscar automaticamente
+            if (!record.cover_url && record.album && record.artist) {
+              try {
+                const query = `${record.album} ${record.artist}`.trim();
+                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+                
+                const response = await fetch(itunesUrl);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.results && data.results.length > 0) {
+                    const album = data.results[0];
+                    if (album.artworkUrl100) {
+                      const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                      record.cover_url = highResUrl;
+                    }
+                  }
+                }
+              } catch (error) {
+                console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+              }
+              
+              // Pequeno delay para não sobrecarregar a API
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
           }
-          this.importModal.loading = false;
-        },
+      
+          // Salvar todos os registros no Firebase
+          this.importModal.data.forEach(record => {
+            const docRef = db.collection('users').doc(userId).collection('records').doc();
+            batch.set(docRef, {
+              ...record,
+              created_at: new Date(),
+              user_id: userId
+            });
+          });
+      
+          await batch.commit();
+          this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
+          this.closeImportModal();
+          
+        } catch (error) {
+          console.error('Erro na importação:', error);
+          this.showNotification('Erro ao importar registros', 'error');
+        }
+        
+        this.importModal.loading = false;
+      },
 
         closeImportModal() {
           this.importModal = { show: false, data: [], preview: [], loading: false };
@@ -1412,6 +1445,7 @@
   </script>
 </body>
 </html> 
+
 
 
 
