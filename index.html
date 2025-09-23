@@ -1097,50 +1097,41 @@
           window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
         },
 
-        async fetchAlbumCover() {
-          try {
-            const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
-            if (!query) return;
-            
-            this.showNotification('Buscando capa...', 'info');
-            
-            // Usando proxy CORS para acessar MusicBrainz
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const musicBrainzUrl = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json&limit=1`;
-            
-            const searchRes = await fetch(proxyUrl + encodeURIComponent(musicBrainzUrl));
-            
-            if (!searchRes.ok) {
-              throw new Error('Erro na busca do MusicBrainz');
-            }
-            
-            const searchData = await searchRes.json();
-
-            if (searchData.releases && searchData.releases.length > 0) {
-              const releaseId = searchData.releases[0].id;
+  async fetchAlbumCover() {
+            try {
+              const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
+              if (!query) return;
               
-              // Busca capa no Cover Art Archive
-              const coverUrl = `https://coverartarchive.org/release/${releaseId}`;
-              const coverRes = await fetch(proxyUrl + encodeURIComponent(coverUrl));
+              this.showNotification('Buscando capa...', 'info');
               
-              if (coverRes.ok) {
-                const coverData = await coverRes.json();
-                if (coverData.images && coverData.images.length > 0) {
-                  // Pega a primeira imagem disponível
-                  const imageUrl = coverData.images[0].image;
-                  this.newRecord.cover_url = imageUrl;
+              // Usando iTunes Search API que não tem restrições de CORS
+              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+              
+              const response = await fetch(itunesUrl);
+              
+              if (!response.ok) {
+                throw new Error('Erro na busca do iTunes');
+              }
+              
+              const data = await response.json();
+  
+              if (data.results && data.results.length > 0) {
+                const album = data.results[0];
+                if (album.artworkUrl100) {
+                  // Pega a versão em alta resolução da capa
+                  const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                  this.newRecord.cover_url = highResUrl;
                   this.showNotification('Capa encontrada automaticamente!', 'success');
                   return;
                 }
               }
+  
+              this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+            } catch (error) {
+              console.error('Erro ao buscar capa:', error);
+              this.showNotification('Não foi possível buscar capa automática', 'error');
             }
-
-            this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
-          } catch (error) {
-            console.error('Erro ao buscar capa:', error);
-            this.showNotification('Não foi possível buscar capa automática', 'error');
-          }
-        },
+          },
 
         toggleTheme() {
           this.darkMode = !this.darkMode;
@@ -1297,6 +1288,7 @@
   </script>
 </body>
 </html> 
+
 
 
 
