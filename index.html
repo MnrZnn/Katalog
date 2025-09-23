@@ -331,21 +331,6 @@
         </div>
         
         <div class="bg-input p-4 rounded-lg">
-      
-              <div class="bg-input p-4 rounded-lg">
-        <h4 class="font-semibold mb-3">Backup da Coleção</h4>
-        <button @click="exportToExcel()" 
-                :disabled="collection.length === 0"
-                class="w-full py-2 px-4 btn-primary rounded-md disabled:bg-gray-600 disabled:cursor-not-allowed">
-          <div class="flex items-center justify-center space-x-2">
-            <i data-lucide="download" class="w-4 h-4"></i>
-            <span>Salvar Backup em Planilha</span>
-          </div>
-        </button>
-        <p class="text-xs text-muted mt-2">
-          Gera um arquivo Excel com toda sua coleção
-        </p>
-      </div>
         
         <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Informações Atuais:</h4>
@@ -1529,6 +1514,7 @@
   </script>
 </body>
 </html> 
+
 
 
 
