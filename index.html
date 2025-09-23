@@ -936,16 +936,22 @@
           }
         },
 
-        async confirmAddRecord() {
-          if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
-            this.showNotification('Preencha os campos obrigatórios', 'error');
-            return;
-          }
+              async confirmAddRecord() {
+        if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
+          this.showNotification('Preencha os campos obrigatórios', 'error');
+          return;
+        }
+      
+        // Se não tiver capa definida, tenta buscar automaticamente
+        if (!this.newRecord.cover_url) {
+          await this.fetchAlbumCover();
+        }
+      
+        if (confirm('Adicionar este item à coleção?')) {
+          await this.addRecord();
+        }
+      },
 
-          if (confirm('Adicionar este item à coleção?')) {
-            await this.addRecord();
-          }
-        },
 
         async addRecord() {
           this.formLoading = true;
@@ -1085,6 +1091,39 @@
           window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
         },
 
+        async fetchAlbumCover() {
+  try {
+    const query = `${this.newRecord.album} ${this.newRecord.artist}`;
+    
+    // Busca no MusicBrainz
+    const searchRes = await fetch(
+      `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json`
+    );
+    const searchData = await searchRes.json();
+
+    if (searchData.releases && searchData.releases.length > 0) {
+      const releaseId = searchData.releases[0].id;
+
+      // Agora busca capa no Cover Art Archive
+      const coverRes = await fetch(`https://coverartarchive.org/release/${releaseId}`);
+      if (coverRes.ok) {
+        const coverData = await coverRes.json();
+        if (coverData.images && coverData.images.length > 0) {
+          this.newRecord.cover_url = coverData.images[0].image;
+          this.showNotification('Capa encontrada automaticamente!', 'success');
+          return;
+        }
+      }
+    }
+
+    this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+  } catch (error) {
+    console.error('Erro ao buscar capa:', error);
+    this.showNotification('Erro ao buscar capa automática', 'error');
+  }
+},
+
+
         toggleTheme() {
           this.darkMode = !this.darkMode;
           localStorage.setItem('katalog-theme', this.darkMode ? 'dark' : 'light');
@@ -1120,7 +1159,16 @@
             await batch.commit();
             
             // Deletar conta
+            // Reautenticar antes de excluir
+            const credential = firebase.auth.EmailAuthProvider.credential(
+              this.user.email,
+              this.password // senha digitada novamente pelo usuário
+            );
+            await this.user.reauthenticateWithCredential(credential);
+            
+            // Agora sim pode excluir
             await this.user.delete();
+
             this.showNotification('Conta excluída com sucesso!', 'success');
           } catch (error) {
             console.error('Erro ao excluir conta:', error);
@@ -1222,3 +1270,4 @@
   </script>
 </body>
 </html> 
+
