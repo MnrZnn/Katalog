@@ -30,7 +30,7 @@
     .theme-dark .border-custom { border-color: #383838; }
     .theme-dark .text-muted { color: #888888; }
     
-      /* Tema Claro */
+    /* Tema Claro */
     .theme-light {
       background-color: #f8fafc;
       color: #1f2937;
@@ -58,9 +58,8 @@
     .theme-light span,
     .theme-light div {
      color: #1f2937 !important; /* cinza bem escuro */
-  }
+    }
 
-    
     /* Estilos para ordenação */
     .sort-button {
       @apply px-2 py-1 text-xs rounded border;
@@ -89,7 +88,7 @@
     .format-cassete { @apply bg-orange-500 text-white; }
     .format-digital { @apply bg-green-500 text-white; }
 
-        /* Modal de exclusão de conta */
+    /* Modal de exclusão de conta */
     .delete-account-modal {
       position: fixed;
       inset: 0;
@@ -300,7 +299,7 @@
       <h3 class="text-xl font-bold mb-4">Configurações da Conta</h3>
       
       <div class="space-y-6">
-<!-- Tema -->
+        <!-- Tema -->
         <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Tema</h4>
           <div class="flex items-center justify-between">
@@ -330,8 +329,7 @@
           </p>
         </div>
         
-        <div class="bg-input p-4 rounded-lg">
-        
+        <!-- Informações da Conta -->
         <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Informações Atuais:</h4>
           <div class="space-y-2 text-sm text-muted">
@@ -340,7 +338,8 @@
           </div>
         </div>
 
-        <div>
+        <!-- Alterar Nome -->
+        <div class="bg-input p-4 rounded-lg">
           <label class="block text-sm font-medium mb-2">Alterar Nome:</label>
           <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
             <input x-model="newDisplayName" placeholder="Digite o novo nome"
@@ -350,6 +349,7 @@
           </div>
         </div>
 
+        <!-- Zona de Perigo -->
         <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
           <h4 class="text-red-400 font-semibold mb-3">Zona de Perigo</h4>
           <button @click="confirmDeleteAccount()" 
@@ -365,52 +365,52 @@
     </div>
   </div>
     
-    <!-- Modal Confirmação de Exclusão de Conta -->
-    <div x-show="deleteAccountModal.show" class="delete-account-modal">
-      <div class="delete-account-form">
-        <div class="text-center mb-6">
-          <i data-lucide="alert-triangle" class="mx-auto h-16 w-16 text-red-500 mb-4"></i>
-          <h3 class="text-xl font-bold text-red-400 mb-2">Excluir Conta Permanentemente</h3>
-          <p class="text-sm text-muted">Esta ação não pode ser desfeita. Todos os seus dados serão perdidos.</p>
+  <!-- Modal Confirmação de Exclusão de Conta -->
+  <div x-show="deleteAccountModal.show" class="delete-account-modal">
+    <div class="delete-account-form">
+      <div class="text-center mb-6">
+        <i data-lucide="alert-triangle" class="mx-auto h-16 w-16 text-red-500 mb-4"></i>
+        <h3 class="text-xl font-bold text-red-400 mb-2">Excluir Conta Permanentemente</h3>
+        <p class="text-sm text-muted">Esta ação não pode ser desfeita. Todos os seus dados serão perdidos.</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Confirme seu email:</label>
+          <input x-model="deleteAccountModal.email" type="email" 
+                 class="w-full p-3 bg-input border border-custom rounded-md"
+                 placeholder="Digite seu email">
         </div>
         
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-2">Confirme seu email:</label>
-            <input x-model="deleteAccountModal.email" type="email" 
-                   class="w-full p-3 bg-input border border-custom rounded-md"
-                   placeholder="Digite seu email">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium mb-2">Confirme sua senha:</label>
-            <input x-model="deleteAccountModal.password" type="password" 
-                   class="w-full p-3 bg-input border border-custom rounded-md"
-                   placeholder="Digite sua senha">
-          </div>
-          
-          <div class="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
-            <label class="flex items-center space-x-2">
-              <input x-model="deleteAccountModal.confirmed" type="checkbox" class="rounded">
-              <span class="text-sm">Eu entendo que esta ação é irreversível e todos os meus dados serão perdidos</span>
-            </label>
-          </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Confirme sua senha:</label>
+          <input x-model="deleteAccountModal.password" type="password" 
+                 class="w-full p-3 bg-input border border-custom rounded-md"
+                 placeholder="Digite sua senha">
         </div>
         
-        <div class="flex space-x-4 mt-6">
-          <button @click="proceedDeleteAccount()" 
-                  :disabled="!deleteAccountModal.email || !deleteAccountModal.password || !deleteAccountModal.confirmed || deleteAccountModal.loading"
-                  class="flex-1 py-3 bg-red-700 hover:bg-red-800 disabled:bg-gray-600 text-white rounded-md">
-            <span x-show="!deleteAccountModal.loading">Excluir Conta</span>
-            <span x-show="deleteAccountModal.loading">Excluindo...</span>
-          </button>
-          <button @click="cancelDeleteAccount()" 
-                  class="px-6 py-3 btn-secondary rounded-md">
-            Cancelar
-          </button>
+        <div class="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+          <label class="flex items-center space-x-2">
+            <input x-model="deleteAccountModal.confirmed" type="checkbox" class="rounded">
+            <span class="text-sm">Eu entendo que esta ação é irreversível e todos os meus dados serão perdidos</span>
+          </label>
         </div>
       </div>
+      
+      <div class="flex space-x-4 mt-6">
+        <button @click="proceedDeleteAccount()" 
+                :disabled="!deleteAccountModal.email || !deleteAccountModal.password || !deleteAccountModal.confirmed || deleteAccountModal.loading"
+                class="flex-1 py-3 bg-red-700 hover:bg-red-800 disabled:bg-gray-600 text-white rounded-md">
+          <span x-show="!deleteAccountModal.loading">Excluir Conta</span>
+          <span x-show="deleteAccountModal.loading">Excluindo...</span>
+        </button>
+        <button @click="cancelDeleteAccount()" 
+                class="px-6 py-3 btn-secondary rounded-md">
+          Cancelar
+        </button>
+      </div>
     </div>
+  </div>
   
   <!-- Modal Import Excel -->
   <div x-show="importModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="importModal.show = false">
@@ -974,7 +974,6 @@
           }
         },
         
-
         checkDevice() {
           this.isMobile = window.innerWidth < 769;
           if (!this.isMobile) {
@@ -1045,22 +1044,21 @@
           }
         },
 
-              async confirmAddRecord() {
-        if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
-          this.showNotification('Preencha os campos obrigatórios', 'error');
-          return;
-        }
-      
-        // Se não tiver capa definida, tenta buscar automaticamente
-        if (!this.newRecord.cover_url) {
-          await this.fetchAlbumCover();
-        }
-      
-        if (confirm('Adicionar este item à coleção?')) {
-          await this.addRecord();
-        }
-      },
-
+        async confirmAddRecord() {
+          if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
+            this.showNotification('Preencha os campos obrigatórios', 'error');
+            return;
+          }
+        
+          // Se não tiver capa definida, tenta buscar automaticamente
+          if (!this.newRecord.cover_url) {
+            await this.fetchAlbumCover();
+          }
+        
+          if (confirm('Adicionar este item à coleção?')) {
+            await this.addRecord();
+          }
+        },
 
         async addRecord() {
           this.formLoading = true;
@@ -1200,41 +1198,41 @@
           window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
         },
 
-  async fetchAlbumCover() {
-            try {
-              const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
-              if (!query) return;
-              
-              this.showNotification('Buscando capa...', 'info');
-              
-              // Usando iTunes Search API que não tem restrições de CORS
-              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-              
-              const response = await fetch(itunesUrl);
-              
-              if (!response.ok) {
-                throw new Error('Erro na busca do iTunes');
-              }
-              
-              const data = await response.json();
-  
-              if (data.results && data.results.length > 0) {
-                const album = data.results[0];
-                if (album.artworkUrl100) {
-                  // Pega a versão em alta resolução da capa
-                  const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                  this.newRecord.cover_url = highResUrl;
-                  this.showNotification('Capa encontrada automaticamente!', 'success');
-                  return;
-                }
-              }
-  
-              this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
-            } catch (error) {
-              console.error('Erro ao buscar capa:', error);
-              this.showNotification('Não foi possível buscar capa automática', 'error');
+        async fetchAlbumCover() {
+          try {
+            const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
+            if (!query) return;
+            
+            this.showNotification('Buscando capa...', 'info');
+            
+            // Usando iTunes Search API que não tem restrições de CORS
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+            
+            const response = await fetch(itunesUrl);
+            
+            if (!response.ok) {
+              throw new Error('Erro na busca do iTunes');
             }
-          },
+            
+            const data = await response.json();
+
+            if (data.results && data.results.length > 0) {
+              const album = data.results[0];
+              if (album.artworkUrl100) {
+                // Pega a versão em alta resolução da capa
+                const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                this.newRecord.cover_url = highResUrl;
+                this.showNotification('Capa encontrada automaticamente!', 'success');
+                return;
+              }
+            }
+
+            this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+          } catch (error) {
+            console.error('Erro ao buscar capa:', error);
+            this.showNotification('Não foi possível buscar capa automática', 'error');
+          }
+        },
 
         toggleTheme() {
           this.darkMode = !this.darkMode;
@@ -1264,77 +1262,88 @@
           };
           this.configModal = false;
         },
-           async proceedDeleteAccount() {
-  if (!this.deleteAccountModal.email || !this.deleteAccountModal.password || !this.deleteAccountModal.confirmed) {
-    this.showNotification('Preencha todos os campos e confirme a ação', 'error');
-    return;
-  }
 
-  if (this.deleteAccountModal.email !== this.user.email) {
-    this.showNotification('Email não confere com o da conta', 'error');
-    return;
-  }
+        cancelDeleteAccount() {
+          this.deleteAccountModal = { 
+            show: false, 
+            email: '', 
+            password: '', 
+            confirmed: false, 
+            loading: false 
+          };
+        },
 
-  this.deleteAccountModal.loading = true;
-  
-  try {
-    const user = firebase.auth().currentUser;
-    
-    // 1. Reautenticar usuário com tratamento de erro melhorado
-    const credential = firebase.auth.EmailAuthProvider.credential(
-      this.deleteAccountModal.email.trim(), 
-      this.deleteAccountModal.password
-    );
-    
-    await user.reauthenticateWithCredential(credential);
+        async proceedDeleteAccount() {
+          if (!this.deleteAccountModal.email || !this.deleteAccountModal.password || !this.deleteAccountModal.confirmed) {
+            this.showNotification('Preencha todos os campos e confirme a ação', 'error');
+            return;
+          }
 
-    // 2. Deletar todos os registros do Firestore
-    const userId = user.uid;
-    const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-    
-    if (!recordsSnapshot.empty) {
-      const batch = db.batch();
-      recordsSnapshot.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-    }
+          if (this.deleteAccountModal.email !== this.user.email) {
+            this.showNotification('Email não confere com o da conta', 'error');
+            return;
+          }
 
-    // 3. Excluir usuário
-    await user.delete();
+          this.deleteAccountModal.loading = true;
+          
+          try {
+            const user = firebase.auth().currentUser;
+            
+            // 1. Reautenticar usuário com tratamento de erro melhorado
+            const credential = firebase.auth.EmailAuthProvider.credential(
+              this.deleteAccountModal.email.trim(), 
+              this.deleteAccountModal.password
+            );
+            
+            await user.reauthenticateWithCredential(credential);
 
-    this.showNotification('Conta excluída com sucesso!', 'success');
-    
-    // 4. Resetar estado
-    this.cancelDeleteAccount();
-    
-    // 5. Logout será automático após delete()
+            // 2. Deletar todos os registros do Firestore
+            const userId = user.uid;
+            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+            
+            if (!recordsSnapshot.empty) {
+              const batch = db.batch();
+              recordsSnapshot.forEach(doc => batch.delete(doc.ref));
+              await batch.commit();
+            }
 
-  } catch (error) {
-    console.error('Erro ao excluir conta:', error);
-    
-    let errorMessage = 'Erro ao excluir conta';
-    
-    switch(error.code) {
-      case 'auth/wrong-password':
-        errorMessage = 'Senha incorreta';
-        break;
-      case 'auth/too-many-requests':
-        errorMessage = 'Muitas tentativas. Tente novamente mais tarde';
-        break;
-      case 'auth/requires-recent-login':
-        errorMessage = 'É necessário fazer login novamente antes de excluir a conta';
-        break;
-      case 'auth/user-token-expired':
-        errorMessage = 'Sessão expirada. Faça login novamente';
-        break;
-      default:
-        errorMessage = `Erro: ${error.message}`;
-    }
-    
-    this.showNotification(errorMessage, 'error');
-  }
-  
-  this.deleteAccountModal.loading = false;
-},
+            // 3. Excluir usuário
+            await user.delete();
+
+            this.showNotification('Conta excluída com sucesso!', 'success');
+            
+            // 4. Resetar estado
+            this.cancelDeleteAccount();
+            
+            // 5. Logout será automático após delete()
+
+          } catch (error) {
+            console.error('Erro ao excluir conta:', error);
+            
+            let errorMessage = 'Erro ao excluir conta';
+            
+            switch(error.code) {
+              case 'auth/wrong-password':
+                errorMessage = 'Senha incorreta';
+                break;
+              case 'auth/too-many-requests':
+                errorMessage = 'Muitas tentativas. Tente novamente mais tarde';
+                break;
+              case 'auth/requires-recent-login':
+                errorMessage = 'É necessário fazer login novamente antes de excluir a conta';
+                break;
+              case 'auth/user-token-expired':
+                errorMessage = 'Sessão expirada. Faça login novamente';
+                break;
+              default:
+                errorMessage = `Erro: ${error.message}`;
+            }
+            
+            this.showNotification(errorMessage, 'error');
+          }
+          
+          this.deleteAccountModal.loading = false;
+        },
         
         handleFileUpload(event) {
           const file = event.target.files[0];
@@ -1378,65 +1387,65 @@
           }
         },
       
-      async importRecords() {
-        if (this.importModal.data.length === 0) return;
-      
-        this.importModal.loading = true;
-        try {
-          const userId = this.user.uid;
-          const batch = db.batch();
-      
-          // Buscar capas para itens que não têm cover_url
-          for (let i = 0; i < this.importModal.data.length; i++) {
-            const record = this.importModal.data[i];
-            
-            // Se não tem capa, tenta buscar automaticamente
-            if (!record.cover_url && record.album && record.artist) {
-              try {
-                const query = `${record.album} ${record.artist}`.trim();
-                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-                
-                const response = await fetch(itunesUrl);
-                if (response.ok) {
-                  const data = await response.json();
-                  if (data.results && data.results.length > 0) {
-                    const album = data.results[0];
-                    if (album.artworkUrl100) {
-                      const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                      record.cover_url = highResUrl;
+        async importRecords() {
+          if (this.importModal.data.length === 0) return;
+        
+          this.importModal.loading = true;
+          try {
+            const userId = this.user.uid;
+            const batch = db.batch();
+        
+            // Buscar capas para itens que não têm cover_url
+            for (let i = 0; i < this.importModal.data.length; i++) {
+              const record = this.importModal.data[i];
+              
+              // Se não tem capa, tenta buscar automaticamente
+              if (!record.cover_url && record.album && record.artist) {
+                try {
+                  const query = `${record.album} ${record.artist}`.trim();
+                  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+                  
+                  const response = await fetch(itunesUrl);
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                      const album = data.results[0];
+                      if (album.artworkUrl100) {
+                        const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                        record.cover_url = highResUrl;
+                      }
                     }
                   }
+                } catch (error) {
+                  console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
                 }
-              } catch (error) {
-                console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+                
+                // Pequeno delay para não sobrecarregar a API
+                await new Promise(resolve => setTimeout(resolve, 100));
               }
-              
-              // Pequeno delay para não sobrecarregar a API
-              await new Promise(resolve => setTimeout(resolve, 100));
             }
-          }
-      
-          // Salvar todos os registros no Firebase
-          this.importModal.data.forEach(record => {
-            const docRef = db.collection('users').doc(userId).collection('records').doc();
-            batch.set(docRef, {
-              ...record,
-              created_at: new Date(),
-              user_id: userId
-            });
-          });
-      
-          await batch.commit();
-          this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
-          this.closeImportModal();
-          
-        } catch (error) {
-          console.error('Erro na importação:', error);
-          this.showNotification('Erro ao importar registros', 'error');
-        }
         
-        this.importModal.loading = false;
-      },
+            // Salvar todos os registros no Firebase
+            this.importModal.data.forEach(record => {
+              const docRef = db.collection('users').doc(userId).collection('records').doc();
+              batch.set(docRef, {
+                ...record,
+                created_at: new Date(),
+                user_id: userId
+              });
+            });
+        
+            await batch.commit();
+            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
+            this.closeImportModal();
+            
+          } catch (error) {
+            console.error('Erro na importação:', error);
+            this.showNotification('Erro ao importar registros', 'error');
+          }
+          
+          this.importModal.loading = false;
+        },
 
         closeImportModal() {
           this.importModal = { show: false, data: [], preview: [], loading: false };
@@ -1513,13 +1522,4 @@
     });
   </script>
 </body>
-</html> 
-
-
-
-
-
-
-
-
-
+</html>
