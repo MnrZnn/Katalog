@@ -1098,37 +1098,49 @@
         },
 
         async fetchAlbumCover() {
-  try {
-    const query = `${this.newRecord.album} ${this.newRecord.artist}`;
-    
-    // Busca no MusicBrainz
-    const searchRes = await fetch(
-      `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json`
-    );
-    const searchData = await searchRes.json();
+          try {
+            const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
+            if (!query) return;
+            
+            this.showNotification('Buscando capa...', 'info');
+            
+            // Usando proxy CORS para acessar MusicBrainz
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const musicBrainzUrl = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json&limit=1`;
+            
+            const searchRes = await fetch(proxyUrl + encodeURIComponent(musicBrainzUrl));
+            
+            if (!searchRes.ok) {
+              throw new Error('Erro na busca do MusicBrainz');
+            }
+            
+            const searchData = await searchRes.json();
 
-    if (searchData.releases && searchData.releases.length > 0) {
-      const releaseId = searchData.releases[0].id;
+            if (searchData.releases && searchData.releases.length > 0) {
+              const releaseId = searchData.releases[0].id;
+              
+              // Busca capa no Cover Art Archive
+              const coverUrl = `https://coverartarchive.org/release/${releaseId}`;
+              const coverRes = await fetch(proxyUrl + encodeURIComponent(coverUrl));
+              
+              if (coverRes.ok) {
+                const coverData = await coverRes.json();
+                if (coverData.images && coverData.images.length > 0) {
+                  // Pega a primeira imagem disponível
+                  const imageUrl = coverData.images[0].image;
+                  this.newRecord.cover_url = imageUrl;
+                  this.showNotification('Capa encontrada automaticamente!', 'success');
+                  return;
+                }
+              }
+            }
 
-      // Agora busca capa no Cover Art Archive
-      const coverRes = await fetch(`https://coverartarchive.org/release/${releaseId}`);
-      if (coverRes.ok) {
-        const coverData = await coverRes.json();
-        if (coverData.images && coverData.images.length > 0) {
-          this.newRecord.cover_url = coverData.images[0].image;
-          this.showNotification('Capa encontrada automaticamente!', 'success');
-          return;
-        }
-      }
-    }
-
-    this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
-  } catch (error) {
-    console.error('Erro ao buscar capa:', error);
-    this.showNotification('Erro ao buscar capa automática', 'error');
-  }
-},
-
+            this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+          } catch (error) {
+            console.error('Erro ao buscar capa:', error);
+            this.showNotification('Não foi possível buscar capa automática', 'error');
+          }
+        },
 
         toggleTheme() {
           this.darkMode = !this.darkMode;
@@ -1155,32 +1167,41 @@
         },
 
         async deleteAccount() {
-          try {
-            const userId = this.user.uid;
-            
-            // Deletar todos os registros
-            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-            const batch = db.batch();
-            recordsSnapshot.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-            
-            // Deletar conta
-            // Reautenticar antes de excluir
-            const credential = firebase.auth.EmailAuthProvider.credential(
-              this.user.email,
-              this.password // senha digitada novamente pelo usuário
-            );
-            await this.user.reauthenticateWithCredential(credential);
-            
-            // Agora sim pode excluir
-            await this.user.delete();
+  try {
+    const user = this.user;
+    const userId = user.uid;
 
-            this.showNotification('Conta excluída com sucesso!', 'success');
-          } catch (error) {
-            console.error('Erro ao excluir conta:', error);
-            this.showNotification('Erro ao excluir conta', 'error');
-          }
-        },
+    // 1. Deletar todos os registros do Firestore
+    const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+    const batch = db.batch();
+    recordsSnapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    // 2. Reautenticar usuário antes de excluir
+    const email = user.email;
+    const password = prompt("Digite sua senha para confirmar a exclusão da conta:");
+
+    if (!password) {
+      this.showNotification('Senha obrigatória para excluir conta', 'error');
+      return;
+    }
+
+    const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+    await user.reauthenticateWithCredential(credential);
+
+    // 3. Excluir usuário
+    await user.delete();
+
+    // 4. Fazer logout automático
+    await auth.signOut();
+
+    this.showNotification('Conta excluída com sucesso!', 'success');
+  } catch (error) {
+    console.error('Erro ao excluir conta:', error);
+    this.showNotification('Erro ao excluir conta: ' + error.message, 'error');
+  }
+},
+
 
         handleFileUpload(event) {
           const file = event.target.files[0];
@@ -1276,5 +1297,6 @@
   </script>
 </body>
 </html> 
+
 
 
