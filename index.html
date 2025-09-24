@@ -1236,14 +1236,44 @@
           loading: false 
         },
 
-        async init() {
+       async init() {
           try {
             // NOVA LÓGICA: Verificar se é uma URL compartilhada
             await this.checkForSharedCollection();
             
             if (this.isSharedView) {
-              this.showNotification('Buscando capa...', 'info');
+              this.loading = false;
+              lucide.createIcons();
+              return;
+            }
+
+            // Device detection
+            this.checkDevice();
+            window.addEventListener('resize', () => {
+              this.checkDevice();
+            });
+
+            auth.onAuthStateChanged((user) => {
+              this.user = user;
+              if (user) {
+                this.setupCollection(user.uid);
+                this.loadUserSettings(user.uid);
+              } else {
+                this.collection = [];
+                this.filteredCollection = [];
+              }
+              this.loading = false;
+              setTimeout(() => lucide.createIcons(), 100);
+            });
             
+            lucide.createIcons();
+            setTimeout(() => lucide.createIcons(), 50);
+          } catch (error) {
+            console.error('Erro na inicialização:', error);
+            this.showNotification('Erro ao carregar aplicação', 'error');
+            this.loading = false;
+          }
+        },
             // Usando iTunes Search API que não tem restrições de CORS
             const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
             
@@ -2358,3 +2388,4 @@
 </body>
 </html>
                 
+
