@@ -388,7 +388,9 @@
            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
         <template x-for="record in filteredSharedCollection" :key="record.id">
           <div class="bg-card rounded-lg overflow-hidden shadow-lg">
-            <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+            <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
+     @load="observeImages()" 
               class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
               @click="showAlbumDetails(record)">
             <div class="absolute top-2 left-2">
@@ -457,6 +459,39 @@
             </template>
           </tbody>
         </table>
+      </div>
+
+      <!-- ADICIONE APÓS os divs de grid/list e ANTES do Empty State: -->
+
+      <!-- Controles de Paginação -->
+      <div x-show="performanceMode && filteredCollection.length > 0" class="flex justify-center items-center space-x-4 mt-8">
+        <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
+                :disabled="pagination.currentPage === 1"
+                class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        
+        <div class="flex items-center space-x-2">
+          <span class="text-sm text-muted">Página</span>
+          <span class="font-semibold" x-text="pagination.currentPage"></span>
+          <span class="text-sm text-muted">de</span>
+          <span class="font-semibold" x-text="pagination.totalPages"></span>
+        </div>
+        
+        <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
+                :disabled="pagination.currentPage === pagination.totalPages"
+                class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Info de performance -->
+      <div x-show="performanceMode" class="text-center mt-4">
+        <p class="text-xs text-muted">
+          Mostrando <span x-text="displayedCollection.length"></span> de 
+          <span x-text="filteredCollection.length"></span> itens 
+          (Modo Performance ativado)
+        </p>
       </div>
 
       <!-- Empty State -->
@@ -1088,9 +1123,11 @@
           <!-- Grid View -->
           <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
                class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-            <template x-for="record in filteredCollection" :key="record.id">
+            <template x-for="record in displayedCollection" :key="record.id">
               <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
-                <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
+     @load="observeImages()" 
                   class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   @click="showAlbumDetails(record)">
                 <div class="absolute top-2 left-2">
@@ -1132,7 +1169,7 @@
                class="bg-card rounded-lg overflow-hidden shadow-lg">
             <!-- Mobile List View -->
             <div class="md:hidden">
-              <template x-for="record in filteredCollection" :key="record.id">
+              <template x-for="record in displayedCollection" :key="record.id">
                 <div class="border-b border-custom p-4 flex items-center space-x-3">
                   <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                     class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
@@ -1173,7 +1210,7 @@
                 </tr>
               </thead>
               <tbody>
-                <template x-for="record in filteredCollection" :key="record.id">
+                <template x-for="record in displayedCollection" :key="record.id">
                   <tr class="border-b border-custom hover:bg-input">
                     <td class="p-4">
                       <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
@@ -1402,6 +1439,11 @@
         filteredCollection: [],
         sortBy: 'album',
         sortOrder: 'asc',
+        pagination: { currentPage: 1, itemsPerPage: 50, totalPages: 1 },
+        searchTimeout: null,
+        performanceMode: false,
+        imageObserver: null,
+        searchIndex: new Map(),
         newRecord: { 
           album: '', 
           artist: '', 
@@ -1464,7 +1506,11 @@
             });
             
             lucide.createIcons();
-            setTimeout(() => lucide.createIcons(), 50);
+            setTimeout(() => {
+            if (this.performanceMode) {
+              this.observeImages();
+            }
+          }, 200);
           } catch (error) {
             console.error('Erro na inicialização:', error);
             this.showNotification('Erro ao carregar aplicação', 'error');
@@ -1656,22 +1702,24 @@
             window.open(url, '_blank');
           }
         },
-
-        async setupCollection(userId) {
-          try {
-            const collectionRef = db.collection('users').doc(userId).collection('records');
-            collectionRef.onSnapshot((snapshot) => {
-              this.collection = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              }));
-              this.filterAndSortCollection();
-            });
-          } catch (error) {
-            console.error('Erro ao configurar coleção:', error);
-            this.showNotification('Erro ao carregar coleção', 'error');
-          }
-        },
+        
+      async setupCollection(userId) {
+        try {
+          const collectionRef = db.collection('users').doc(userId).collection('records');
+          collectionRef.onSnapshot((snapshot) => {
+            this.collection = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            
+            this.checkPerformanceMode(); // NOVA linha
+            this.filterAndSortCollection();
+          });
+        } catch (error) {
+          console.error('Erro ao configurar coleção:', error);
+          this.showNotification('Erro ao carregar coleção', 'error');
+        }
+      },
 
         async login() {
           if (!this.email || !this.password) {
@@ -1802,10 +1850,14 @@
           }
         },
 
-        filterAndSortCollection() {
+        // SUBSTITUIR a função filterAndSortCollection() existente por esta:
+      filterAndSortCollection() {
+        if (this.performanceMode) {
+          this.debouncedFilter();
+        } else {
+          // Modo normal para coleções pequenas
           let filtered = this.collection;
           
-          // Aplicar filtro de busca
           if (this.searchFilter.trim()) {
             const filter = this.searchFilter.toLowerCase();
             filtered = filtered.filter(record => 
@@ -1816,8 +1868,84 @@
             );
           }
           
-          // Aplicar ordenação
-          filtered.sort((a, b) => {
+          this.filteredCollection = filtered;
+          this.sortCollection();
+          this.updatePagination();
+        }
+      },
+
+        // Getter para itens paginados
+        get paginatedCollection() {
+          if (!this.performanceMode) return this.filteredCollection;
+          
+          const start = (this.pagination.currentPage - 1) * this.pagination.itemsPerPage;
+          const end = start + this.pagination.itemsPerPage;
+          return this.filteredCollection.slice(start, end);
+        },
+
+        // Getter para itens exibidos (performance ou normal)
+        get displayedCollection() {
+          return this.performanceMode ? this.paginatedCollection : this.filteredCollection;
+        },
+
+        // Atualizar paginação
+        updatePagination() {
+          this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
+          if (this.pagination.currentPage > this.pagination.totalPages) {
+            this.pagination.currentPage = 1;
+          }
+        },
+
+        // Verificar se precisa modo performance
+        checkPerformanceMode() {
+          this.performanceMode = this.collection.length > 500;
+          if (this.performanceMode) {
+            this.initLazyLoading();
+            this.buildSearchIndex();
+          }
+        },
+
+        // Construir índice de busca
+        buildSearchIndex() {
+          this.searchIndex.clear();
+          this.collection.forEach(record => {
+            const searchText = [
+              record.album,
+              record.artist,
+              record.format,
+              record.year?.toString(),
+              record.catalog_number
+            ].join(' ').toLowerCase();
+            
+            this.searchIndex.set(record.id, searchText);
+          });
+        },
+
+        // Busca com debounce
+        debouncedFilter() {
+          clearTimeout(this.searchTimeout);
+          this.searchTimeout = setTimeout(() => {
+            this.filterCollectionOptimized();
+          }, 300);
+        },
+
+        // Filtro otimizado
+        filterCollectionOptimized() {
+          if (!this.searchFilter.trim()) {
+            this.filteredCollection = [...this.collection];
+          } else {
+            const filter = this.searchFilter.toLowerCase();
+            this.filteredCollection = this.collection.filter(record => 
+              this.searchIndex.get(record.id)?.includes(filter)
+            );
+          }
+          this.sortCollection();
+          this.updatePagination();
+        },
+
+        // Ordenação separada
+        sortCollection() {
+          this.filteredCollection.sort((a, b) => {
             let valueA, valueB;
             
             switch(this.sortBy) {
@@ -1843,11 +1971,39 @@
               return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
             }
           });
+        },
+
+        // Lazy loading de imagens
+        initLazyLoading() {
+          if (this.imageObserver) {
+            this.imageObserver.disconnect();
+          }
           
-          this.filteredCollection = filtered;
+          this.imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                  img.src = img.dataset.src;
+                  img.removeAttribute('data-src');
+                  this.imageObserver.unobserve(img);
+                }
+              }
+            });
+          }, { threshold: 0.1 });
+          
+          // Re-observar imagens após mudanças no DOM
+          setTimeout(() => this.observeImages(), 100);
+        },
+
+        observeImages() {
+          document.querySelectorAll('img[data-src]').forEach(img => {
+            this.imageObserver.observe(img);
+          });
         },
 
         filterCollection() {
+          this.pagination.currentPage = 1; // Reset para primeira página
           this.filterAndSortCollection();
         },
 
@@ -2391,16 +2547,45 @@ async searchMissingCovers(items) {
           }
         },
 
-        showNotification(message, type = 'success') {
-          this.notification = { show: true, message, type };
-          setTimeout(() => {
-            this.notification.show = false;
-          }, 4000);
-          setTimeout(() => lucide.createIcons(), 10);
-        }
+      showNotification(message, type = 'success') {
+                this.notification = { show: true, message, type };
+                setTimeout(() => {
+                  this.notification.show = false;
+                }, 4000);
+                setTimeout(() => lucide.createIcons(), 10);
+              },
 
-      }));
-    });
+              setupWatchers() {
+                // Watcher para paginação
+                this.$watch('pagination.currentPage', () => {
+                  if (this.performanceMode) {
+                    setTimeout(() => this.observeImages(), 50);
+                  }
+                });
+
+                // Watcher para modo de visualização
+                this.$watch('viewMode', () => {
+                  setTimeout(() => {
+                    lucide.createIcons();
+                    if (this.performanceMode) {
+                      this.observeImages();
+                    }
+                  }, 50);
+                });
+
+                // Watcher para vista atual
+                this.$watch('currentView', () => {
+                  setTimeout(() => {
+                    lucide.createIcons();
+                    if (this.performanceMode && this.currentView === 'collection') {
+                      this.observeImages();
+                    }
+                  }, 100);
+                });
+              }
+
+            })); // Fechamento do Alpine.data
+          }); // Fechamento do document.addEventListener('alpine:init')
 
     // Inicializar ícones após carregamento
     document.addEventListener('DOMContentLoaded', () => {
@@ -2410,4 +2595,5 @@ async searchMissingCovers(items) {
     });
   </script>
 </body>
-</html>s
+</html>
+
