@@ -1182,6 +1182,7 @@
                             class="format-badge text-xs" x-text="record.format || 'CD'"></span>
                       <span x-show="record.year" class="text-xs text-muted" x-text="record.year"></span>
                     </div>
+                   </div>
                   </div>
                   <div class="flex space-x-2">
                     <button @click="editRecord(record)" 
@@ -1196,6 +1197,37 @@
                 </div>
               </template>
             </div>
+
+            <!-- Controles de Paginação (ADICIONE AQUI) -->
+          <div x-show="performanceMode && filteredCollection.length > 0" class="flex justify-center items-center space-x-4 mt-8">
+            <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
+                    :disabled="pagination.currentPage === 1"
+                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-muted">Página</span>
+              <span class="font-semibold" x-text="pagination.currentPage"></span>
+              <span class="text-sm text-muted">de</span>
+              <span class="font-semibold" x-text="pagination.totalPages"></span>
+            </div>
+            
+            <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
+                    :disabled="pagination.currentPage === pagination.totalPages"
+                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Info de performance (ADICIONE AQUI TAMBÉM) -->
+          <div x-show="performanceMode" class="text-center mt-4">
+            <p class="text-xs text-muted">
+              Mostrando <span x-text="displayedCollection.length"></span> de 
+              <span x-text="filteredCollection.length"></span> itens 
+              (Modo Performance ativado para coleções grandes)
+            </p>
+          </div>
             
             <!-- Desktop Table View -->
             <table class="w-full hidden md:table">
@@ -2553,6 +2585,32 @@ async searchMissingCovers(items) {
                   this.notification.show = false;
                 }, 4000);
                 setTimeout(() => lucide.createIcons(), 10);
+              },
+
+              // Ir para página específica
+              goToPage(page) {
+                if (page >= 1 && page <= this.pagination.totalPages) {
+                  this.pagination.currentPage = page;
+                  setTimeout(() => {
+                    lucide.createIcons();
+                    if (this.performanceMode) {
+                      this.observeImages();
+                    }
+                  }, 50);
+                }
+              },
+
+              // Definir itens por página
+              setItemsPerPage(count) {
+                this.pagination.itemsPerPage = count;
+                this.pagination.currentPage = 1;
+                this.updatePagination();
+                setTimeout(() => {
+                  lucide.createIcons();
+                  if (this.performanceMode) {
+                    this.observeImages();
+                  }
+                }, 50);
               },
 
               setupWatchers() {
