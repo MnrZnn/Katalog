@@ -1496,6 +1496,11 @@ document.addEventListener('alpine:init', () => {
       loading: false 
     },
 
+    // Controles de tráfego
+      activeApiTasks: new Set(),
+      maxConcurrentRequests: 3,
+      requestDelay: 500, // ms entre requests
+
     async init() {
       try {
         await this.checkForSharedCollection();
@@ -1822,12 +1827,23 @@ document.addEventListener('alpine:init', () => {
       this.authLoading = false;
     },
 
-    confirmLogout() {
-      if (confirm('Deseja realmente sair?')) {
-        auth.signOut();
-        this.showNotification('Logout realizado com sucesso!', 'success');
-      }
-    },
+     confirmLogout() {
+        // Cancelar operações em andamento
+        this.cancelAllApiOperations();
+        
+        if (confirm('Deseja realmente sair?')) {
+          auth.signOut();
+          this.showNotification('Logout realizado com sucesso!', 'success');
+        }
+      },
+
+      // Nova função para cancelar operações
+      cancelAllApiOperations() {
+        this.activeApiTasks.clear();
+        this.importModal.loading = false;
+        this.importModal.show = false;
+        this.importModal.progress = 0;
+      },
 
     async confirmAddRecord() {
       if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
@@ -2019,90 +2035,116 @@ document.addEventListener('alpine:init', () => {
 
     // Correção automática de nomes de bandas
     async autoCorrectArtistNames() {
-      this.showNotification('Iniciando correção de nomes...', 'info');
-      const userId = this.user.uid;
-      let corrected = 0;
-      
-      for (const record of this.collection) {
-        if (!record.artist || !record.album) continue;
+        this.showNotification('Iniciando correção de nomes...', 'info');
+        const userId = this.user.uid;
+        const taskId = `correct-${Date.now()}`;
+        this.activeApiTasks.add(taskId);
+        
+        let corrected = 0;
         
         try {
-          const query = `${record.artist} ${record.album}`;
-          const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-          
-          const response = await fetch(itunesUrl);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.results && data.results.length > 0) {
-              const album = data.results[0];
-              let needsUpdate = false;
-              const updates = {};
+          for (const record of this.collection) {
+            // Verificar se foi cancelado
+            if (!this.activeApiTasks.has(taskId)) {
+              this.showNotification('Operação cancelada', 'info');
+              return;
+            }
+            
+            if (!record.artist || !record.album) continue;
+            
+            try {
+              const query = `${record.artist} ${record.album}`;
+              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
               
-              if (album.artistName && album.artistName !== record.artist) {
-                updates.artist = album.artistName;
-                needsUpdate = true;
+              const response = await fetch(itunesUrl);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                  const album = data.results[0];
+                  let needsUpdate = false;
+                  const updates = {};
+                  
+                  if (album.artistName && album.artistName !== record.artist) {
+                    updates.artist = album.artistName;
+                    needsUpdate = true;
+                  }
+                  
+                  if (album.collectionName && album.collectionName !== record.album) {
+                    updates.album = album.collectionName;
+                    needsUpdate = true;
+                  }
+                  
+                  if (album.releaseDate && !record.year) {
+                    updates.year = new Date(album.releaseDate).getFullYear();
+                    needsUpdate = true;
+                  }
+                  
+                  if (needsUpdate) {
+                    await db.collection('users').doc(userId).collection('records')
+                      .doc(record.id).update(updates);
+                    corrected++;
+                  }
+                }
               }
               
-              if (album.collectionName && album.collectionName !== record.album) {
-                updates.album = album.collectionName;
-                needsUpdate = true;
-              }
-              
-              if (album.releaseDate && !record.year) {
-                updates.year = new Date(album.releaseDate).getFullYear();
-                needsUpdate = true;
-              }
-              
-              if (needsUpdate) {
-                await db.collection('users').doc(userId).collection('records')
-                  .doc(record.id).update(updates);
-                corrected++;
-              }
+              await new Promise(resolve => setTimeout(resolve, this.requestDelay));
+            } catch (error) {
+              console.log(`Erro ao corrigir: ${record.artist} - ${record.album}`);
             }
           }
           
-          await new Promise(resolve => setTimeout(resolve, 200));
-        } catch (error) {
-          console.log(`Erro ao corrigir: ${record.artist} - ${record.album}`);
+          this.showNotification(`${corrected} itens corrigidos!`, 'success');
+        } finally {
+          this.activeApiTasks.delete(taskId);
         }
-      }
+      },
       
-      this.showNotification(`${corrected} itens corrigidos!`, 'success');
-    },
-
     // Buscar anos ausentes
     async fillMissingYears() {
       this.showNotification('Buscando anos ausentes...', 'info');
       const userId = this.user.uid;
+      const taskId = `years-${Date.now()}`;
+      this.activeApiTasks.add(taskId);
+      
       const itemsWithoutYear = this.collection.filter(record => !record.year);
       let updated = 0;
       
-      for (const record of itemsWithoutYear) {
-        try {
-          const query = `${record.artist} ${record.album}`;
-          const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-          
-          const response = await fetch(itunesUrl);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.results && data.results.length > 0) {
-              const album = data.results[0];
-              if (album.releaseDate) {
-                const year = new Date(album.releaseDate).getFullYear();
-                await db.collection('users').doc(userId).collection('records')
-                  .doc(record.id).update({ year });
-                updated++;
-              }
-            }
+      try {
+        for (const record of itemsWithoutYear) {
+          // Verificar se foi cancelado
+          if (!this.activeApiTasks.has(taskId)) {
+            this.showNotification('Operação cancelada', 'info');
+            return;
           }
           
-          await new Promise(resolve => setTimeout(resolve, 200));
-        } catch (error) {
-          console.log(`Erro ao buscar ano: ${record.artist} - ${record.album}`);
+          try {
+            const query = `${record.artist} ${record.album}`;
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+            
+            const response = await fetch(itunesUrl);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results && data.results.length > 0) {
+                const album = data.results[0];
+                if (album.releaseDate) {
+                  const year = new Date(album.releaseDate).getFullYear();
+                  await db.collection('users').doc(userId).collection('records')
+                    .doc(record.id).update({ year });
+                  updated++;
+                }
+              }
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, this.requestDelay));
+          } catch (error) {
+            console.log(`Erro ao buscar ano: ${record.artist} - ${record.album}`);
+          }
         }
+        
+        this.showNotification(`${updated} anos adicionados!`, 'success');
+      } finally {
+        this.activeApiTasks.delete(taskId);
       }
-      
-      this.showNotification(`${updated} anos adicionados!`, 'success');
     },
 
     // Ordenação separada
@@ -2209,107 +2251,42 @@ document.addEventListener('alpine:init', () => {
         
         this.showNotification('Buscando capa...', 'info');
         
-        // Tentar múltiplas APIs em sequência
-        const coverUrl = await this.tryMultipleCoverAPIs(query);
+        const taskId = Date.now();
+        this.activeApiTasks.add(taskId);
         
-        if (coverUrl) {
-          this.newRecord.cover_url = coverUrl;
-          this.showNotification('Capa encontrada automaticamente!', 'success');
-        } else {
+        try {
+          const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+          
+          const response = await fetch(itunesUrl);
+          
+          // Verificar se ainda está ativa
+          if (!this.activeApiTasks.has(taskId)) return;
+          
+          if (!response.ok) {
+            throw new Error('Erro na busca do iTunes');
+          }
+          
+          const data = await response.json();
+
+          if (data.results && data.results.length > 0) {
+            const album = data.results[0];
+            if (album.artworkUrl100) {
+              const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+              this.newRecord.cover_url = highResUrl;
+              this.showNotification('Capa encontrada automaticamente!', 'success');
+              return;
+            }
+          }
+
           this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+        } finally {
+          this.activeApiTasks.delete(taskId);
         }
         
       } catch (error) {
         console.error('Erro ao buscar capa:', error);
         this.showNotification('Não foi possível buscar capa automática', 'error');
       }
-    },
-
-    // Nova função com múltiplas APIs
-    async tryMultipleCoverAPIs(query) {
-      const apis = [
-        async () => {
-          // Usar o sistema de fallback também no import
-            const coverUrl = await this.tryMultipleCoverAPIs(query);
-            if (coverUrl) {
-              record.cover_url = coverUrl;
-            }
-          return null;
-        },
-        
-        // API 2: Last.fm (fallback)
-        async () => {
-          try {
-            const [artist, album] = query.split(' - ').length > 1 ? 
-              query.split(' - ') : 
-              [this.newRecord.artist, this.newRecord.album];
-            
-            const lastfmUrl = `https://ws.audioscrobble.com/2.0/?method=album.getinfo&api_key=YOUR_LASTFM_KEY&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&format=json`;
-            
-            // Para contornar CORS, usar proxy público
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(lastfmUrl)}`;
-            const response = await fetch(proxyUrl);
-            
-            if (response.ok) {
-              const data = await response.json();
-              const albumData = JSON.parse(data.contents);
-              if (albumData.album && albumData.album.image) {
-                const images = albumData.album.image;
-                const largeImage = images.find(img => img.size === 'extralarge') || images[images.length - 1];
-                if (largeImage && largeImage['#text']) {
-                  return largeImage['#text'];
-                }
-              }
-            }
-          } catch (e) {
-            console.log('Last.fm API falhou:', e);
-          }
-          return null;
-        },
-        
-        // API 3: MusicBrainz + Cover Art Archive
-        async () => {
-          try {
-            const mbUrl = `https://musicbrainz.org/ws/2/release/?query=artist:${encodeURIComponent(this.newRecord.artist)}%20AND%20release:${encodeURIComponent(this.newRecord.album)}&fmt=json&limit=1`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(mbUrl)}`;
-            
-            const response = await fetch(proxyUrl);
-            if (response.ok) {
-              const data = await response.json();
-              const mbData = JSON.parse(data.contents);
-              
-              if (mbData.releases && mbData.releases.length > 0) {
-                const releaseId = mbData.releases[0].id;
-                const coverUrl = `https://coverartarchive.org/release/${releaseId}/front`;
-                
-                // Verificar se a imagem existe
-                const imgResponse = await fetch(coverUrl, { method: 'HEAD' });
-                if (imgResponse.ok) {
-                  return coverUrl;
-                }
-              }
-            }
-          } catch (e) {
-            console.log('MusicBrainz API falhou:', e);
-          }
-          return null;
-        }
-      ];
-
-      // Tentar cada API em sequência
-      for (const api of apis) {
-        try {
-          const result = await api();
-          if (result) {
-            return result;
-          }
-        } catch (error) {
-          console.log('API falhou, tentando próxima...', error);
-          continue;
-        }
-      }
-      
-      return null;
     },
 
     toggleTheme() {
@@ -2660,14 +2637,6 @@ document.addEventListener('alpine:init', () => {
           
           try {
             const query = `${record.album} ${record.artist}`.trim();
-            const coverUrl = await this.tryMultipleCoverAPIs(query);
-                if (coverUrl) {
-                  await db.collection('users').doc(userId).collection('records')
-                    .doc(record.id).update({ cover_url: coverUrl });
-                  updated++;
-                }
-
-            const response = await fetch(itunesUrl);
             if (response.ok) {
               const data = await response.json();
               if (data.results && data.results.length > 0) {
