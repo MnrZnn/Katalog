@@ -1148,6 +1148,7 @@
               </template>
             </div>
             
+           <!-- Desktop Table View (Shared) -->
             <table class="w-full hidden md:table">
               <thead class="bg-input">
                 <tr>
@@ -1156,11 +1157,10 @@
                   <th class="text-left p-4 font-semibold">Artista</th>
                   <th class="text-left p-4 font-semibold">Formato</th>
                   <th class="text-left p-4 font-semibold">Ano</th>
-                  <th class="text-left p-4 font-semibold">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                <template x-for="record in displayedCollection" :key="record.id">
+                <template x-for="record in filteredSharedCollection" :key="record.id">
                   <tr class="border-b border-custom hover:bg-input">
                     <td class="p-4">
                       <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
@@ -1174,23 +1174,10 @@
                             class="format-badge" x-text="record.format || 'CD'"></span>
                     </td>
                     <td class="p-4" x-text="record.year || '-'"></td>
-                    <td class="p-4">
-                      <div class="flex space-x-2">
-                        <button @click="editRecord(record)" 
-                                class="text-blue-500 hover:text-blue-700">
-                          <i data-lucide="edit" class="w-4 h-4"></i>
-                        </button>
-                        <button @click="confirmDeleteRecord(record.id)" 
-                                class="text-red-500 hover:text-red-700">
-                          <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                 </template>
               </tbody>
             </table>
-          </div>
 
           <!-- Controles de Paginação -->
             <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" 
@@ -1237,51 +1224,7 @@
             </p>
           </div>
             
-            <!-- Desktop Table View -->
-            <table class="w-full hidden md:table">
-              <thead class="bg-input">
-                <tr>
-                  <th class="text-left p-4 font-semibold">Capa</th>
-                  <th class="text-left p-4 font-semibold">Álbum</th>
-                  <th class="text-left p-4 font-semibold">Artista</th>
-                  <th class="text-left p-4 font-semibold">Formato</th>
-                  <th class="text-left p-4 font-semibold">Ano</th>
-                  <th class="text-left p-4 font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="record in displayedCollection" :key="record.id">
-                  <tr class="border-b border-custom hover:bg-input">
-                    <td class="p-4">
-                      <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                          class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                          @click="showAlbumDetails(record)">
-                    </td>
-                    <td class="p-4 font-semibold" x-text="record.album"></td>
-                    <td class="p-4" x-text="record.artist"></td>
-                    <td class="p-4">
-                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                            class="format-badge" x-text="record.format || 'CD'"></span>
-                    </td>
-                    <td class="p-4" x-text="record.year || '-'"></td>
-                    <td class="p-4">
-                      <div class="flex space-x-2">
-                        <button @click="editRecord(record)" 
-                                class="text-blue-500 hover:text-blue-700">
-                          <i data-lucide="edit" class="w-4 h-4"></i>
-                        </button>
-                        <button @click="confirmDeleteRecord(record.id)" 
-                                class="text-red-500 hover:text-red-700">
-                          <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-          
+        
           <!-- Empty State -->
           <div x-show="collection.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
             <i data-lucide="folder-x" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-muted mb-4"></i>
@@ -1422,1092 +1365,1146 @@
 
   <script>
     // Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
-      authDomain: "katalog-1178e.firebaseapp.com",
-      projectId: "katalog-1178e",
-      storageBucket: "katalog-1178e.firebasestorage.app",
-      messagingSenderId: "998961219093",
-      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
+  authDomain: "katalog-1178e.firebaseapp.com",
+  projectId: "katalog-1178e",
+  storageBucket: "katalog-1178e.firebasestorage.app",
+  messagingSenderId: "998961219093",
+  appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
+};
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-    document.addEventListener('alpine:init', () => {
-      Alpine.data('app', () => ({
-        loading: true,
-        user: null,
-        authLoading: false,
-        formLoading: false,
-        
-        // NOVAS VARIÁVEIS PARA COMPARTILHAMENTO
-        isSharedView: false,
-        sharedUserId: null,
-        sharedCollection: { records: [], owner: null },
-        filteredSharedCollection: [],
-        sharedSearchFilter: '',
-        sharedViewMode: 'grid',
-        collectionIsPublic: false,
-        privacyUpdateLoading: false,
-        shareUrl: '',
-        
-        // Device Detection
-        isMobile: window.innerWidth < 769,
-        showMobileSidebar: false,
-        
-        // Tema
-        darkMode: localStorage.getItem('katalog-theme') !== 'light',
-        
-        // UI
-        currentView: 'collection',
-        viewMode: 'grid',
-        showRegister: false,
-        configModal: false,
-        searchFilter: '',
-        
-        // Modals
-        importModal: { show: false, data: [], preview: [], loading: false, progress: 0, progressText: 'Iniciando...'},
-        largeImportModal: {
-          show: false,
-          totalItems: 0,
-          skipCovers: false
-        },
-        
-        // Data
-        collection: [],
-        filteredCollection: [],
-        sortBy: 'album',
-        sortOrder: 'asc',
-        pagination: { currentPage: 1, itemsPerPage: 50, totalPages: 1 },
-        searchTimeout: null,
-        performanceMode: false,
-        imageObserver: null,
-        searchIndex: new Map(),
-        newRecord: { 
-          album: '', 
-          artist: '', 
-          format: '', 
-          year: '', 
-          catalog_number: '', 
-          cover_url: '',
-          description: ''
-        },
-
-        // Modal de detalhes do álbum
-        albumDetailsModal: { show: false, record: null },
-
-        // Auth
-        email: '',
-        password: '',
-        displayName: '',
-        newDisplayName: '',
-        
-        // Notification
-        notification: { show: false, message: '', type: 'success' },
-
-        // Modal de exclusão de conta
-        deleteAccountModal: { 
-          show: false, 
-          email: '', 
-          password: '', 
-          confirmed: false, 
-          loading: false 
-        },
-
-        async init() {
-          try {
-            // NOVA LÓGICA: Verificar se é uma URL compartilhada
-            await this.checkForSharedCollection();
-            
-            if (this.isSharedView) {
-              this.loading = false;
-              lucide.createIcons();
-              return;
-            }
-
-            // Device detection
-            this.checkDevice();
-            window.addEventListener('resize', () => {
-              this.checkDevice();
-            });
-
-            auth.onAuthStateChanged((user) => {
-              this.user = user;
-              if (user) {
-                this.setupCollection(user.uid);
-                this.loadUserSettings(user.uid);
-              } else {
-                this.collection = [];
-                this.filteredCollection = [];
-              }
-              this.loading = false;
-              setTimeout(() => lucide.createIcons(), 100);
-            });
-
-            lucide.createIcons();
-            setTimeout(() => {
-              if (this.performanceMode) {
-                this.observeImages();
-              }
-            }, 200);
-
-            // ADICIONAR AQUI OS WATCHERS:
-            this.$watch('pagination.currentPage', () => {
-              setTimeout(() => {
-                lucide.createIcons();
-                if (this.performanceMode) {
-                  this.observeImages();
-                }
-              }, 50);
-            });
-
-            this.$watch('viewMode', () => {
-              setTimeout(() => {
-                lucide.createIcons();
-                if (this.performanceMode) {
-                  this.observeImages();
-                }
-              }, 50);
-            });
-
-            this.$watch('currentView', () => {
-              setTimeout(() => {
-                lucide.createIcons();
-                if (this.performanceMode && this.currentView === 'collection') {
-                  this.observeImages();
-                }
-              }, 100);
-            });
-
-            } catch (error) {
-              console.error('Erro na inicialização:', error);
-              this.showNotification('Erro ao carregar aplicação', 'error');
-              this.loading = false;
-            }
-      
-        // NOVA FUNÇÃO: Verificar se é uma coleção compartilhada
-        async checkForSharedCollection() {
-          const urlParams = new URLSearchParams(window.location.search);
-          const sharedId = urlParams.get('shared');
-          
-          if (sharedId) {
-            this.isSharedView = true;
-            this.sharedUserId = sharedId;
-            await this.loadSharedCollection(sharedId);
-          }
-        },
-
-        // NOVA FUNÇÃO: Carregar coleção compartilhada
-        async loadSharedCollection(userId) {
-          try {
-            this.loading = true;
-            
-            // Verificar se a coleção é pública
-            const userDoc = await db.collection('users').doc(userId).get();
-            
-            if (!userDoc.exists || !userDoc.data().isPublic) {
-              this.showNotification('Esta coleção é privada ou não existe', 'error');
-              this.isSharedView = false;
-              this.loading = false;
-              return;
-            }
-
-            // Carregar informações do usuário
-            const userData = userDoc.data();
-            this.sharedCollection.owner = {
-              displayName: userData.displayName,
-              email: userData.email
-            };
-
-            // Carregar registros da coleção
-            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-            this.sharedCollection.records = recordsSnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-
-            this.filteredSharedCollection = [...this.sharedCollection.records];
-            this.loading = false;
-            
-          } catch (error) {
-            console.error('Erro ao carregar coleção compartilhada:', error);
-            this.showNotification('Erro ao carregar coleção compartilhada', 'error');
-            this.isSharedView = false;
-            this.loading = false;
-          }
-        },
-
-        // NOVA FUNÇÃO: Filtrar coleção compartilhada
-        filterSharedCollection() {
-          let filtered = this.sharedCollection.records;
-          
-          if (this.sharedSearchFilter.trim()) {
-            const filter = this.sharedSearchFilter.toLowerCase();
-            filtered = filtered.filter(record => 
-              record.album?.toLowerCase().includes(filter) ||
-              record.artist?.toLowerCase().includes(filter) ||
-              record.format?.toLowerCase().includes(filter) ||
-              record.year?.toString().includes(filter)
-            );
-          }
-          
-          this.filteredSharedCollection = filtered;
-        },
-
-        // NOVA FUNÇÃO: Ir para tela de login
-        goToLogin() {
-          window.location.href = window.location.origin + window.location.pathname;
-        },
-
-        // NOVA FUNÇÃO: Carregar configurações do usuário
-        async loadUserSettings(userId) {
-          try {
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (userDoc.exists) {
-              const userData = userDoc.data();
-              this.collectionIsPublic = userData.isPublic || false;
-              this.updateShareUrl();
-            }
-          } catch (error) {
-            console.error('Erro ao carregar configurações:', error);
-          }
-        },
-
-        // NOVA FUNÇÃO: Alternar privacidade da coleção
-        async toggleCollectionPrivacy() {
-          if (this.privacyUpdateLoading) return;
-          
-          this.privacyUpdateLoading = true;
-          try {
-            const newStatus = !this.collectionIsPublic;
-            const userId = this.user.uid;
-            
-            await db.collection('users').doc(userId).set({
-              isPublic: newStatus,
-              displayName: this.user.displayName,
-              email: this.user.email,
-              updatedAt: new Date()
-            }, { merge: true });
-
-            this.collectionIsPublic = newStatus;
-            this.updateShareUrl();
-            
-            this.showNotification(
-              `Coleção agora é ${newStatus ? 'pública' : 'privada'}!`, 
-              'success'
-            );
-            
-          } catch (error) {
-            console.error('Erro ao atualizar privacidade:', error);
-            this.showNotification('Erro ao atualizar privacidade', 'error');
-          }
-          
-          this.privacyUpdateLoading = false;
-        },
-
-        // NOVA FUNÇÃO: Atualizar URL de compartilhamento
-        updateShareUrl() {
-          if (this.collectionIsPublic && this.user) {
-            const baseUrl = window.location.origin + window.location.pathname;
-            this.shareUrl = `${baseUrl}?shared=${this.user.uid}`;
-          } else {
-            this.shareUrl = '';
-          }
-        },
-
-        // NOVA FUNÇÃO: Copiar URL de compartilhamento
-        async copyShareUrl() {
-          try {
-            await navigator.clipboard.writeText(this.shareUrl);
-            this.showNotification('Link copiado para a área de transferência!', 'success');
-          } catch (error) {
-            console.error('Erro ao copiar URL:', error);
-            this.showNotification('Erro ao copiar link', 'error');
-          }
-        },
-        
-        checkDevice() {
-          this.isMobile = window.innerWidth < 769;
-          if (!this.isMobile) {
-            this.showMobileSidebar = false;
-          }
-        },
-
-        // Mostrar detalhes do álbum
-        showAlbumDetails(record) {
-          this.albumDetailsModal = { show: true, record };
-          setTimeout(() => lucide.createIcons(), 10);
-        },
-
-        // Buscar em serviços online
-        searchOnService(service) {
-          const record = this.albumDetailsModal.record;
-          if (!record) return;
-          
-          const query = `${record.artist} ${record.album}`.trim();
-          const encodedQuery = encodeURIComponent(query);
-          
-          let url = '';
-          
-          switch(service) {
-            case 'youtube':
-              url = `https://www.youtube.com/results?search_query=${encodedQuery}`;
-              break;
-            case 'spotify':
-              url = `https://open.spotify.com/search/${encodedQuery}`;
-              break;
-            case 'apple':
-              url = `https://music.apple.com/search?term=${encodedQuery}`;
-              break;
-            case 'rateyourmusic':
-              url = `https://www.rateyourmusic.com/search?searchterm=${encodedQuery}&searchtype=`;
-              break;
-          }
-          
-          if (url) {
-            window.open(url, '_blank');
-          }
-        },
-        
-      async setupCollection(userId) {
-        try {
-          const collectionRef = db.collection('users').doc(userId).collection('records');
-          collectionRef.onSnapshot((snapshot) => {
-            this.collection = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-            
-            this.checkPerformanceMode(); // NOVA linha
-            this.filterAndSortCollection();
-          });
-        } catch (error) {
-          console.error('Erro ao configurar coleção:', error);
-          this.showNotification('Erro ao carregar coleção', 'error');
-        }
-      },
-
-        async login() {
-          if (!this.email || !this.password) {
-            this.showNotification('Preencha email e senha', 'error');
-            return;
-          }
-
-          this.authLoading = true;
-          try {
-            await auth.signInWithEmailAndPassword(this.email, this.password);
-            this.showNotification('Login realizado com sucesso!', 'success');
-          } catch (error) {
-            console.error('Erro no login:', error);
-            this.showNotification('Erro no login: ' + error.message, 'error');
-          }
-          this.authLoading = false;
-        },
-
-        async register() {
-          if (!this.email || !this.password || !this.displayName) {
-            this.showNotification('Preencha todos os campos', 'error');
-            return;
-          }
-
-          if (this.password.length < 6) {
-            this.showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
-            return;
-          }
-
-          this.authLoading = true;
-          try {
-            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
-            await userCredential.user.updateProfile({ displayName: this.displayName });
-            
-            // Criar documento do usuário com configurações padrão
-            await db.collection('users').doc(userCredential.user.uid).set({
-              displayName: this.displayName,
-              email: this.email,
-              isPublic: false,
-              createdAt: new Date()
-            });
-            
-            this.showNotification('Conta criada com sucesso!', 'success');
-          } catch (error) {
-            console.error('Erro no registro:', error);
-            this.showNotification('Erro no registro: ' + error.message, 'error');
-          }
-          this.authLoading = false;
-        },
-
-        confirmLogout() {
-          if (confirm('Deseja realmente sair?')) {
-            auth.signOut();
-            this.showNotification('Logout realizado com sucesso!', 'success');
-          }
-        },
-
-        async confirmAddRecord() {
-          if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
-            this.showNotification('Preencha os campos obrigatórios', 'error');
-            return;
-          }
-        
-          // Se não tiver capa definida, tenta buscar automaticamente
-          if (!this.newRecord.cover_url) {
-            await this.fetchAlbumCover();
-          }
-        
-          if (confirm('Adicionar este item à coleção?')) {
-            await this.addRecord();
-          }
-        },
-
-        async addRecord() {
-          this.formLoading = true;
-          try {
-            const userId = this.user.uid;
-            const recordData = {
-              ...this.newRecord,
-              created_at: new Date(),
-              user_id: userId
-            };
-
-            if (this.newRecord.id) {
-              // Atualizar registro existente
-              await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
-              this.showNotification('Item atualizado com sucesso!', 'success');
-            } else {
-              // Adicionar novo registro
-              await db.collection('users').doc(userId).collection('records').add(recordData);
-              this.showNotification('Item adicionado com sucesso!', 'success');
-            }
-            
-            this.resetForm();
-            this.currentView = 'collection';
-          } catch (error) {
-            console.error('Erro ao salvar:', error);
-            this.showNotification('Erro ao salvar item', 'error');
-          }
-          this.formLoading = false;
-        },
-
-        editRecord(record) {
-          // Fechar modal de detalhes se estiver aberto
-          this.albumDetailsModal.show = false;
-          
-          this.newRecord = { ...record };
-          this.currentView = 'add-record';
-          this.showNotification('Editando item...', 'info');
-          // Close mobile sidebar if open
-          this.showMobileSidebar = false;
-        },
+document.addEventListener('alpine:init', () => {
+  Alpine.data('app', () => ({
+    loading: true,
+    user: null,
+    authLoading: false,
+    formLoading: false,
     
-        confirmDeleteRecord(recordId) {
-          if (confirm('Deseja realmente excluir este item?')) {
-            this.deleteRecord(recordId);
-          }
-        },
+    // Variáveis para compartilhamento
+    isSharedView: false,
+    sharedUserId: null,
+    sharedCollection: { records: [], owner: null },
+    filteredSharedCollection: [],
+    sharedSearchFilter: '',
+    sharedViewMode: 'grid',
+    collectionIsPublic: false,
+    privacyUpdateLoading: false,
+    shareUrl: '',
+    
+    // Device Detection
+    isMobile: window.innerWidth < 769,
+    showMobileSidebar: false,
+    
+    // Tema
+    darkMode: localStorage.getItem('katalog-theme') !== 'light',
+    
+    // UI
+    currentView: 'collection',
+    viewMode: 'grid',
+    showRegister: false,
+    configModal: false,
+    searchFilter: '',
+    
+    // Modals
+    importModal: { 
+      show: false, 
+      data: [], 
+      preview: [], 
+      loading: false, 
+      progress: 0, 
+      progressText: 'Iniciando...'
+    },
+    largeImportModal: {
+      show: false,
+      totalItems: 0,
+      skipCovers: false
+    },
+    
+    // Data
+    collection: [],
+    filteredCollection: [],
+    sortBy: 'album',
+    sortOrder: 'asc',
+    pagination: { currentPage: 1, itemsPerPage: 50, totalPages: 1 },
+    searchTimeout: null,
+    performanceMode: false,
+    imageObserver: null,
+    searchIndex: new Map(),
+    newRecord: { 
+      album: '', 
+      artist: '', 
+      format: '', 
+      year: '', 
+      catalog_number: '', 
+      cover_url: '',
+      description: ''
+    },
 
-        async deleteRecord(recordId) {
-          try {
-            const userId = this.user.uid;
-            await db.collection('users').doc(userId).collection('records').doc(recordId).delete();
-            this.showNotification('Item excluído com sucesso!', 'success');
-          } catch (error) {
-            console.error('Erro ao excluir:', error);
-            this.showNotification('Erro ao excluir item', 'error');
-          }
-        },
+    // Modal de detalhes do álbum
+    albumDetailsModal: { show: false, record: null },
 
-        // SUBSTITUIR a função filterAndSortCollection() existente por esta:
-            filterAndSortCollection() {
-        let filtered = this.collection;
+    // Auth
+    email: '',
+    password: '',
+    displayName: '',
+    newDisplayName: '',
+    
+    // Notification
+    notification: { show: false, message: '', type: 'success' },
+
+    // Modal de exclusão de conta
+    deleteAccountModal: { 
+      show: false, 
+      email: '', 
+      password: '', 
+      confirmed: false, 
+      loading: false 
+    },
+
+    async init() {
+      try {
+        await this.checkForSharedCollection();
         
-        if (this.searchFilter.trim()) {
-          const filter = this.searchFilter.toLowerCase();
-          if (this.performanceMode && this.searchIndex.size > 0) {
-            filtered = filtered.filter(record => 
-              this.searchIndex.get(record.id)?.includes(filter)
-            );
-          } else {
-            filtered = filtered.filter(record => 
-              record.album?.toLowerCase().includes(filter) ||
-              record.artist?.toLowerCase().includes(filter) ||
-              record.format?.toLowerCase().includes(filter) ||
-              record.year?.toString().includes(filter)
-            );
-          }
-        }
-        
-        this.filteredCollection = filtered;
-        this.sortCollection();
-        this.updatePagination();
-        
-        // Atualizar UI
-        setTimeout(() => {
+        if (this.isSharedView) {
+          this.loading = false;
           lucide.createIcons();
+          return;
+        }
+
+        this.checkDevice();
+        window.addEventListener('resize', () => {
+          this.checkDevice();
+        });
+
+        auth.onAuthStateChanged((user) => {
+          this.user = user;
+          if (user) {
+            this.setupCollection(user.uid);
+            this.loadUserSettings(user.uid);
+          } else {
+            this.collection = [];
+            this.filteredCollection = [];
+          }
+          this.loading = false;
+          setTimeout(() => lucide.createIcons(), 100);
+        });
+
+        lucide.createIcons();
+        setTimeout(() => {
           if (this.performanceMode) {
             this.observeImages();
           }
-        }, 10);
-      },
+        }, 200);
 
-
-        // Getter para itens exibidos (performance ou normal)
-        get displayedCollection() {
-          if (!this.performanceMode) {
-            return this.filteredCollection;
-          }
-          
-          const start = (this.pagination.currentPage - 1) * this.pagination.itemsPerPage;
-          const end = start + this.pagination.itemsPerPage;
-          return this.filteredCollection.slice(start, end);
-        },
-
-        // Atualizar paginação
-        updatePagination() {
-          this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
-          if (this.pagination.currentPage > this.pagination.totalPages) {
-            this.pagination.currentPage = 1;
-          }
-        },
-
-        // Verificar se precisa modo performance
-        checkPerformanceMode() {
-          this.performanceMode = this.collection.length > 500;
-          if (this.performanceMode) {
-            this.initLazyLoading();
-            this.buildSearchIndex();
-          }
-        },
-
-        // Construir índice de busca
-        buildSearchIndex() {
-          this.searchIndex.clear();
-          this.collection.forEach(record => {
-            const searchText = [
-              record.album,
-              record.artist,
-              record.format,
-              record.year?.toString(),
-              record.catalog_number
-            ].join(' ').toLowerCase();
-            
-            this.searchIndex.set(record.id, searchText);
-          });
-        },
-
-        // Correção automática de nomes de bandas
-          async autoCorrectArtistNames() {
-            this.showNotification('Iniciando correção de nomes...', 'info');
-            const userId = this.user.uid;
-            let corrected = 0;
-            
-            for (const record of this.collection) {
-              if (!record.artist || !record.album) continue;
-              
-              try {
-                const query = `${record.artist} ${record.album}`;
-                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-                
-                const response = await fetch(itunesUrl);
-                if (response.ok) {
-                  const data = await response.json();
-                  if (data.results && data.results.length > 0) {
-                    const album = data.results[0];
-                    let needsUpdate = false;
-                    const updates = {};
-                    
-                    // Corrigir nome do artista se diferente
-                    if (album.artistName && album.artistName !== record.artist) {
-                      updates.artist = album.artistName;
-                      needsUpdate = true;
-                    }
-                    
-                    // Corrigir nome do álbum se diferente
-                    if (album.collectionName && album.collectionName !== record.album) {
-                      updates.album = album.collectionName;
-                      needsUpdate = true;
-                    }
-                    
-                    // Adicionar ano se não existir
-                    if (album.releaseDate && !record.year) {
-                      updates.year = new Date(album.releaseDate).getFullYear();
-                      needsUpdate = true;
-                    }
-                    
-                    if (needsUpdate) {
-                      await db.collection('users').doc(userId).collection('records')
-                        .doc(record.id).update(updates);
-                      corrected++;
-                    }
-                  }
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 200));
-              } catch (error) {
-                console.log(`Erro ao corrigir: ${record.artist} - ${record.album}`);
-              }
+        // Watchers
+        this.$watch('pagination.currentPage', () => {
+          setTimeout(() => {
+            lucide.createIcons();
+            if (this.performanceMode) {
+              this.observeImages();
             }
-            
-            this.showNotification(`${corrected} itens corrigidos!`, 'success');
-          },
+          }, 50);
+        });
 
-          // Buscar anos ausentes
-          async fillMissingYears() {
-            this.showNotification('Buscando anos ausentes...', 'info');
-            const userId = this.user.uid;
-            const itemsWithoutYear = this.collection.filter(record => !record.year);
-            let updated = 0;
-            
-            for (const record of itemsWithoutYear) {
-              try {
-                const query = `${record.artist} ${record.album}`;
-                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-                
-                const response = await fetch(itunesUrl);
-                if (response.ok) {
-                  const data = await response.json();
-                  if (data.results && data.results.length > 0) {
-                    const album = data.results[0];
-                    if (album.releaseDate) {
-                      const year = new Date(album.releaseDate).getFullYear();
-                      await db.collection('users').doc(userId).collection('records')
-                        .doc(record.id).update({ year });
-                      updated++;
-                    }
-                  }
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 200));
-              } catch (error) {
-                console.log(`Erro ao buscar ano: ${record.artist} - ${record.album}`);
-              }
+        this.$watch('viewMode', () => {
+          setTimeout(() => {
+            lucide.createIcons();
+            if (this.performanceMode) {
+              this.observeImages();
             }
-            
-            this.showNotification(`${updated} anos adicionados!`, 'success');
-          },
+          }, 50);
+        });
 
-      // <-- ATUALIZAR PAGINATION -->
-      //  Calcula páginas corretamente só no modo performance
-      // Corrige reset de página quando necessário
-        updatePagination() {
-          if (this.performanceMode) {
-            this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
-            if (this.pagination.currentPage > this.pagination.totalPages && this.pagination.totalPages > 0) {
-              this.pagination.currentPage = 1;
+        this.$watch('currentView', () => {
+          setTimeout(() => {
+            lucide.createIcons();
+            if (this.performanceMode && this.currentView === 'collection') {
+              this.observeImages();
             }
-          }
-        },
+          }, 100);
+        });
 
-        //<-- Modo Performance -->
-        checkPerformanceMode() {
-          const wasPerformanceMode = this.performanceMode;
-          this.performanceMode = this.collection.length > 500;
-          
-          if (this.performanceMode && !wasPerformanceMode) {
-            this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-            this.initLazyLoading();
-            this.buildSearchIndex();
-          } else if (!this.performanceMode && wasPerformanceMode) {
-            // Reset pagination when leaving performance mode
-            this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-          }
-        },
- 
-        // Ordenação separada
-        sortCollection() {
-          this.filteredCollection.sort((a, b) => {
-            let valueA, valueB;
-            
-            switch(this.sortBy) {
-              case 'album':
-                valueA = (a.album || '').toLowerCase();
-                valueB = (b.album || '').toLowerCase();
-                break;
-              case 'artist':
-                valueA = (a.artist || '').toLowerCase();
-                valueB = (b.artist || '').toLowerCase();
-                break;
-              case 'year':
-                valueA = parseInt(a.year) || 0;
-                valueB = parseInt(b.year) || 0;
-                break;
-              default:
-                return 0;
-            }
-            
-            if (this.sortOrder === 'asc') {
-              return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-            } else {
-              return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
-            }
-          });
-        },
+      } catch (error) {
+        console.error('Erro na inicialização:', error);
+        this.showNotification('Erro ao carregar aplicação', 'error');
+        this.loading = false;
+      }
+    },
 
-        // Lazy loading de imagens
-        initLazyLoading() {
-          if (this.imageObserver) {
-            this.imageObserver.disconnect();
-          }
-          
-          this.imageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const img = entry.target;
-                if (img.dataset.src) {
-                  img.src = img.dataset.src;
-                  img.removeAttribute('data-src');
-                  this.imageObserver.unobserve(img);
-                }
-              }
-            });
-          }, { threshold: 0.1 });
-          
-          // Re-observar imagens após mudanças no DOM
-          setTimeout(() => this.observeImages(), 100);
-        },
+    // Verificar se é uma coleção compartilhada
+    async checkForSharedCollection() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedId = urlParams.get('shared');
+      
+      if (sharedId) {
+        this.isSharedView = true;
+        this.sharedUserId = sharedId;
+        await this.loadSharedCollection(sharedId);
+      }
+    },
 
-        observeImages() {
-          document.querySelectorAll('img[data-src]').forEach(img => {
-            this.imageObserver.observe(img);
-          });
-        },
+    // Carregar coleção compartilhada
+    async loadSharedCollection(userId) {
+      try {
+        this.loading = true;
+        
+        const userDoc = await db.collection('users').doc(userId).get();
+        
+        if (!userDoc.exists || !userDoc.data().isPublic) {
+          this.showNotification('Esta coleção é privada ou não existe', 'error');
+          this.isSharedView = false;
+          this.loading = false;
+          return;
+        }
 
-        filterCollection() {
-          this.pagination.currentPage = 1; // Reset para primeira página
-          this.filterAndSortCollection();
-        },
-
-        setSortBy(field) {
-          if (this.sortBy === field) {
-            this.toggleSortOrder();
-          } else {
-            this.sortBy = field;
-            this.sortOrder = 'asc';
-          }
-          this.filterAndSortCollection();
-          setTimeout(() => lucide.createIcons(), 10);
-        },
-
-        toggleSortOrder() {
-          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-          this.filterAndSortCollection();
-          setTimeout(() => lucide.createIcons(), 10);
-        },
-
-        resetForm() {
-        this.newRecord = {
-          album: '', 
-          artist: '', 
-          format: '', 
-          year: '', 
-          catalog_number: '', 
-          cover_url: '',
-          description: '' // NOVA propriedade
+        const userData = userDoc.data();
+        this.sharedCollection.owner = {
+          displayName: userData.displayName,
+          email: userData.email
         };
-      },
 
-        searchCoverOnGoogle() {
-          const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
-          window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
-        },
+        const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+        this.sharedCollection.records = recordsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
 
-        async fetchAlbumCover() {
-          try {
-            const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
-            if (!query) return;
-            
-            this.showNotification('Buscando capa...', 'info');
-            
-            // Usando iTunes Search API que não tem restrições de CORS
-            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-            
-            const response = await fetch(itunesUrl);
-            
-            if (!response.ok) {
-              throw new Error('Erro na busca do iTunes');
-            }
-            
+        this.filteredSharedCollection = [...this.sharedCollection.records];
+        this.loading = false;
+        
+      } catch (error) {
+        console.error('Erro ao carregar coleção compartilhada:', error);
+        this.showNotification('Erro ao carregar coleção compartilhada', 'error');
+        this.isSharedView = false;
+        this.loading = false;
+      }
+    },
+
+    // Filtrar coleção compartilhada
+    filterSharedCollection() {
+      let filtered = this.sharedCollection.records;
+      
+      if (this.sharedSearchFilter.trim()) {
+        const filter = this.sharedSearchFilter.toLowerCase();
+        filtered = filtered.filter(record => 
+          record.album?.toLowerCase().includes(filter) ||
+          record.artist?.toLowerCase().includes(filter) ||
+          record.format?.toLowerCase().includes(filter) ||
+          record.year?.toString().includes(filter)
+        );
+      }
+      
+      this.filteredSharedCollection = filtered;
+    },
+
+    // Ir para tela de login
+    goToLogin() {
+      window.location.href = window.location.origin + window.location.pathname;
+    },
+
+    // Carregar configurações do usuário
+    async loadUserSettings(userId) {
+      try {
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          this.collectionIsPublic = userData.isPublic || false;
+          this.updateShareUrl();
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+      }
+    },
+
+    // Alternar privacidade da coleção
+    async toggleCollectionPrivacy() {
+      if (this.privacyUpdateLoading) return;
+      
+      this.privacyUpdateLoading = true;
+      try {
+        const newStatus = !this.collectionIsPublic;
+        const userId = this.user.uid;
+        
+        await db.collection('users').doc(userId).set({
+          isPublic: newStatus,
+          displayName: this.user.displayName,
+          email: this.user.email,
+          updatedAt: new Date()
+        }, { merge: true });
+
+        this.collectionIsPublic = newStatus;
+        this.updateShareUrl();
+        
+        this.showNotification(
+          `Coleção agora é ${newStatus ? 'pública' : 'privada'}!`, 
+          'success'
+        );
+        
+      } catch (error) {
+        console.error('Erro ao atualizar privacidade:', error);
+        this.showNotification('Erro ao atualizar privacidade', 'error');
+      }
+      
+      this.privacyUpdateLoading = false;
+    },
+
+    // Atualizar URL de compartilhamento
+    updateShareUrl() {
+      if (this.collectionIsPublic && this.user) {
+        const baseUrl = window.location.origin + window.location.pathname;
+        this.shareUrl = `${baseUrl}?shared=${this.user.uid}`;
+      } else {
+        this.shareUrl = '';
+      }
+    },
+
+    // Copiar URL de compartilhamento
+    async copyShareUrl() {
+      try {
+        await navigator.clipboard.writeText(this.shareUrl);
+        this.showNotification('Link copiado para a área de transferência!', 'success');
+      } catch (error) {
+        console.error('Erro ao copiar URL:', error);
+        this.showNotification('Erro ao copiar link', 'error');
+      }
+    },
+    
+    checkDevice() {
+      this.isMobile = window.innerWidth < 769;
+      if (!this.isMobile) {
+        this.showMobileSidebar = false;
+      }
+    },
+
+    // Mostrar detalhes do álbum
+    showAlbumDetails(record) {
+      this.albumDetailsModal = { show: true, record };
+      setTimeout(() => lucide.createIcons(), 10);
+    },
+
+    // Buscar em serviços online
+    searchOnService(service) {
+      const record = this.albumDetailsModal.record;
+      if (!record) return;
+      
+      const query = `${record.artist} ${record.album}`.trim();
+      const encodedQuery = encodeURIComponent(query);
+      
+      let url = '';
+      
+      switch(service) {
+        case 'youtube':
+          url = `https://www.youtube.com/results?search_query=${encodedQuery}`;
+          break;
+        case 'spotify':
+          url = `https://open.spotify.com/search/${encodedQuery}`;
+          break;
+        case 'apple':
+          url = `https://music.apple.com/search?term=${encodedQuery}`;
+          break;
+        case 'rateyourmusic':
+          url = `https://www.rateyourmusic.com/search?searchterm=${encodedQuery}&searchtype=`;
+          break;
+      }
+      
+      if (url) {
+        window.open(url, '_blank');
+      }
+    },
+    
+    async setupCollection(userId) {
+      try {
+        const collectionRef = db.collection('users').doc(userId).collection('records');
+        collectionRef.onSnapshot((snapshot) => {
+          this.collection = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          this.checkPerformanceMode();
+          this.filterAndSortCollection();
+        });
+      } catch (error) {
+        console.error('Erro ao configurar coleção:', error);
+        this.showNotification('Erro ao carregar coleção', 'error');
+      }
+    },
+
+    async login() {
+      if (!this.email || !this.password) {
+        this.showNotification('Preencha email e senha', 'error');
+        return;
+      }
+
+      this.authLoading = true;
+      try {
+        await auth.signInWithEmailAndPassword(this.email, this.password);
+        this.showNotification('Login realizado com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro no login:', error);
+        this.showNotification('Erro no login: ' + error.message, 'error');
+      }
+      this.authLoading = false;
+    },
+
+    async register() {
+      if (!this.email || !this.password || !this.displayName) {
+        this.showNotification('Preencha todos os campos', 'error');
+        return;
+      }
+
+      if (this.password.length < 6) {
+        this.showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
+        return;
+      }
+
+      this.authLoading = true;
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+        await userCredential.user.updateProfile({ displayName: this.displayName });
+        
+        await db.collection('users').doc(userCredential.user.uid).set({
+          displayName: this.displayName,
+          email: this.email,
+          isPublic: false,
+          createdAt: new Date()
+        });
+        
+        this.showNotification('Conta criada com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro no registro:', error);
+        this.showNotification('Erro no registro: ' + error.message, 'error');
+      }
+      this.authLoading = false;
+    },
+
+    confirmLogout() {
+      if (confirm('Deseja realmente sair?')) {
+        auth.signOut();
+        this.showNotification('Logout realizado com sucesso!', 'success');
+      }
+    },
+
+    async confirmAddRecord() {
+      if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
+        this.showNotification('Preencha os campos obrigatórios', 'error');
+        return;
+      }
+    
+      if (!this.newRecord.cover_url) {
+        await this.fetchAlbumCover();
+      }
+    
+      if (confirm('Adicionar este item à coleção?')) {
+        await this.addRecord();
+      }
+    },
+
+    async addRecord() {
+      this.formLoading = true;
+      try {
+        const userId = this.user.uid;
+        const recordData = {
+          ...this.newRecord,
+          created_at: new Date(),
+          user_id: userId
+        };
+
+        if (this.newRecord.id) {
+          await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
+          this.showNotification('Item atualizado com sucesso!', 'success');
+        } else {
+          await db.collection('users').doc(userId).collection('records').add(recordData);
+          this.showNotification('Item adicionado com sucesso!', 'success');
+        }
+        
+        this.resetForm();
+        this.currentView = 'collection';
+      } catch (error) {
+        console.error('Erro ao salvar:', error);
+        this.showNotification('Erro ao salvar item', 'error');
+      }
+      this.formLoading = false;
+    },
+
+    editRecord(record) {
+      this.albumDetailsModal.show = false;
+      
+      this.newRecord = { ...record };
+      this.currentView = 'add-record';
+      this.showNotification('Editando item...', 'info');
+      this.showMobileSidebar = false;
+    },
+
+    confirmDeleteRecord(recordId) {
+      if (confirm('Deseja realmente excluir este item?')) {
+        this.deleteRecord(recordId);
+      }
+    },
+
+    async deleteRecord(recordId) {
+      try {
+        const userId = this.user.uid;
+        await db.collection('users').doc(userId).collection('records').doc(recordId).delete();
+        this.showNotification('Item excluído com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro ao excluir:', error);
+        this.showNotification('Erro ao excluir item', 'error');
+      }
+    },
+
+    filterAndSortCollection() {
+      let filtered = this.collection;
+      
+      if (this.searchFilter.trim()) {
+        const filter = this.searchFilter.toLowerCase();
+        if (this.performanceMode && this.searchIndex.size > 0) {
+          filtered = filtered.filter(record => 
+            this.searchIndex.get(record.id)?.includes(filter)
+          );
+        } else {
+          filtered = filtered.filter(record => 
+            record.album?.toLowerCase().includes(filter) ||
+            record.artist?.toLowerCase().includes(filter) ||
+            record.format?.toLowerCase().includes(filter) ||
+            record.year?.toString().includes(filter)
+          );
+        }
+      }
+      
+      this.filteredCollection = filtered;
+      this.sortCollection();
+      this.updatePagination();
+      
+      setTimeout(() => {
+        lucide.createIcons();
+        if (this.performanceMode) {
+          this.observeImages();
+        }
+      }, 10);
+    },
+
+    // Getter para itens exibidos
+    get displayedCollection() {
+      if (!this.performanceMode) {
+        return this.filteredCollection;
+      }
+      
+      const start = (this.pagination.currentPage - 1) * this.pagination.itemsPerPage;
+      const end = start + this.pagination.itemsPerPage;
+      return this.filteredCollection.slice(start, end);
+    },
+
+    // Atualizar paginação
+    updatePagination() {
+      if (this.performanceMode) {
+        this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
+        if (this.pagination.currentPage > this.pagination.totalPages && this.pagination.totalPages > 0) {
+          this.pagination.currentPage = 1;
+        }
+      }
+    },
+
+    // Verificar se precisa modo performance
+    checkPerformanceMode() {
+      const wasPerformanceMode = this.performanceMode;
+      this.performanceMode = this.collection.length > 500;
+      
+      if (this.performanceMode && !wasPerformanceMode) {
+        this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+        this.initLazyLoading();
+        this.buildSearchIndex();
+      } else if (!this.performanceMode && wasPerformanceMode) {
+        this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+      }
+    },
+
+    // Construir índice de busca
+    buildSearchIndex() {
+      this.searchIndex.clear();
+      this.collection.forEach(record => {
+        const searchText = [
+          record.album,
+          record.artist,
+          record.format,
+          record.year?.toString(),
+          record.catalog_number
+        ].join(' ').toLowerCase();
+        
+        this.searchIndex.set(record.id, searchText);
+      });
+    },
+
+    // Correção automática de nomes de bandas
+    async autoCorrectArtistNames() {
+      this.showNotification('Iniciando correção de nomes...', 'info');
+      const userId = this.user.uid;
+      let corrected = 0;
+      
+      for (const record of this.collection) {
+        if (!record.artist || !record.album) continue;
+        
+        try {
+          const query = `${record.artist} ${record.album}`;
+          const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+          
+          const response = await fetch(itunesUrl);
+          if (response.ok) {
             const data = await response.json();
-
             if (data.results && data.results.length > 0) {
               const album = data.results[0];
-              if (album.artworkUrl100) {
-                // Pega a versão em alta resolução da capa
-                const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                this.newRecord.cover_url = highResUrl;
-                this.showNotification('Capa encontrada automaticamente!', 'success');
-                return;
+              let needsUpdate = false;
+              const updates = {};
+              
+              if (album.artistName && album.artistName !== record.artist) {
+                updates.artist = album.artistName;
+                needsUpdate = true;
+              }
+              
+              if (album.collectionName && album.collectionName !== record.album) {
+                updates.album = album.collectionName;
+                needsUpdate = true;
+              }
+              
+              if (album.releaseDate && !record.year) {
+                updates.year = new Date(album.releaseDate).getFullYear();
+                needsUpdate = true;
+              }
+              
+              if (needsUpdate) {
+                await db.collection('users').doc(userId).collection('records')
+                  .doc(record.id).update(updates);
+                corrected++;
               }
             }
-
-            this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
-          } catch (error) {
-            console.error('Erro ao buscar capa:', error);
-            this.showNotification('Não foi possível buscar capa automática', 'error');
-          }
-        },
-
-        toggleTheme() {
-          this.darkMode = !this.darkMode;
-          localStorage.setItem('katalog-theme', this.darkMode ? 'dark' : 'light');
-        },
-
-        async updateDisplayName() {
-          if (!this.newDisplayName?.trim()) return;
-
-          try {
-            await this.user.updateProfile({ displayName: this.newDisplayName.trim() });
-            
-            // Atualizar também no documento do usuário
-            await db.collection('users').doc(this.user.uid).set({
-              displayName: this.newDisplayName.trim(),
-              email: this.user.email,
-              updatedAt: new Date()
-            }, { merge: true });
-            
-            this.showNotification('Nome atualizado com sucesso!', 'success');
-            this.newDisplayName = '';
-          } catch (error) {
-            console.error('Erro ao atualizar nome:', error);
-            this.showNotification('Erro ao atualizar nome', 'error');
-          }
-        },
-
-        confirmDeleteAccount() {
-          this.deleteAccountModal = { 
-            show: true, 
-            email: '', 
-            password: '', 
-            confirmed: false, 
-            loading: false 
-          };
-          this.configModal = false;
-        },
-
-        cancelDeleteAccount() {
-          this.deleteAccountModal = { 
-            show: false, 
-            email: '', 
-            password: '', 
-            confirmed: false, 
-            loading: false 
-          };
-        },
-
-        async proceedDeleteAccount() {
-          if (!this.deleteAccountModal.email || !this.deleteAccountModal.password || !this.deleteAccountModal.confirmed) {
-            this.showNotification('Preencha todos os campos e confirme a ação', 'error');
-            return;
-          }
-
-          if (this.deleteAccountModal.email !== this.user.email) {
-            this.showNotification('Email não confere com o da conta', 'error');
-            return;
-          }
-
-          this.deleteAccountModal.loading = true;
-          
-          try {
-            const user = firebase.auth().currentUser;
-            
-            // 1. Reautenticar usuário com tratamento de erro melhorado
-            const credential = firebase.auth.EmailAuthProvider.credential(
-              this.deleteAccountModal.email.trim(), 
-              this.deleteAccountModal.password
-            );
-            
-            await user.reauthenticateWithCredential(credential);
-
-            // 2. Deletar todos os registros do Firestore
-            const userId = user.uid;
-            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-            
-            if (!recordsSnapshot.empty) {
-              const batch = db.batch();
-              recordsSnapshot.forEach(doc => batch.delete(doc.ref));
-              await batch.commit();
-            }
-
-            // 3. Deletar documento do usuário
-            await db.collection('users').doc(userId).delete();
-
-            // 4. Excluir usuário
-            await user.delete();
-
-            this.showNotification('Conta excluída com sucesso!', 'success');
-            
-            // 5. Resetar estado
-            this.cancelDeleteAccount();
-            
-            // 6. Logout será automático após delete()
-
-          } catch (error) {
-            console.error('Erro ao excluir conta:', error);
-            
-            let errorMessage = 'Erro ao excluir conta';
-            
-            switch(error.code) {
-              case 'auth/wrong-password':
-                errorMessage = 'Senha incorreta';
-                break;
-              case 'auth/too-many-requests':
-                errorMessage = 'Muitas tentativas. Tente novamente mais tarde';
-                break;
-              case 'auth/requires-recent-login':
-                errorMessage = 'É necessário fazer login novamente antes de excluir a conta';
-                break;
-              case 'auth/user-token-expired':
-                errorMessage = 'Sessão expirada. Faça login novamente';
-                break;
-              default:
-                errorMessage = `Erro: ${error.message}`;
-            }
-            
-            this.showNotification(errorMessage, 'error');
           }
           
-          this.deleteAccountModal.loading = false;
-        },
-        
-        handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (error) {
+          console.log(`Erro ao corrigir: ${record.artist} - ${record.album}`);
+        }
+      }
+      
+      this.showNotification(`${corrected} itens corrigidos!`, 'success');
+    },
 
-        this.importModal.loading = true;
-        this.importModal.progress = 0;
-        this.importModal.progressText = 'Lendo arquivo...';
-        this.showNotification('Processando arquivo...', 'info');
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            this.importModal.progress = 30;
-            this.importModal.progressText = 'Analisando conteúdo...';
-            
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            this.importModal.progress = 60;
-            this.importModal.progressText = 'Processando dados...';
-            
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-            this.importModal.progress = 90;
-            this.importModal.progressText = 'Validando registros...';
-            
-            // Pequeno delay para mostrar o progresso
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            this.processImportData(jsonData);
-            
-            this.importModal.progress = 100;
-            this.importModal.progressText = 'Arquivo processado!';
-            
-            await new Promise(resolve => setTimeout(resolve, 300));
-            this.showNotification('Arquivo processado com sucesso!', 'success');
-            
-          } catch (error) {
-            console.error('Erro ao processar arquivo:', error);
-            this.showNotification('Erro ao processar arquivo Excel', 'error');
-          } finally {
-            this.importModal.loading = false;
-            this.importModal.progress = 0;
+    // Buscar anos ausentes
+    async fillMissingYears() {
+      this.showNotification('Buscando anos ausentes...', 'info');
+      const userId = this.user.uid;
+      const itemsWithoutYear = this.collection.filter(record => !record.year);
+      let updated = 0;
+      
+      for (const record of itemsWithoutYear) {
+        try {
+          const query = `${record.artist} ${record.album}`;
+          const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+          
+          const response = await fetch(itunesUrl);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+              const album = data.results[0];
+              if (album.releaseDate) {
+                const year = new Date(album.releaseDate).getFullYear();
+                await db.collection('users').doc(userId).collection('records')
+                  .doc(record.id).update({ year });
+                updated++;
+              }
+            }
           }
-        };
+          
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (error) {
+          console.log(`Erro ao buscar ano: ${record.artist} - ${record.album}`);
+        }
+      }
+      
+      this.showNotification(`${updated} anos adicionados!`, 'success');
+    },
+
+    // Ordenação separada
+    sortCollection() {
+      this.filteredCollection.sort((a, b) => {
+        let valueA, valueB;
         
-        reader.onerror = () => {
-          this.showNotification('Erro ao ler arquivo', 'error');
+        switch(this.sortBy) {
+          case 'album':
+            valueA = (a.album || '').toLowerCase();
+            valueB = (b.album || '').toLowerCase();
+            break;
+          case 'artist':
+            valueA = (a.artist || '').toLowerCase();
+            valueB = (b.artist || '').toLowerCase();
+            break;
+          case 'year':
+            valueA = parseInt(a.year) || 0;
+            valueB = parseInt(b.year) || 0;
+            break;
+          default:
+            return 0;
+        }
+        
+        if (this.sortOrder === 'asc') {
+          return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+      });
+    },
+
+    // Lazy loading de imagens
+    initLazyLoading() {
+      if (this.imageObserver) {
+        this.imageObserver.disconnect();
+      }
+      
+      this.imageObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+              img.src = img.dataset.src;
+              img.removeAttribute('data-src');
+              this.imageObserver.unobserve(img);
+            }
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      setTimeout(() => this.observeImages(), 100);
+    },
+
+    observeImages() {
+      document.querySelectorAll('img[data-src]').forEach(img => {
+        this.imageObserver.observe(img);
+      });
+    },
+
+    filterCollection() {
+      this.pagination.currentPage = 1;
+      this.filterAndSortCollection();
+    },
+
+    setSortBy(field) {
+      if (this.sortBy === field) {
+        this.toggleSortOrder();
+      } else {
+        this.sortBy = field;
+        this.sortOrder = 'asc';
+      }
+      this.filterAndSortCollection();
+      setTimeout(() => lucide.createIcons(), 10);
+    },
+
+    toggleSortOrder() {
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+      this.filterAndSortCollection();
+      setTimeout(() => lucide.createIcons(), 10);
+    },
+
+    resetForm() {
+      this.newRecord = {
+        album: '', 
+        artist: '', 
+        format: '', 
+        year: '', 
+        catalog_number: '', 
+        cover_url: '',
+        description: ''
+      };
+    },
+
+    searchCoverOnGoogle() {
+      const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
+      window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
+    },
+
+    async fetchAlbumCover() {
+      try {
+        const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
+        if (!query) return;
+        
+        this.showNotification('Buscando capa...', 'info');
+        
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+        
+        const response = await fetch(itunesUrl);
+        
+        if (!response.ok) {
+          throw new Error('Erro na busca do iTunes');
+        }
+        
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          const album = data.results[0];
+          if (album.artworkUrl100) {
+            const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+            this.newRecord.cover_url = highResUrl;
+            this.showNotification('Capa encontrada automaticamente!', 'success');
+            return;
+          }
+        }
+
+        this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+      } catch (error) {
+        console.error('Erro ao buscar capa:', error);
+        this.showNotification('Não foi possível buscar capa automática', 'error');
+      }
+    },
+
+    toggleTheme() {
+      this.darkMode = !this.darkMode;
+      localStorage.setItem('katalog-theme', this.darkMode ? 'dark' : 'light');
+    },
+
+    async updateDisplayName() {
+      if (!this.newDisplayName?.trim()) return;
+
+      try {
+        await this.user.updateProfile({ displayName: this.newDisplayName.trim() });
+        
+        await db.collection('users').doc(this.user.uid).set({
+          displayName: this.newDisplayName.trim(),
+          email: this.user.email,
+          updatedAt: new Date()
+        }, { merge: true });
+        
+        this.showNotification('Nome atualizado com sucesso!', 'success');
+        this.newDisplayName = '';
+      } catch (error) {
+        console.error('Erro ao atualizar nome:', error);
+        this.showNotification('Erro ao atualizar nome', 'error');
+      }
+    },
+
+    confirmDeleteAccount() {
+      this.deleteAccountModal = { 
+        show: true, 
+        email: '', 
+        password: '', 
+        confirmed: false, 
+        loading: false 
+      };
+      this.configModal = false;
+    },
+
+    cancelDeleteAccount() {
+      this.deleteAccountModal = { 
+        show: false, 
+        email: '', 
+        password: '', 
+        confirmed: false, 
+        loading: false 
+      };
+    },
+
+    async proceedDeleteAccount() {
+      if (!this.deleteAccountModal.email || !this.deleteAccountModal.password || !this.deleteAccountModal.confirmed) {
+        this.showNotification('Preencha todos os campos e confirme a ação', 'error');
+        return;
+      }
+
+      if (this.deleteAccountModal.email !== this.user.email) {
+        this.showNotification('Email não confere com o da conta', 'error');
+        return;
+      }
+
+      this.deleteAccountModal.loading = true;
+      
+      try {
+        const user = firebase.auth().currentUser;
+        
+        const credential = firebase.auth.EmailAuthProvider.credential(
+          this.deleteAccountModal.email.trim(), 
+          this.deleteAccountModal.password
+        );
+        
+        await user.reauthenticateWithCredential(credential);
+
+        const userId = user.uid;
+        const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+        
+        if (!recordsSnapshot.empty) {
+          const batch = db.batch();
+          recordsSnapshot.forEach(doc => batch.delete(doc.ref));
+          await batch.commit();
+        }
+
+        await db.collection('users').doc(userId).delete();
+        await user.delete();
+
+        this.showNotification('Conta excluída com sucesso!', 'success');
+        this.cancelDeleteAccount();
+
+      } catch (error) {
+        console.error('Erro ao excluir conta:', error);
+        
+        let errorMessage = 'Erro ao excluir conta';
+        
+        switch(error.code) {
+          case 'auth/wrong-password':
+            errorMessage = 'Senha incorreta';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Muitas tentativas. Tente novamente mais tarde';
+            break;
+          case 'auth/requires-recent-login':
+            errorMessage = 'É necessário fazer login novamente antes de excluir a conta';
+            break;
+          case 'auth/user-token-expired':
+            errorMessage = 'Sessão expirada. Faça login novamente';
+            break;
+          default:
+            errorMessage = `Erro: ${error.message}`;
+        }
+            
+        this.showNotification(errorMessage, 'error');
+      }
+      
+      this.deleteAccountModal.loading = false;
+    },
+        
+    handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      this.importModal.loading = true;
+      this.importModal.progress = 0;
+      this.importModal.progressText = 'Lendo arquivo...';
+      this.showNotification('Processando arquivo...', 'info');
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          this.importModal.progress = 30;
+          this.importModal.progressText = 'Analisando conteúdo...';
+          
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          this.importModal.progress = 60;
+          this.importModal.progressText = 'Processando dados...';
+          
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          this.importModal.progress = 90;
+          this.importModal.progressText = 'Validando registros...';
+          
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          this.processImportData(jsonData);
+          
+          this.importModal.progress = 100;
+          this.importModal.progressText = 'Arquivo processado!';
+          
+          await new Promise(resolve => setTimeout(resolve, 300));
+          this.showNotification('Arquivo processado com sucesso!', 'success');
+          
+        } catch (error) {
+          console.error('Erro ao processar arquivo:', error);
+          this.showNotification('Erro ao processar arquivo Excel', 'error');
+        } finally {
           this.importModal.loading = false;
           this.importModal.progress = 0;
-        };
-        
-        reader.readAsArrayBuffer(file);
-      },
-
-        processImportData(data) {
-          const validRecords = data.filter(row => 
-            row.album && row.artist && row.format
-          ).map(row => ({
-            album: row.album?.toString().trim(),
-            artist: row.artist?.toString().trim(),
-            format: row.format?.toString().trim(),
-            year: row.year ? parseInt(row.year) : '',
-            catalog_number: row.catalog_number?.toString().trim() || '',
-            cover_url: row.cover_url?.toString().trim() || '',
-            description: row.description?.toString().trim() || '' // NOVA linha
-          }));
-
-          this.importModal.data = validRecords;
-          this.importModal.preview = validRecords.slice(0, 3);
-
-          if (validRecords.length === 0) {
-            this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
-          }
-        },
-              
-        // Verificar se é import grande antes de importar
-async importRecords() {
-  if (this.importModal.data.length === 0) return;
-  
-  // Se mais de 200 itens, mostrar aviso
-  if (this.importModal.data.length > 200) {
-    this.largeImportModal = {
-      show: true,
-      totalItems: this.importModal.data.length,
-      skipCovers: false
-    };
-    return;
-  }
-  
-  // Prosseguir normalmente para imports menores
-  await this.executeImport(false);
-},
-
-// Prosseguir com import grande
-async proceedLargeImport() {
-  this.largeImportModal.show = false;
-  await this.executeImport(this.largeImportModal.skipCovers);
-},
-
-// Cancelar import grande
-cancelLargeImport() {
-  this.largeImportModal = {
-    show: false,
-    totalItems: 0,
-    skipCovers: false
-  };
-},
-
-// Executar o import (refatorado)
-async executeImport(skipCovers = false) {
-  if (this.importModal.data.length === 0) return;
-
-  this.importModal.loading = true;
-  this.importModal.progress = 0;
-  this.importModal.progressText = 'Iniciando importação...';
-  
-  try {
-    const userId = this.user.uid;
-    const batch = db.batch();
-    const totalItems = this.importModal.data.length;
-
-    this.showNotification(`Importando ${totalItems} itens...`, 'info');
-
-    if (!skipCovers) {
-      // Fase 1: Buscar capas (70% do progresso)
-      this.importModal.progressText = 'Buscando capas...';
+        }
+      };
       
-      for (let i = 0; i < this.importModal.data.length; i++) {
-        const record = this.importModal.data[i];
+      reader.onerror = () => {
+        this.showNotification('Erro ao ler arquivo', 'error');
+        this.importModal.loading = false;
+        this.importModal.progress = 0;
+      };
+      
+      reader.readAsArrayBuffer(file);
+    },
+
+    processImportData(data) {
+      const validRecords = data.filter(row => 
+        row.album && row.artist && row.format
+      ).map(row => ({
+        album: row.album?.toString().trim(),
+        artist: row.artist?.toString().trim(),
+        format: row.format?.toString().trim(),
+        year: row.year ? parseInt(row.year) : '',
+        catalog_number: row.catalog_number?.toString().trim() || '',
+        cover_url: row.cover_url?.toString().trim() || '',
+        description: row.description?.toString().trim() || ''
+      }));
+
+      this.importModal.data = validRecords;
+      this.importModal.preview = validRecords.slice(0, 3);
+
+      if (validRecords.length === 0) {
+        this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
+      }
+    },
+              
+    // Verificar se é import grande antes de importar
+    async importRecords() {
+      if (this.importModal.data.length === 0) return;
+      
+      if (this.importModal.data.length > 200) {
+        this.largeImportModal = {
+          show: true,
+          totalItems: this.importModal.data.length,
+          skipCovers: false
+        };
+        return;
+      }
+      
+      await this.executeImport(false);
+    },
+
+    // Prosseguir com import grande
+    async proceedLargeImport() {
+      this.largeImportModal.show = false;
+      await this.executeImport(this.largeImportModal.skipCovers);
+    },
+
+    // Cancelar import grande
+    cancelLargeImport() {
+      this.largeImportModal = {
+        show: false,
+        totalItems: 0,
+        skipCovers: false
+      };
+    },
+
+    // Executar o import
+    async executeImport(skipCovers = false) {
+      if (this.importModal.data.length === 0) return;
+
+      this.importModal.loading = true;
+      this.importModal.progress = 0;
+      this.importModal.progressText = 'Iniciando importação...';
+      
+      try {
+        const userId = this.user.uid;
+        const batch = db.batch();
+        const totalItems = this.importModal.data.length;
+
+        this.showNotification(`Importando ${totalItems} itens...`, 'info');
+
+        if (!skipCovers) {
+          this.importModal.progressText = 'Buscando capas...';
+          
+          for (let i = 0; i < this.importModal.data.length; i++) {
+            const record = this.importModal.data[i];
+            
+            const coverProgress = Math.floor((i / totalItems) * 70);
+            this.importModal.progress = coverProgress;
+            this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+            
+            if (!record.cover_url && record.album && record.artist) {
+              try {
+                const query = `${record.album} ${record.artist}`.trim();
+                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+                
+                const response = await fetch(itunesUrl);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.results && data.results.length > 0) {
+                    const album = data.results[0];
+                    if (album.artworkUrl100) {
+                      const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                      record.cover_url = highResUrl;
+                    }
+                  }
+                }
+              } catch (error) {
+                console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+              }
+              
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+          
+          this.importModal.progress = 70;
+        } else {
+          this.importModal.progress = 70;
+        }
+
+        this.importModal.progressText = 'Preparando dados para salvamento...';
         
-        const coverProgress = Math.floor((i / totalItems) * 70);
-        this.importModal.progress = coverProgress;
-        this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+        this.importModal.data.forEach(record => {
+          const docRef = db.collection('users').doc(userId).collection('records').doc();
+          batch.set(docRef, {
+            ...record,
+            created_at: new Date(),
+            user_id: userId
+          });
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        this.importModal.progress = 85;
+
+        this.importModal.progressText = 'Salvando no banco de dados...';
+        await batch.commit();
         
-        if (!record.cover_url && record.album && record.artist) {
+        this.importModal.progress = 100;
+        this.importModal.progressText = 'Importação concluída!';
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
+        this.closeImportModal();
+        
+      } catch (error) {
+        console.error('Erro na importação:', error);
+        this.showNotification('Erro ao importar registros', 'error');
+      }
+      
+      this.importModal.loading = false;
+      this.importModal.progress = 0;
+    },
+
+    // Iniciar busca automática de capas
+    async startAutoCoverSearch() {
+      if (this.collection.length === 0) {
+        this.showNotification('Nenhum item na coleção', 'error');
+        return;
+      }
+      
+      const itemsWithoutCovers = this.collection.filter(record => !record.cover_url);
+      
+      if (itemsWithoutCovers.length === 0) {
+        this.showNotification('Todos os itens já possuem capas!', 'info');
+        return;
+      }
+      
+      if (confirm(`Buscar capas para ${itemsWithoutCovers.length} itens sem capa?`)) {
+        await this.searchMissingCovers(itemsWithoutCovers);
+      }
+    },
+
+    // Buscar capas ausentes
+    async searchMissingCovers(items) {
+      this.importModal.loading = true;
+      this.importModal.show = true;
+      this.importModal.progress = 0;
+      this.importModal.progressText = 'Buscando capas ausentes...';
+      
+      try {
+        const userId = this.user.uid;
+        const totalItems = items.length;
+        let updated = 0;
+        
+        for (let i = 0; i < items.length; i++) {
+          const record = items[i];
+          
+          const progress = Math.floor((i / totalItems) * 100);
+          this.importModal.progress = progress;
+          this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+          
           try {
             const query = `${record.album} ${record.artist}`.trim();
             const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
@@ -2519,230 +2516,115 @@ async executeImport(skipCovers = false) {
                 const album = data.results[0];
                 if (album.artworkUrl100) {
                   const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                  record.cover_url = highResUrl;
+                  
+                  await db.collection('users').doc(userId).collection('records')
+                    .doc(record.id).update({ cover_url: highResUrl });
+                  
+                  updated++;
                 }
               }
             }
           } catch (error) {
-            console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+            console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
           }
           
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 150));
         }
-      }
-      
-      this.importModal.progress = 70;
-    } else {
-      this.importModal.progress = 70;
-    }
-
-    this.importModal.progressText = 'Preparando dados para salvamento...';
-    
-    this.importModal.data.forEach(record => {
-      const docRef = db.collection('users').doc(userId).collection('records').doc();
-      batch.set(docRef, {
-        ...record,
-        created_at: new Date(),
-        user_id: userId
-      });
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    this.importModal.progress = 85;
-
-    this.importModal.progressText = 'Salvando no banco de dados...';
-    await batch.commit();
-    
-    this.importModal.progress = 100;
-    this.importModal.progressText = 'Importação concluída!';
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
-    this.closeImportModal();
-    
-  } catch (error) {
-    console.error('Erro na importação:', error);
-    this.showNotification('Erro ao importar registros', 'error');
-  }
-  
-  this.importModal.loading = false;
-  this.importModal.progress = 0;
-},
-
-// Iniciar busca automática de capas
-async startAutoCoverSearch() {
-  if (this.collection.length === 0) {
-    this.showNotification('Nenhum item na coleção', 'error');
-    return;
-  }
-  
-  const itemsWithoutCovers = this.collection.filter(record => !record.cover_url);
-  
-  if (itemsWithoutCovers.length === 0) {
-    this.showNotification('Todos os itens já possuem capas!', 'info');
-    return;
-  }
-  
-  if (confirm(`Buscar capas para ${itemsWithoutCovers.length} itens sem capa?`)) {
-    await this.searchMissingCovers(itemsWithoutCovers);
-  }
-},
-
-// Buscar capas ausentes
-async searchMissingCovers(items) {
-  this.importModal.loading = true;
-  this.importModal.show = true;
-  this.importModal.progress = 0;
-  this.importModal.progressText = 'Buscando capas ausentes...';
-  
-  try {
-    const userId = this.user.uid;
-    const totalItems = items.length;
-    let updated = 0;
-    
-    for (let i = 0; i < items.length; i++) {
-      const record = items[i];
-      
-      const progress = Math.floor((i / totalItems) * 100);
-      this.importModal.progress = progress;
-      this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
-      
-      try {
-        const query = `${record.album} ${record.artist}`.trim();
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
         
-        const response = await fetch(itunesUrl);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results && data.results.length > 0) {
-            const album = data.results[0];
-            if (album.artworkUrl100) {
-              const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-              
-              await db.collection('users').doc(userId).collection('records')
-                .doc(record.id).update({ cover_url: highResUrl });
-              
-              updated++;
-            }
-          }
-        }
+        this.importModal.progress = 100;
+        this.importModal.progressText = 'Busca concluída!';
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
+        
       } catch (error) {
-        console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
+        console.error('Erro na busca de capas:', error);
+        this.showNotification('Erro ao buscar capas', 'error');
       }
       
-      await new Promise(resolve => setTimeout(resolve, 150));
-    }
-    
-    this.importModal.progress = 100;
-    this.importModal.progressText = 'Busca concluída!';
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
-    
-  } catch (error) {
-    console.error('Erro na busca de capas:', error);
-    this.showNotification('Erro ao buscar capas', 'error');
-  }
-  
-  this.importModal.loading = false;
-  this.importModal.show = false;
-  this.importModal.progress = 0;
-},
+      this.importModal.loading = false;
+      this.importModal.show = false;
+      this.importModal.progress = 0;
+    },
 
-        closeImportModal() {
-        this.importModal = { 
-          show: false, 
-          data: [], 
-          preview: [], 
-          loading: false, 
-          progress: 0, 
-          progressText: 'Iniciando...' 
-        };
-        // Limpar o input file
-        const fileInput = document.querySelector('input[type="file"]');
-        if (fileInput) fileInput.value = '';
-      },
+    closeImportModal() {
+      this.importModal = { 
+        show: false, 
+        data: [], 
+        preview: [], 
+        loading: false, 
+        progress: 0, 
+        progressText: 'Iniciando...' 
+      };
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+    },
 
-        // Export de coleção (backup) em arquivo Excel
-        exportToExcel() {
-          if (this.collection.length === 0) {
-            this.showNotification('Nenhum item na coleção para exportar', 'error');
-            return;
-          }
+    // Export de coleção (backup) em arquivo Excel
+    exportToExcel() {
+      if (this.collection.length === 0) {
+        this.showNotification('Nenhum item na coleção para exportar', 'error');
+        return;
+      }
 
-          try {
-            // Preparar dados para exportação
-            const exportData = this.collection.map(record => ({
-              'Álbum': record.album || '',
-              'Artista': record.artist || '',
-              'Formato': record.format || '',
-              'Ano': record.year || '',
-              'Número de Catálogo': record.catalog_number || '',
-              'URL da Capa': record.cover_url || '',
-              'Descrição': record.description || '', // NOVA linha
-              'Data de Adição': record.created_at ? new Date(record.created_at.seconds * 1000).toLocaleDateString('pt-BR') : ''
-            }));
+      try {
+        const exportData = this.collection.map(record => ({
+          'Álbum': record.album || '',
+          'Artista': record.artist || '',
+          'Formato': record.format || '',
+          'Ano': record.year || '',
+          'Número de Catálogo': record.catalog_number || '',
+          'URL da Capa': record.cover_url || '',
+          'Descrição': record.description || '',
+          'Data de Adição': record.created_at ? new Date(record.created_at.seconds * 1000).toLocaleDateString('pt-BR') : ''
+        }));
 
-            // Criar workbook
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            
-            // Definir larguras das colunas
-            ws['!cols'] = [
-              { wch: 30 }, // Álbum
-              { wch: 25 }, // Artista  
-              { wch: 10 }, // Formato
-              { wch: 8 },  // Ano
-              { wch: 20 }, // Número de Catálogo
-              { wch: 50 }, // URL da Capa
-              { wch: 40 }, // Descrição - NOVA linha
-              { wch: 15 }  // Data de Adição
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, "Minha Coleção");
-
-            // Gerar nome do arquivo com data
-            const today = new Date().toISOString().split('T')[0];
-            const fileName = `katalog-backup-${today}.xlsx`;
-
-            // Download do arquivo
-            XLSX.writeFile(wb, fileName);
-
-            this.showNotification(`Backup exportado: ${fileName}`, 'success');
-            
-          } catch (error) {
-            console.error('Erro ao exportar:', error);
-            this.showNotification('Erro ao gerar backup', 'error');
-          }
-        },
-
-      showNotification(message, type = 'success') {
-          this.notification = { show: true, message, type };
-          setTimeout(() => {
-            this.notification.show = false;
-          }, 4000);
-          setTimeout(() => lucide.createIcons(), 10);
-        },
-
-       $watch('currentView', () => {
-          setTimeout(() => {
-            lucide.createIcons();
-            if (this.performanceMode && this.currentView === 'collection') {
-              this.observeImages();
-            }
-          }, 100);
-        })
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
         
-      })); // Fechamento do Alpine.data('app')
-    }); // Fechamento do document.addEventListener('alpine:init')
+        ws['!cols'] = [
+          { wch: 30 }, // Álbum
+          { wch: 25 }, // Artista  
+          { wch: 10 }, // Formato
+          { wch: 8 },  // Ano
+          { wch: 20 }, // Número de Catálogo
+          { wch: 50 }, // URL da Capa
+          { wch: 40 }, // Descrição
+          { wch: 15 }  // Data de Adição
+        ];
 
-    // Inicializar ícones após carregamento
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => lucide.createIcons(), 100);
-      setInterval(() => lucide.createIcons(), 1000);
-    });
+        XLSX.utils.book_append_sheet(wb, ws, "Minha Coleção");
+
+        const today = new Date().toISOString().split('T')[0];
+        const fileName = `katalog-backup-${today}.xlsx`;
+
+        XLSX.writeFile(wb, fileName);
+
+        this.showNotification(`Backup exportado: ${fileName}`, 'success');
+        
+      } catch (error) {
+        console.error('Erro ao exportar:', error);
+        this.showNotification('Erro ao gerar backup', 'error');
+      }
+    },
+
+    showNotification(message, type = 'success') {
+      this.notification = { show: true, message, type };
+      setTimeout(() => {
+        this.notification.show = false;
+      }, 4000);
+      setTimeout(() => lucide.createIcons(), 10);
+    }
+
+  })); // Fechamento do Alpine.data('app')
+}); // Fechamento do document.addEventListener('alpine:init')
+
+// Inicializar ícones após carregamento
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => lucide.createIcons(), 100);
+  setInterval(() => lucide.createIcons(), 1000);
+});
   </script>
 </body>
 </html>
