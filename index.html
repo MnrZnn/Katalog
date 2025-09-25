@@ -115,29 +115,6 @@
     .theme-dark .delete-account-form { background-color: #1E1E1E; }
     .theme-light .delete-account-form { background-color: #ffffff; }
 
-    /* Modal de aviso para imports grandes */
-    .large-import-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 70;
-    }
-
-    .large-import-content {
-      background: var(--card-bg);
-      padding: 2rem;
-      border-radius: 0.5rem;
-      max-width: 28rem;
-      width: 100%;
-      margin: 1rem;
-    }
-
-    .theme-dark .large-import-content { background-color: #1E1E1E; }
-    .theme-light .large-import-content { background-color: #ffffff; }
-
     /* Loading overlay para import modal */
     .import-loading-overlay {
       position: absolute;
@@ -388,9 +365,7 @@
            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
         <template x-for="record in filteredSharedCollection" :key="record.id">
           <div class="bg-card rounded-lg overflow-hidden shadow-lg">
-            <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
-     @load="observeImages()" 
+            <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
               class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
               @click="showAlbumDetails(record)">
             <div class="absolute top-2 left-2">
@@ -460,13 +435,6 @@
           </tbody>
         </table>
       </div>
-    </div>
-
-    <div x-show="filteredSharedCollection.length > 100" class="text-center mt-6">
-      <p class="text-sm text-muted">
-        Mostrando todos os <span x-text="filteredSharedCollection.length"></span> itens da coleção
-      </p>
-    </div>
 
       <!-- Empty State -->
       <div x-show="filteredSharedCollection.length === 0" class="text-center py-20 bg-card rounded-lg">
@@ -506,11 +474,6 @@
               class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
         <i data-lucide="upload"></i><span>Importar Excel</span>
       </button>
-      <button @click="startAutoCoverSearch(); showMobileSidebar = false" 
-        :disabled="collection.length === 0"
-        class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
-  <i data-lucide="image"></i><span>Buscar Capas</span>
-</button>
     </nav>
     <div class="p-4 border-t border-custom space-y-2">
       <div class="px-3 py-2 text-xs text-gray-400 break-words">
@@ -532,7 +495,7 @@
   <div class="bg-card rounded-lg max-w-3xl w-full modal-content">
     <div class="relative">
       <!-- Header com fundo da capa -->
-      <div class="relative h-32 md:h-40 rounded-t-lg overflow-hidden">
+      <div class="relative h-32 md:h-40 rounded-t-lg overflow-hidden">">
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
         <img :src="albumDetailsModal.record?.cover_url || `https://placehold.co/600x400/1E1E1E/E0E0E0?text=${albumDetailsModal.record?.album?.charAt(0) || 'A'}`" 
              class="w-full h-full object-cover blur-sm scale-110">
@@ -870,51 +833,6 @@
   </div>
 </div>
 
-<!-- Modal de Aviso para Import Grande -->
-  <div x-show="largeImportModal.show && !isSharedView" class="large-import-modal">
-    <div class="large-import-content">
-      <div class="text-center mb-6">
-        <i data-lucide="alert-triangle" class="mx-auto h-16 w-16 text-orange-500 mb-4"></i>
-        <h3 class="text-xl font-bold text-orange-400 mb-2">Import Grande Detectado</h3>
-        <p class="text-sm text-muted">
-          Você está importando <strong x-text="largeImportModal.totalItems"></strong> itens.
-        </p>
-      </div>
-      
-      <div class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-6">
-        <h4 class="font-semibold text-orange-300 mb-2">⚠️ Atenção:</h4>
-        <ul class="text-sm text-orange-200 space-y-1">
-          <li>• Buscar capas para muitos itens pode ser lento</li>
-          <li>• O processo pode demorar vários minutos</li>
-          <li>• Você pode pular a busca de capas agora</li>
-          <li>• Capas podem ser buscadas depois individualmente</li>
-        </ul>
-      </div>
-      
-      <div class="bg-input p-4 rounded-lg mb-6">
-        <label class="flex items-center space-x-3">
-          <input x-model="largeImportModal.skipCovers" type="checkbox" class="rounded">
-          <div>
-            <span class="font-medium">Pular busca automática de capas</span>
-            <p class="text-xs text-muted">Importar apenas os dados, sem buscar capas online</p>
-          </div>
-        </label>
-      </div>
-      
-      <div class="flex space-x-4">
-        <button @click="proceedLargeImport()" 
-                class="flex-1 py-3 btn-primary rounded-md">
-          <span x-show="!largeImportModal.skipCovers">Continuar com Capas</span>
-          <span x-show="largeImportModal.skipCovers">Continuar sem Capas</span>
-        </button>
-        <button @click="cancelLargeImport()" 
-                class="px-6 py-3 btn-secondary rounded-md">
-          Cancelar
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Login (apenas quando não é visualização compartilhada) -->
   <div x-show="!user && !loading && !isSharedView" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black p-4">
     <div class="bg-card p-6 md:p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -972,42 +890,37 @@
   <!-- Dashboard (apenas para usuários logados, não para visualização compartilhada) -->
   <div x-show="user && !loading && !isSharedView" class="flex h-screen">
     <!-- Desktop Sidebar -->
-<aside class="w-64 bg-black flex-shrink-0 flex-col desktop-sidebar hidden md:flex">
-  <div class="p-4 flex items-center space-x-2 border-b border-custom">
-    <i data-lucide="disc-3" class="text-green-400"></i>
-    <h1 class="text-xl font-bold text-white">Katalog</h1>
-  </div>
-  <nav class="flex-1 p-4 space-y-2">
-    <a href="#" @click.prevent="currentView = 'collection'" 
-       :class="{'bg-green-500 text-white': currentView === 'collection'}"
-       class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
-       <i data-lucide="album"></i><span>Minha Coleção</span>
-    </a>
-    <a href="#" @click.prevent="currentView = 'add-record'" 
-       :class="{'bg-green-500 text-white': currentView === 'add-record'}"
-       class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
-       <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
-    </a>
-    <button @click="importModal.show = true" 
-            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
-      <i data-lucide="upload"></i><span>Importar Excel</span>
-    </button>
-    <button @click="startAutoCoverSearch()" 
-            :disabled="collection.length === 0"
-            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
-      <i data-lucide="image"></i><span>Buscar Capas</span>
-    </button>
-  </nav>
-  <div class="p-4 border-t border-custom space-y-2">
-    <div class="px-3 py-2 text-xs text-gray-400 break-words">
-      <span x-text="user?.email"></span>
-    </div>
-    <button @click="confirmLogout()" 
-            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
-      <i data-lucide="log-out"></i><span>Sair</span>
-    </button>
-  </div>
-</aside>
+    <aside class="w-64 bg-black flex-shrink-0 flex-col desktop-sidebar hidden md:flex">
+      <div class="p-4 flex items-center space-x-2 border-b border-custom">
+        <i data-lucide="disc-3" class="text-green-400"></i>
+        <h1 class="text-xl font-bold text-white">Katalog</h1>
+      </div>
+      <nav class="flex-1 p-4 space-y-2">
+        <a href="#" @click.prevent="currentView = 'collection'" 
+           :class="{'bg-green-500 text-white': currentView === 'collection'}"
+           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+           <i data-lucide="album"></i><span>Minha Coleção</span>
+        </a>
+        <a href="#" @click.prevent="currentView = 'add-record'" 
+           :class="{'bg-green-500 text-white': currentView === 'add-record'}"
+           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+           <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
+        </a>
+        <button @click="importModal.show = true" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+          <i data-lucide="upload"></i><span>Importar Excel</span>
+        </button>
+      </nav>
+      <div class="p-4 border-t border-custom space-y-2">
+        <div class="px-3 py-2 text-xs text-gray-400 break-words">
+          <span x-text="user?.email"></span>
+        </div>
+        <button @click="confirmLogout()" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
+          <i data-lucide="log-out"></i><span>Sair</span>
+        </button>
+      </div>
+    </aside>
 
     <!-- Main -->
     <main class="flex-1 overflow-y-auto main-content">
@@ -1097,11 +1010,9 @@
           <!-- Grid View -->
           <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
                class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-            <template x-for="record in displayedCollection" :key="record.id">
+            <template x-for="record in filteredCollection" :key="record.id">
               <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
-                <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
-     @load="observeImages()" 
+                <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                   class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   @click="showAlbumDetails(record)">
                 <div class="absolute top-2 left-2">
@@ -1141,10 +1052,9 @@
           <!-- List View -->
           <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
                class="bg-card rounded-lg overflow-hidden shadow-lg">
-          </div>
             <!-- Mobile List View -->
             <div class="md:hidden">
-              <template x-for="record in displayedCollection" :key="record.id">
+              <template x-for="record in filteredCollection" :key="record.id">
                 <div class="border-b border-custom p-4 flex items-center space-x-3">
                   <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
                     class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
@@ -1171,38 +1081,6 @@
                 </div>
               </template>
             </div>
-
-            <!-- Controles de Paginação (ADICIONE AQUI) -->
-          <div x-show="performanceMode && filteredCollection.length > 0" class="flex justify-center items-center space-x-4 mt-8">
-            <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
-                    :disabled="pagination.currentPage === 1"
-                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-              <i data-lucide="chevron-left" class="w-4 h-4"></i>
-            </button>
-            
-            <div class="flex items-center space-x-2">
-              <span class="text-sm text-muted">Página</span>
-              <span class="font-semibold" x-text="pagination.currentPage"></span>
-              <span class="text-sm text-muted">de</span>
-              <span class="font-semibold" x-text="pagination.totalPages"></span>
-            </div>
-            
-            <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
-                    :disabled="pagination.currentPage === pagination.totalPages"
-                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-              <i data-lucide="chevron-right" class="w-4 h-4"></i>
-            </button>
-          </div>
-          </div>
-
-          <!-- Info de performance (ADICIONE AQUI TAMBÉM) -->
-          <div x-show="performanceMode" class="text-center mt-4">
-            <p class="text-xs text-muted">
-              Mostrando <span x-text="displayedCollection.length"></span> de 
-              <span x-text="filteredCollection.length"></span> itens 
-              (Modo Performance ativado para coleções grandes)
-            </p>
-          </div>
             
             <!-- Desktop Table View -->
             <table class="w-full hidden md:table">
@@ -1217,7 +1095,7 @@
                 </tr>
               </thead>
               <tbody>
-                <template x-for="record in displayedCollection" :key="record.id">
+                <template x-for="record in filteredCollection" :key="record.id">
                   <tr class="border-b border-custom hover:bg-input">
                     <td class="p-4">
                       <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
@@ -1259,7 +1137,6 @@
             </button>
           </div>
         </div>
-
 
         <!-- Form Adicionar -->
         <div x-show="currentView === 'add-record'">
@@ -1351,34 +1228,28 @@
     </main>
   </div>
 
-    <!-- Mobile Bottom Navigation -->
-    <nav x-show="user && !isSharedView" class="mobile-bottom-nav mobile-only md:hidden">
-      <div class="flex justify-around items-center py-3">
-        <button @click="currentView = 'collection'" 
-                :class="{'text-green-400': currentView === 'collection'}"
-                class="flex flex-col items-center space-y-1 px-2 py-2">
-          <i data-lucide="album" class="w-4 h-4"></i>
-          <span class="text-xs">Coleção</span>
-        </button>
-        <button @click="currentView = 'add-record'" 
-                :class="{'text-green-400': currentView === 'add-record'}"
-                class="flex flex-col items-center space-y-1 px-2 py-2">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span class="text-xs">Adicionar</span>
-        </button>
-        <button @click="importModal.show = true" 
-                class="flex flex-col items-center space-y-1 px-2 py-2 text-blue-300">
-          <i data-lucide="upload" class="w-4 h-4"></i>
-          <span class="text-xs">Importar</span>
-        </button>
-        <button @click="startAutoCoverSearch()" 
-                :disabled="collection.length === 0"
-                class="flex flex-col items-center space-y-1 px-2 py-2 text-purple-300 disabled:text-gray-500">
-          <i data-lucide="image" class="w-4 h-4"></i>
-          <span class="text-xs">Capas</span>
-        </button>
-      </div>
-    </nav>
+    <!-- Mobile Bottom Navigation (apenas para usuários logados) -->
+  <nav x-show="user && !isSharedView" class="mobile-bottom-nav mobile-only md:hidden">
+    <div class="flex justify-around items-center py-3">
+      <button @click="currentView = 'collection'" 
+              :class="{'text-green-400': currentView === 'collection'}"
+              class="flex flex-col items-center space-y-1 px-3 py-2">
+        <i data-lucide="album" class="w-5 h-5"></i>
+        <span class="text-xs">Coleção</span>
+      </button>
+      <button @click="currentView = 'add-record'" 
+              :class="{'text-green-400': currentView === 'add-record'}"
+              class="flex flex-col items-center space-y-1 px-3 py-2">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        <span class="text-xs">Adicionar</span>
+      </button>
+      <button @click="importModal.show = true" 
+              class="flex flex-col items-center space-y-1 px-3 py-2 text-blue-300">
+        <i data-lucide="upload" class="w-5 h-5"></i>
+        <span class="text-xs">Importar</span>
+      </button>
+    </div>
+  </nav>
 
   <!-- Floating Action Button (Mobile, apenas para usuários logados) -->
   <button x-show="currentView === 'collection' && collection.length === 0 && !isSharedView" 
@@ -1436,22 +1307,12 @@
         
         // Modals
         importModal: { show: false, data: [], preview: [], loading: false, progress: 0, progressText: 'Iniciando...'},
-        largeImportModal: {
-          show: false,
-          totalItems: 0,
-          skipCovers: false
-        },
         
         // Data
         collection: [],
         filteredCollection: [],
         sortBy: 'album',
         sortOrder: 'asc',
-        pagination: { currentPage: 1, itemsPerPage: 50, totalPages: 1 },
-        searchTimeout: null,
-        performanceMode: false,
-        imageObserver: null,
-        searchIndex: new Map(),
         newRecord: { 
           album: '', 
           artist: '', 
@@ -1514,11 +1375,7 @@
             });
             
             lucide.createIcons();
-            setTimeout(() => {
-            if (this.performanceMode) {
-              this.observeImages();
-            }
-          }, 200);
+            setTimeout(() => lucide.createIcons(), 50);
           } catch (error) {
             console.error('Erro na inicialização:', error);
             this.showNotification('Erro ao carregar aplicação', 'error');
@@ -1710,24 +1567,22 @@
             window.open(url, '_blank');
           }
         },
-        
-      async setupCollection(userId) {
-        try {
-          const collectionRef = db.collection('users').doc(userId).collection('records');
-          collectionRef.onSnapshot((snapshot) => {
-            this.collection = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-            
-            this.checkPerformanceMode(); // NOVA linha
-            this.filterAndSortCollection();
-          });
-        } catch (error) {
-          console.error('Erro ao configurar coleção:', error);
-          this.showNotification('Erro ao carregar coleção', 'error');
-        }
-      },
+
+        async setupCollection(userId) {
+          try {
+            const collectionRef = db.collection('users').doc(userId).collection('records');
+            collectionRef.onSnapshot((snapshot) => {
+              this.collection = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+              this.filterAndSortCollection();
+            });
+          } catch (error) {
+            console.error('Erro ao configurar coleção:', error);
+            this.showNotification('Erro ao carregar coleção', 'error');
+          }
+        },
 
         async login() {
           if (!this.email || !this.password) {
@@ -1858,13 +1713,10 @@
           }
         },
 
-        // SUBSTITUIR a função filterAndSortCollection() existente por esta:
-      filterAndSortCollection() {
-        if (this.performanceMode) {
-          this.debouncedFilter();
-        } else {
+        filterAndSortCollection() {
           let filtered = this.collection;
           
+          // Aplicar filtro de busca
           if (this.searchFilter.trim()) {
             const filter = this.searchFilter.toLowerCase();
             filtered = filtered.filter(record => 
@@ -1875,84 +1727,8 @@
             );
           }
           
-          this.filteredCollection = filtered;
-          this.sortCollection();
-          this.updatePaginationAndRefresh(); // Changed this line
-        }
-      },
-
-        // Getter para itens paginados
-        get paginatedCollection() {
-          if (!this.performanceMode) return this.filteredCollection;
-          
-          const start = (this.pagination.currentPage - 1) * this.pagination.itemsPerPage;
-          const end = start + this.pagination.itemsPerPage;
-          return this.filteredCollection.slice(start, end);
-        },
-
-        // Getter para itens exibidos (performance ou normal)
-        get displayedCollection() {
-          return this.performanceMode ? this.paginatedCollection : this.filteredCollection;
-        },
-
-        // Atualizar paginação
-        updatePagination() {
-          this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
-          if (this.pagination.currentPage > this.pagination.totalPages) {
-            this.pagination.currentPage = 1;
-          }
-        },
-
-        // Verificar se precisa modo performance
-        checkPerformanceMode() {
-          this.performanceMode = this.collection.length > 500;
-          if (this.performanceMode) {
-            this.initLazyLoading();
-            this.buildSearchIndex();
-          }
-        },
-
-        // Construir índice de busca
-        buildSearchIndex() {
-          this.searchIndex.clear();
-          this.collection.forEach(record => {
-            const searchText = [
-              record.album,
-              record.artist,
-              record.format,
-              record.year?.toString(),
-              record.catalog_number
-            ].join(' ').toLowerCase();
-            
-            this.searchIndex.set(record.id, searchText);
-          });
-        },
-
-        // Busca com debounce
-        debouncedFilter() {
-          clearTimeout(this.searchTimeout);
-          this.searchTimeout = setTimeout(() => {
-            this.filterCollectionOptimized();
-          }, 300);
-        },
-
-        // Filtro otimizado
-        filterCollectionOptimized() {
-          if (!this.searchFilter.trim()) {
-            this.filteredCollection = [...this.collection];
-          } else {
-            const filter = this.searchFilter.toLowerCase();
-            this.filteredCollection = this.collection.filter(record => 
-              this.searchIndex.get(record.id)?.includes(filter)
-            );
-          }
-          this.sortCollection();
-          this.updatePagination();
-        },
-
-        // Ordenação separada
-        sortCollection() {
-          this.filteredCollection.sort((a, b) => {
+          // Aplicar ordenação
+          filtered.sort((a, b) => {
             let valueA, valueB;
             
             switch(this.sortBy) {
@@ -1978,39 +1754,11 @@
               return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
             }
           });
-        },
-
-        // Lazy loading de imagens
-        initLazyLoading() {
-          if (this.imageObserver) {
-            this.imageObserver.disconnect();
-          }
           
-          this.imageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const img = entry.target;
-                if (img.dataset.src) {
-                  img.src = img.dataset.src;
-                  img.removeAttribute('data-src');
-                  this.imageObserver.unobserve(img);
-                }
-              }
-            });
-          }, { threshold: 0.1 });
-          
-          // Re-observar imagens após mudanças no DOM
-          setTimeout(() => this.observeImages(), 100);
-        },
-
-        observeImages() {
-          document.querySelectorAll('img[data-src]').forEach(img => {
-            this.imageObserver.observe(img);
-          });
+          this.filteredCollection = filtered;
         },
 
         filterCollection() {
-          this.pagination.currentPage = 1; // Reset para primeira página
           this.filterAndSortCollection();
         },
 
@@ -2284,208 +2032,95 @@
           }
         },
               
-        // Verificar se é import grande antes de importar
-async importRecords() {
-  if (this.importModal.data.length === 0) return;
-  
-  // Se mais de 200 itens, mostrar aviso
-  if (this.importModal.data.length > 200) {
-    this.largeImportModal = {
-      show: true,
-      totalItems: this.importModal.data.length,
-      skipCovers: false
-    };
-    return;
-  }
-  
-  // Prosseguir normalmente para imports menores
-  await this.executeImport(false);
-},
+        async importRecords() {
+      if (this.importModal.data.length === 0) return;
 
-// Prosseguir com import grande
-async proceedLargeImport() {
-  this.largeImportModal.show = false;
-  await this.executeImport(this.largeImportModal.skipCovers);
-},
-
-// Cancelar import grande
-cancelLargeImport() {
-  this.largeImportModal = {
-    show: false,
-    totalItems: 0,
-    skipCovers: false
-  };
-},
-
-// Executar o import (refatorado)
-async executeImport(skipCovers = false) {
-  if (this.importModal.data.length === 0) return;
-
-  this.importModal.loading = true;
-  this.importModal.progress = 0;
-  this.importModal.progressText = 'Iniciando importação...';
-  
-  try {
-    const userId = this.user.uid;
-    const batch = db.batch();
-    const totalItems = this.importModal.data.length;
-
-    this.showNotification(`Importando ${totalItems} itens...`, 'info');
-
-    if (!skipCovers) {
-      // Fase 1: Buscar capas (70% do progresso)
-      this.importModal.progressText = 'Buscando capas...';
-      
-      for (let i = 0; i < this.importModal.data.length; i++) {
-        const record = this.importModal.data[i];
-        
-        const coverProgress = Math.floor((i / totalItems) * 70);
-        this.importModal.progress = coverProgress;
-        this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
-        
-        if (!record.cover_url && record.album && record.artist) {
-          try {
-            const query = `${record.album} ${record.artist}`.trim();
-            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-            
-            const response = await fetch(itunesUrl);
-            if (response.ok) {
-              const data = await response.json();
-              if (data.results && data.results.length > 0) {
-                const album = data.results[0];
-                if (album.artworkUrl100) {
-                  const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                  record.cover_url = highResUrl;
-                }
-              }
-            }
-          } catch (error) {
-            console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-      
-      this.importModal.progress = 70;
-    } else {
-      this.importModal.progress = 70;
-    }
-
-    this.importModal.progressText = 'Preparando dados para salvamento...';
-    
-    this.importModal.data.forEach(record => {
-      const docRef = db.collection('users').doc(userId).collection('records').doc();
-      batch.set(docRef, {
-        ...record,
-        created_at: new Date(),
-        user_id: userId
-      });
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    this.importModal.progress = 85;
-
-    this.importModal.progressText = 'Salvando no banco de dados...';
-    await batch.commit();
-    
-    this.importModal.progress = 100;
-    this.importModal.progressText = 'Importação concluída!';
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
-    this.closeImportModal();
-    
-  } catch (error) {
-    console.error('Erro na importação:', error);
-    this.showNotification('Erro ao importar registros', 'error');
-  }
-  
-  this.importModal.loading = false;
-  this.importModal.progress = 0;
-},
-
-// Iniciar busca automática de capas
-async startAutoCoverSearch() {
-  if (this.collection.length === 0) {
-    this.showNotification('Nenhum item na coleção', 'error');
-    return;
-  }
-  
-  const itemsWithoutCovers = this.collection.filter(record => !record.cover_url);
-  
-  if (itemsWithoutCovers.length === 0) {
-    this.showNotification('Todos os itens já possuem capas!', 'info');
-    return;
-  }
-  
-  if (confirm(`Buscar capas para ${itemsWithoutCovers.length} itens sem capa?`)) {
-    await this.searchMissingCovers(itemsWithoutCovers);
-  }
-},
-
-// Buscar capas ausentes
-async searchMissingCovers(items) {
-  this.importModal.loading = true;
-  this.importModal.show = true;
-  this.importModal.progress = 0;
-  this.importModal.progressText = 'Buscando capas ausentes...';
-  
-  try {
-    const userId = this.user.uid;
-    const totalItems = items.length;
-    let updated = 0;
-    
-    for (let i = 0; i < items.length; i++) {
-      const record = items[i];
-      
-      const progress = Math.floor((i / totalItems) * 100);
-      this.importModal.progress = progress;
-      this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+      this.importModal.loading = true;
+      this.importModal.progress = 0;
+      this.importModal.progressText = 'Iniciando importação...';
       
       try {
-        const query = `${record.album} ${record.artist}`.trim();
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+        const userId = this.user.uid;
+        const batch = db.batch();
+        const totalItems = this.importModal.data.length;
+
+        this.showNotification(`Importando ${totalItems} itens...`, 'info');
+
+        // Fase 1: Buscar capas (70% do progresso)
+        this.importModal.progressText = 'Buscando capas...';
         
-        const response = await fetch(itunesUrl);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results && data.results.length > 0) {
-            const album = data.results[0];
-            if (album.artworkUrl100) {
-              const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+        for (let i = 0; i < this.importModal.data.length; i++) {
+          const record = this.importModal.data[i];
+          
+          // Atualizar progresso da busca de capas (0-70%)
+          const coverProgress = Math.floor((i / totalItems) * 70);
+          this.importModal.progress = coverProgress;
+          this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+          
+          // Se não tem capa, tenta buscar automaticamente
+          if (!record.cover_url && record.album && record.artist) {
+            try {
+              const query = `${record.album} ${record.artist}`.trim();
+              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
               
-              await db.collection('users').doc(userId).collection('records')
-                .doc(record.id).update({ cover_url: highResUrl });
-              
-              updated++;
+              const response = await fetch(itunesUrl);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                  const album = data.results[0];
+                  if (album.artworkUrl100) {
+                    const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                    record.cover_url = highResUrl;
+                  }
+                }
+              }
+            } catch (error) {
+              console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
             }
+            
+            // Pequeno delay para não sobrecarregar a API
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
+
+        // Fase 2: Preparar dados (70-85%)
+        this.importModal.progress = 70;
+        this.importModal.progressText = 'Preparando dados para salvamento...';
+        
+        this.importModal.data.forEach(record => {
+          const docRef = db.collection('users').doc(userId).collection('records').doc();
+          batch.set(docRef, {
+            ...record,
+            created_at: new Date(),
+            user_id: userId
+          });
+        });
+
+        // Simular um pequeno delay para mostrar o progresso
+        await new Promise(resolve => setTimeout(resolve, 500));
+        this.importModal.progress = 85;
+
+        // Fase 3: Salvar no banco (85-100%)
+        this.importModal.progressText = 'Salvando no banco de dados...';
+        await batch.commit();
+        
+        this.importModal.progress = 100;
+        this.importModal.progressText = 'Importação concluída!';
+        
+        // Pequeno delay para mostrar 100%
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
+        this.closeImportModal();
+        
       } catch (error) {
-        console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
+        console.error('Erro na importação:', error);
+        this.showNotification('Erro ao importar registros', 'error');
       }
       
-      await new Promise(resolve => setTimeout(resolve, 150));
-    }
-    
-    this.importModal.progress = 100;
-    this.importModal.progressText = 'Busca concluída!';
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
-    
-  } catch (error) {
-    console.error('Erro na busca de capas:', error);
-    this.showNotification('Erro ao buscar capas', 'error');
-  }
-  
-  this.importModal.loading = false;
-  this.importModal.show = false;
-  this.importModal.progress = 0;
-},
+      this.importModal.loading = false;
+      this.importModal.progress = 0;
+    },
 
         closeImportModal() {
         this.importModal = { 
@@ -2554,83 +2189,16 @@ async searchMissingCovers(items) {
           }
         },
 
-      showNotification(message, type = 'success') {
-                this.notification = { show: true, message, type };
-                setTimeout(() => {
-                  this.notification.show = false;
-                }, 4000);
-                setTimeout(() => lucide.createIcons(), 10);
-              },
+        showNotification(message, type = 'success') {
+          this.notification = { show: true, message, type };
+          setTimeout(() => {
+            this.notification.show = false;
+          }, 4000);
+          setTimeout(() => lucide.createIcons(), 10);
+        }
 
-              // Ir para página específica
-                goToPage(page) {
-                  if (page >= 1 && page <= this.pagination.totalPages) {
-                    this.pagination.currentPage = page;
-                    // Force re-render and icon refresh
-                    setTimeout(() => {
-                      lucide.createIcons();
-                      if (this.performanceMode) {
-                        this.observeImages();
-                      }
-                    }, 10);
-                  }
-                },
-
-              // Definir itens por página
-              setItemsPerPage(count) {
-                this.pagination.itemsPerPage = count;
-                this.pagination.currentPage = 1;
-                this.updatePagination();
-                setTimeout(() => {
-                  lucide.createIcons();
-                  if (this.performanceMode) {
-                    this.observeImages();
-                  }
-                }, 50);
-              },
-
-              // Atualizar paginação e recareggar UI
-                updatePaginationAndRefresh() {
-                  this.updatePagination();
-                  setTimeout(() => {
-                    lucide.createIcons();
-                    if (this.performanceMode) {
-                      this.observeImages();
-                    }
-                  }, 10);
-                },
-
-              setupWatchers() {
-                // Watcher para paginação
-                this.$watch('pagination.currentPage', () => {
-                  if (this.performanceMode) {
-                    setTimeout(() => this.observeImages(), 50);
-                  }
-                });
-
-                // Watcher para modo de visualização
-                this.$watch('viewMode', () => {
-                  setTimeout(() => {
-                    lucide.createIcons();
-                    if (this.performanceMode) {
-                      this.observeImages();
-                    }
-                  }, 50);
-                });
-
-                // Watcher para vista atual
-                this.$watch('currentView', () => {
-                  setTimeout(() => {
-                    lucide.createIcons();
-                    if (this.performanceMode && this.currentView === 'collection') {
-                      this.observeImages();
-                    }
-                  }, 100);
-                });
-              }
-
-            })); // Fechamento do Alpine.data
-          }); // Fechamento do document.addEventListener('alpine:init')
+      }));
+    });
 
     // Inicializar ícones após carregamento
     document.addEventListener('DOMContentLoaded', () => {
@@ -2641,4 +2209,3 @@ async searchMissingCovers(items) {
   </script>
 </body>
 </html>
-
