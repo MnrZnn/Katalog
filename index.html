@@ -281,7 +281,8 @@
         <template x-for="record in filteredSharedCollection" :key="record.id">
           <div class="bg-card rounded-lg overflow-hidden shadow-lg">
             <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                 class="w-full aspect-square object-cover">
+              class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              @click="showAlbumDetails(record)">
             <div class="absolute top-2 left-2">
               <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                     class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -303,7 +304,8 @@
           <template x-for="record in filteredSharedCollection" :key="record.id">
             <div class="border-b border-custom p-4 flex items-center space-x-3">
               <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                   class="w-12 h-12 object-cover rounded">
+                class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                @click="showAlbumDetails(record)">
               <div class="flex-1 min-w-0">
                 <h3 class="font-semibold text-sm truncate" x-text="record.album"></h3>
                 <p class="text-xs text-muted truncate" x-text="record.artist"></p>
@@ -332,8 +334,9 @@
             <template x-for="record in filteredSharedCollection" :key="record.id">
               <tr class="border-b border-custom hover:bg-input">
                 <td class="p-4">
-                  <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                       class="w-12 h-12 object-cover rounded">
+                 <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                  class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="showAlbumDetails(record)">
                 </td>
                 <td class="p-4 font-semibold" x-text="record.album"></td>
                 <td class="p-4" x-text="record.artist"></td>
@@ -402,122 +405,211 @@
     </div>
   </aside>
 
-<!-- Modal Configurações -->
-  <div x-show="configModal && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-    <div class="bg-card p-6 md:p-8 rounded-lg max-w-lg md:max-w-4xl w-full modal-content">
-      <h3 class="text-xl font-bold mb-6">Configurações da Conta</h3>
-      
-      <!-- Layout Desktop: Grid de 2 colunas -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Coluna 1 -->
-        <div class="space-y-6">
-          <!-- Tema -->
-          <div class="bg-input p-4 rounded-lg">
-            <h4 class="font-semibold mb-3">Tema</h4>
-            <div class="flex items-center justify-between">
-              <span class="text-sm">Modo Escuro</span>
-              <button @click="toggleTheme()" 
-                      class="relative inline-flex h-6 w-11 items-center rounded-full"
-                      :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
-                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                      :class="darkMode ? 'translate-x-6' : 'translate-x-1'"></span>
-              </button>
-            </div>
-          </div>
-
-          <!-- NOVA SEÇÃO: Compartilhamento da Coleção -->
-          <div class="bg-input p-4 rounded-lg">
-            <h4 class="font-semibold mb-3">Compartilhamento da Coleção</h4>
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm">Coleção Pública</span>
-                <button @click="toggleCollectionPrivacy()" 
-                        :disabled="privacyUpdateLoading"
-                        class="relative inline-flex h-6 w-11 items-center rounded-full"
-                        :class="collectionIsPublic ? 'bg-green-600' : 'bg-gray-400'">
-                  <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                        :class="collectionIsPublic ? 'translate-x-6' : 'translate-x-1'"></span>
-                </button>
-              </div>
-              
-              <div x-show="collectionIsPublic" class="space-y-3 pt-2 border-t border-custom">
-                <div>
-                  <label class="text-sm font-medium">URL de Compartilhamento:</label>
-                  <div class="flex items-center space-x-2 mt-1">
-                    <input :value="shareUrl" readonly 
-                           class="flex-1 p-2 bg-card border border-custom rounded text-xs">
-                    <button @click="copyShareUrl()" 
-                            class="px-3 py-2 btn-primary rounded text-xs">
-                      <i data-lucide="copy" class="w-3 h-3"></i>
-                    </button>
-                  </div>
-                </div>
-                <p class="text-xs text-muted">
-                  Qualquer pessoa com este link poderá visualizar sua coleção, mas não poderá editá-la.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Backup da Coleção -->
-          <div class="bg-input p-4 rounded-lg">
-            <h4 class="font-semibold mb-3">Backup da Coleção</h4>
-            <button @click="exportToExcel()" 
-                    :disabled="collection.length === 0"
-                    class="w-full py-2 px-4 btn-primary rounded-md disabled:bg-gray-600 disabled:cursor-not-allowed">
-              <div class="flex items-center justify-center space-x-2">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span>Salvar Backup em Planilha</span>
-              </div>
-            </button>
-            <p class="text-xs text-muted mt-2">
-              Gera um arquivo Excel com toda sua coleção
-            </p>
-          </div>
-          
-          <!-- Informações da Conta -->
-          <div class="bg-input p-4 rounded-lg">
-            <h4 class="font-semibold mb-3">Informações Atuais:</h4>
-            <div class="space-y-2 text-sm text-muted">
-              <div><span>Email:</span> <span x-text="user?.email"></span></div>
-              <div><span>Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Coluna 2 -->
-        <div class="space-y-6">
-          <!-- Alterar Nome -->
-          <div class="bg-input p-4 rounded-lg">
-            <label class="block text-sm font-medium mb-2">Alterar Nome:</label>
-            <div class="flex flex-col space-y-2">
-              <input x-model="newDisplayName" placeholder="Digite o novo nome"
-                     class="w-full p-3 bg-input border border-custom rounded-md">
-              <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
-                      class="w-full py-3 btn-primary rounded-md">Salvar Nome</button>
-            </div>
-          </div>
-
-          <!-- Zona de Perigo -->
-          <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
-            <h4 class="text-red-400 font-semibold mb-3">Zona de Perigo</h4>
-            <button @click="confirmDeleteAccount()" 
-                    class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md">
-              Excluir Conta
-            </button>
-            <p class="text-xs text-red-300 mt-2">
-              Esta ação é irreversível e todos os seus dados serão perdidos
-            </p>
-          </div>
-        </div>
+  <!-- Modal Detalhes do Álbum -->
+<div x-show="albumDetailsModal.show && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="albumDetailsModal.show = false">
+  <div class="bg-card rounded-lg max-w-2xl w-full modal-content">
+    <div class="relative">
+      <!-- Header com fundo da capa -->
+      <div class="relative h-48 md:h-64 rounded-t-lg overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+        <img :src="albumDetailsModal.record?.cover_url || `https://placehold.co/600x400/1E1E1E/E0E0E0?text=${albumDetailsModal.record?.album?.charAt(0) || 'A'}`" 
+             class="w-full h-full object-cover blur-sm scale-110">
+        <button @click="albumDetailsModal.show = false" 
+                class="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white rounded-full p-2">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
       
-      <div class="flex justify-end mt-8 pt-6 border-t border-custom">
-        <button @click="configModal = false" class="px-8 py-2 btn-secondary rounded-md">Fechar</button>
+      <!-- Conteúdo -->
+      <div class="p-6">
+        <div class="flex flex-col md:flex-row gap-6">
+          <!-- Capa -->
+          <div class="flex-shrink-0 mx-auto md:mx-0">
+            <img :src="albumDetailsModal.record?.cover_url || `https://placehold.co/200x200/1E1E1E/E0E0E0?text=${albumDetailsModal.record?.album?.charAt(0) || 'A'}`" 
+                 class="w-48 h-48 md:w-56 md:h-56 object-cover rounded-lg shadow-lg">
+          </div>
+          
+          <!-- Informações -->
+          <div class="flex-1 space-y-4">
+            <div>
+              <h2 class="text-2xl md:text-3xl font-bold" x-text="albumDetailsModal.record?.album"></h2>
+              <p class="text-lg text-muted" x-text="albumDetailsModal.record?.artist"></p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="font-semibold">Formato:</span>
+                <span :class="'format-' + (albumDetailsModal.record?.format?.toLowerCase() || 'cd')" 
+                      class="format-badge ml-2" x-text="albumDetailsModal.record?.format"></span>
+              </div>
+              <div x-show="albumDetailsModal.record?.year">
+                <span class="font-semibold">Ano:</span>
+                <span x-text="albumDetailsModal.record?.year" class="ml-2"></span>
+              </div>
+              <div x-show="albumDetailsModal.record?.catalog_number" class="col-span-2">
+                <span class="font-semibold">Catálogo:</span>
+                <span x-text="albumDetailsModal.record?.catalog_number" class="ml-2"></span>
+              </div>
+            </div>
+            
+            <div x-show="albumDetailsModal.record?.description" class="bg-input p-4 rounded-lg">
+              <h4 class="font-semibold mb-2">Descrição:</h4>
+              <p class="text-sm text-muted whitespace-pre-wrap" x-text="albumDetailsModal.record?.description"></p>
+            </div>
+            
+            <!-- Links de busca -->
+            <div class="border-t border-custom pt-4">
+              <h4 class="font-semibold mb-3">Buscar online:</h4>
+              <div class="flex flex-wrap gap-2">
+                <button @click="searchOnService('youtube')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm">
+                  <i data-lucide="play" class="w-4 h-4"></i>
+                  <span>YouTube</span>
+                </button>
+                <button @click="searchOnService('spotify')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm">
+                  <i data-lucide="headphones" class="w-4 h-4"></i>
+                  <span>Spotify</span>
+                </button>
+                <button @click="searchOnService('apple')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-md text-sm">
+                  <i data-lucide="music" class="w-4 h-4"></i>
+                  <span>Apple Music</span>
+                </button>
+                <button @click="searchOnService('discogs')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md text-sm">
+                  <i data-lucide="disc" class="w-4 h-4"></i>
+                  <span>Discogs</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Botões de ação -->
+        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-custom">
+          <button @click="editRecord(albumDetailsModal.record)" 
+                  class="px-4 py-2 btn-primary rounded-md">
+            <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
+            Editar
+          </button>
+          <button @click="confirmDeleteRecord(albumDetailsModal.record?.id)" 
+                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">
+            <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+            Excluir
+          </button>
+        </div>
       </div>
     </div>
   </div>
+</div>
+
+<!-- Modal Configurações -->
+<div x-show="configModal && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+  <div class="bg-card p-6 rounded-lg max-w-2xl w-full modal-content">
+    <h3 class="text-xl font-bold mb-6">Configurações da Conta</h3>
     
+    <!-- Layout Desktop: Grid de 2 colunas -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Coluna 1 -->
+      <div class="space-y-4">
+        <!-- Tema -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Tema</h4>
+          <div class="flex items-center justify-between">
+            <span class="text-sm">Modo Escuro</span>
+            <button @click="toggleTheme()" 
+                    class="relative inline-flex h-6 w-11 items-center rounded-full"
+                    :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
+              <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    :class="darkMode ? 'translate-x-6' : 'translate-x-1'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Compartilhamento da Coleção -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Compartilhamento</h4>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Coleção Pública</span>
+              <button @click="toggleCollectionPrivacy()" 
+                      :disabled="privacyUpdateLoading"
+                      class="relative inline-flex h-6 w-11 items-center rounded-full"
+                      :class="collectionIsPublic ? 'bg-green-600' : 'bg-gray-400'">
+                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                      :class="collectionIsPublic ? 'translate-x-6' : 'translate-x-1'"></span>
+              </button>
+            </div>
+            
+            <div x-show="collectionIsPublic" class="space-y-2 pt-2 border-t border-custom">
+              <div>
+                <label class="text-sm font-medium">URL:</label>
+                <div class="flex items-center space-x-2 mt-1">
+                  <input :value="shareUrl" readonly 
+                         class="flex-1 p-2 bg-card border border-custom rounded text-xs">
+                  <button @click="copyShareUrl()" 
+                          class="px-2 py-2 btn-primary rounded text-xs">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Backup</h4>
+          <button @click="exportToExcel()" 
+                  :disabled="collection.length === 0"
+                  class="w-full py-2 px-4 btn-primary rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed">
+            <div class="flex items-center justify-center space-x-2">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Exportar Excel</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Coluna 2 -->
+      <div class="space-y-4">
+        <!-- Alterar Nome -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Alterar Nome</h4>
+          <div class="space-y-2">
+            <input x-model="newDisplayName" placeholder="Digite o novo nome"
+                   class="w-full p-2 bg-card border border-custom rounded-md text-sm">
+            <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
+                    class="w-full py-2 btn-primary rounded-md text-sm">Salvar</button>
+          </div>
+        </div>
+
+        <!-- Informações da Conta -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Conta</h4>
+          <div class="space-y-1 text-sm text-muted">
+            <div><span class="font-medium">Email:</span> <span x-text="user?.email"></span></div>
+            <div><span class="font-medium">Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
+          </div>
+        </div>
+
+        <!-- Zona de Perigo -->
+        <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
+          <h4 class="text-red-400 font-semibold mb-2">Zona de Perigo</h4>
+          <button @click="confirmDeleteAccount()" 
+                  class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md text-sm">
+            Excluir Conta
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex justify-end mt-6 pt-4 border-t border-custom">
+      <button @click="configModal = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
+    </div>
+  </div>
+</div>    
   <!-- Modal Confirmação de Exclusão de Conta -->
   <div x-show="deleteAccountModal.show && !isSharedView" class="delete-account-modal">
     <div class="delete-account-form">
@@ -987,6 +1079,14 @@
               </div>
             </div>
             
+            <div>
+              <label class="block text-sm font-medium mb-1">Descrição/Observações</label>
+              <textarea x-model="newRecord.description" 
+                        placeholder="Adicione informações extras sobre este álbum..."
+                        rows="3"
+                        class="w-full p-3 bg-input border border-custom rounded-md resize-none"></textarea>
+            </div>
+            
             <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
               <button type="submit" :disabled="formLoading" 
                       class="flex-1 py-3 btn-primary rounded-md">
@@ -1087,7 +1187,15 @@
         filteredCollection: [],
         sortBy: 'album',
         sortOrder: 'asc',
-        newRecord: { album: '', artist: '', format: '', year: '', catalog_number: '', cover_url: '' },
+        newRecord: { 
+          album: '', 
+          artist: '', 
+          format: '', 
+          year: '', 
+          catalog_number: '', 
+          cover_url: '',
+          description: '' // NOVA propriedade
+        },
         
         // Auth
         email: '',
@@ -1145,6 +1253,45 @@
             this.loading = false;
           }
         },
+
+        // Modal de detalhes do álbum
+          albumDetailsModal: { show: false, record: null },
+
+          // Mostrar detalhes do álbum
+          showAlbumDetails(record) {
+            this.albumDetailsModal = { show: true, record };
+            setTimeout(() => lucide.createIcons(), 10);
+          },
+
+          // Buscar em serviços online
+          searchOnService(service) {
+            const record = this.albumDetailsModal.record;
+            if (!record) return;
+            
+            const query = `${record.artist} ${record.album}`.trim();
+            const encodedQuery = encodeURIComponent(query);
+            
+            let url = '';
+            
+            switch(service) {
+              case 'youtube':
+                url = `https://www.youtube.com/results?search_query=${encodedQuery}`;
+                break;
+              case 'spotify':
+                url = `https://open.spotify.com/search/${encodedQuery}`;
+                break;
+              case 'apple':
+                url = `https://music.apple.com/search?term=${encodedQuery}`;
+                break;
+              case 'discogs':
+                url = `https://www.discogs.com/search/?q=${encodedQuery}&type=all`;
+                break;
+            }
+            
+            if (url) {
+              window.open(url, '_blank');
+            }
+          },
 
         // NOVA FUNÇÃO: Verificar se é uma coleção compartilhada
         async checkForSharedCollection() {
@@ -1503,15 +1650,16 @@
         },
 
         resetForm() {
-          this.newRecord = {
-            album: '', 
-            artist: '', 
-            format: '', 
-            year: '', 
-            catalog_number: '', 
-            cover_url: ''
-          };
-        },
+        this.newRecord = {
+          album: '', 
+          artist: '', 
+          format: '', 
+          year: '', 
+          catalog_number: '', 
+          cover_url: '',
+          description: '' // NOVA propriedade
+        };
+      },
 
         searchCoverOnGoogle() {
           const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
