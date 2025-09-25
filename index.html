@@ -429,39 +429,6 @@
           </template>
         </div>
         
-        <!-- Desktop Table View -->
-        <table class="w-full hidden md:table">
-          <thead class="bg-input">
-            <tr>
-              <th class="text-left p-4 font-semibold">Capa</th>
-              <th class="text-left p-4 font-semibold">Álbum</th>
-              <th class="text-left p-4 font-semibold">Artista</th>
-              <th class="text-left p-4 font-semibold">Formato</th>
-              <th class="text-left p-4 font-semibold">Ano</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="record in filteredSharedCollection" :key="record.id">
-              <tr class="border-b border-custom hover:bg-input">
-                <td class="p-4">
-                 <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                  class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                  @click="showAlbumDetails(record)">
-                </td>
-                <td class="p-4 font-semibold" x-text="record.album"></td>
-                <td class="p-4" x-text="record.artist"></td>
-                <td class="p-4">
-                  <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                        class="format-badge" x-text="record.format || 'CD'"></span>
-                </td>
-                <td class="p-4" x-text="record.year || '-'"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
     <div x-show="filteredSharedCollection.length > 100" class="text-center mt-6">
       <p class="text-sm text-muted">
         Mostrando todos os <span x-text="filteredSharedCollection.length"></span> itens da coleção
@@ -997,6 +964,16 @@
             class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
       <i data-lucide="image"></i><span>Buscar Capas</span>
     </button>
+    <button @click="autoCorrectArtistNames()" 
+        :disabled="collection.length === 0"
+        class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-yellow-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+  <i data-lucide="user-check"></i><span>Corrigir Nomes</span>
+</button>
+<button @click="fillMissingYears()" 
+        :disabled="collection.length === 0"
+        class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-cyan-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+  <i data-lucide="calendar"></i><span>Buscar Anos</span>
+</button>
   </nav>
   <div class="p-4 border-t border-custom space-y-2">
     <div class="px-3 py-2 text-xs text-gray-400 break-words">
@@ -1215,28 +1192,41 @@
             </table>
           </div>
 
-            <!-- Controles de Paginação (ADICIONE AQUI) -->
-          <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" class="flex justify-center items-center space-x-4 mt-8">
-            <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
-                    :disabled="pagination.currentPage === 1"
-                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-              <i data-lucide="chevron-left" class="w-4 h-4"></i>
-            </button>
-            
-            <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
-                    :disabled="pagination.currentPage === pagination.totalPages"
-                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-              <i data-lucide="chevron-right" class="w-4 h-4"></i>
-            </button>
-          </div>
-          
-          <div x-show="performanceMode" class="text-center mt-4">
-            <p class="text-xs text-muted">
-              Mostrando <span x-text="displayedCollection.length"></span> de 
-              <span x-text="filteredCollection.length"></span> itens 
-              (Modo Performance ativado para coleções grandes)
-            </p>
-          </div>
+          <!-- Controles de Paginação -->
+            <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" 
+                class="flex justify-center items-center space-x-4 mt-8">
+              
+              <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
+                      :disabled="pagination.currentPage === 1"
+                      class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                <span>Anterior</span>
+              </button>
+              
+              <div class="flex items-center space-x-2">
+                <span class="text-sm text-muted">Página</span>
+                <span class="font-bold" x-text="pagination.currentPage"></span>
+                <span class="text-sm text-muted">de</span>
+                <span class="font-bold" x-text="pagination.totalPages"></span>
+              </div>
+              
+              <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
+                      :disabled="pagination.currentPage === pagination.totalPages"
+                      class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                <span>Próxima</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Info de performance -->
+            <div x-show="performanceMode && filteredCollection.length > 0" class="text-center mt-4">
+              <p class="text-sm text-muted">
+                Mostrando <span x-text="displayedCollection.length"></span> de 
+                <span x-text="filteredCollection.length"></span> itens 
+                (Página <span x-text="pagination.currentPage"></span> de <span x-text="pagination.totalPages"></span>)
+              </p>
+              <p class="text-xs text-muted mt-1">Modo Performance ativo para coleções grandes</p>
+            </div>
 
           <!-- Info de performance (ADICIONE AQUI TAMBÉM) -->
           <div x-show="performanceMode" class="text-center mt-4">
@@ -1555,20 +1545,47 @@
               this.loading = false;
               setTimeout(() => lucide.createIcons(), 100);
             });
-            
+
             lucide.createIcons();
             setTimeout(() => {
-            if (this.performanceMode) {
-              this.observeImages();
-            }
-          }, 200);
-          } catch (error) {
-            console.error('Erro na inicialização:', error);
-            this.showNotification('Erro ao carregar aplicação', 'error');
-            this.loading = false;
-          }
-        },
+              if (this.performanceMode) {
+                this.observeImages();
+              }
+            }, 200);
 
+            // ADICIONAR AQUI OS WATCHERS:
+            this.$watch('pagination.currentPage', () => {
+              setTimeout(() => {
+                lucide.createIcons();
+                if (this.performanceMode) {
+                  this.observeImages();
+                }
+              }, 50);
+            });
+
+            this.$watch('viewMode', () => {
+              setTimeout(() => {
+                lucide.createIcons();
+                if (this.performanceMode) {
+                  this.observeImages();
+                }
+              }, 50);
+            });
+
+            this.$watch('currentView', () => {
+              setTimeout(() => {
+                lucide.createIcons();
+                if (this.performanceMode && this.currentView === 'collection') {
+                  this.observeImages();
+                }
+              }, 100);
+            });
+
+            } catch (error) {
+              console.error('Erro na inicialização:', error);
+              this.showNotification('Erro ao carregar aplicação', 'error');
+              this.loading = false;
+            }
       
         // NOVA FUNÇÃO: Verificar se é uma coleção compartilhada
         async checkForSharedCollection() {
@@ -1902,14 +1919,16 @@
         },
 
         // SUBSTITUIR a função filterAndSortCollection() existente por esta:
-      filterAndSortCollection() {
-        if (this.performanceMode) {
-          this.debouncedFilter();
-        } else {
-          let filtered = this.collection;
-          
-          if (this.searchFilter.trim()) {
-            const filter = this.searchFilter.toLowerCase();
+            filterAndSortCollection() {
+        let filtered = this.collection;
+        
+        if (this.searchFilter.trim()) {
+          const filter = this.searchFilter.toLowerCase();
+          if (this.performanceMode && this.searchIndex.size > 0) {
+            filtered = filtered.filter(record => 
+              this.searchIndex.get(record.id)?.includes(filter)
+            );
+          } else {
             filtered = filtered.filter(record => 
               record.album?.toLowerCase().includes(filter) ||
               record.artist?.toLowerCase().includes(filter) ||
@@ -1917,25 +1936,31 @@
               record.year?.toString().includes(filter)
             );
           }
-          
-          this.filteredCollection = filtered;
-          this.sortCollection();
-          this.updatePaginationAndRefresh(); // Changed this line
         }
+        
+        this.filteredCollection = filtered;
+        this.sortCollection();
+        this.updatePagination();
+        
+        // Atualizar UI
+        setTimeout(() => {
+          lucide.createIcons();
+          if (this.performanceMode) {
+            this.observeImages();
+          }
+        }, 10);
       },
 
-        // Getter para itens paginados
-        get paginatedCollection() {
-          if (!this.performanceMode) return this.filteredCollection;
+
+        // Getter para itens exibidos (performance ou normal)
+        get displayedCollection() {
+          if (!this.performanceMode) {
+            return this.filteredCollection;
+          }
           
           const start = (this.pagination.currentPage - 1) * this.pagination.itemsPerPage;
           const end = start + this.pagination.itemsPerPage;
           return this.filteredCollection.slice(start, end);
-        },
-
-        // Getter para itens exibidos (performance ou normal)
-        get displayedCollection() {
-          return this.performanceMode ? this.paginatedCollection : this.filteredCollection;
         },
 
         // Atualizar paginação
@@ -1971,28 +1996,124 @@
           });
         },
 
-        // Busca com debounce
-        debouncedFilter() {
-          clearTimeout(this.searchTimeout);
-          this.searchTimeout = setTimeout(() => {
-            this.filterCollectionOptimized();
-          }, 300);
-        },
+        // Correção automática de nomes de bandas
+          async autoCorrectArtistNames() {
+            this.showNotification('Iniciando correção de nomes...', 'info');
+            const userId = this.user.uid;
+            let corrected = 0;
+            
+            for (const record of this.collection) {
+              if (!record.artist || !record.album) continue;
+              
+              try {
+                const query = `${record.artist} ${record.album}`;
+                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+                
+                const response = await fetch(itunesUrl);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.results && data.results.length > 0) {
+                    const album = data.results[0];
+                    let needsUpdate = false;
+                    const updates = {};
+                    
+                    // Corrigir nome do artista se diferente
+                    if (album.artistName && album.artistName !== record.artist) {
+                      updates.artist = album.artistName;
+                      needsUpdate = true;
+                    }
+                    
+                    // Corrigir nome do álbum se diferente
+                    if (album.collectionName && album.collectionName !== record.album) {
+                      updates.album = album.collectionName;
+                      needsUpdate = true;
+                    }
+                    
+                    // Adicionar ano se não existir
+                    if (album.releaseDate && !record.year) {
+                      updates.year = new Date(album.releaseDate).getFullYear();
+                      needsUpdate = true;
+                    }
+                    
+                    if (needsUpdate) {
+                      await db.collection('users').doc(userId).collection('records')
+                        .doc(record.id).update(updates);
+                      corrected++;
+                    }
+                  }
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+              } catch (error) {
+                console.log(`Erro ao corrigir: ${record.artist} - ${record.album}`);
+              }
+            }
+            
+            this.showNotification(`${corrected} itens corrigidos!`, 'success');
+          },
 
-        // Filtro otimizado
-        filterCollectionOptimized() {
-          if (!this.searchFilter.trim()) {
-            this.filteredCollection = [...this.collection];
-          } else {
-            const filter = this.searchFilter.toLowerCase();
-            this.filteredCollection = this.collection.filter(record => 
-              this.searchIndex.get(record.id)?.includes(filter)
-            );
+          // Buscar anos ausentes
+          async fillMissingYears() {
+            this.showNotification('Buscando anos ausentes...', 'info');
+            const userId = this.user.uid;
+            const itemsWithoutYear = this.collection.filter(record => !record.year);
+            let updated = 0;
+            
+            for (const record of itemsWithoutYear) {
+              try {
+                const query = `${record.artist} ${record.album}`;
+                const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+                
+                const response = await fetch(itunesUrl);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.results && data.results.length > 0) {
+                    const album = data.results[0];
+                    if (album.releaseDate) {
+                      const year = new Date(album.releaseDate).getFullYear();
+                      await db.collection('users').doc(userId).collection('records')
+                        .doc(record.id).update({ year });
+                      updated++;
+                    }
+                  }
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+              } catch (error) {
+                console.log(`Erro ao buscar ano: ${record.artist} - ${record.album}`);
+              }
+            }
+            
+            this.showNotification(`${updated} anos adicionados!`, 'success');
+          },
+
+      // <-- ATUALIZAR PAGINATION -->
+      //  Calcula páginas corretamente só no modo performance
+      // Corrige reset de página quando necessário
+        updatePagination() {
+          if (this.performanceMode) {
+            this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
+            if (this.pagination.currentPage > this.pagination.totalPages && this.pagination.totalPages > 0) {
+              this.pagination.currentPage = 1;
+            }
           }
-          this.sortCollection();
-          this.updatePagination();
         },
 
+        //<-- Modo Performance -->
+        checkPerformanceMode() {
+          const wasPerformanceMode = this.performanceMode;
+          this.performanceMode = this.collection.length > 500;
+          
+          if (this.performanceMode && !wasPerformanceMode) {
+            this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+            this.initLazyLoading();
+            this.buildSearchIndex();
+          } else if (!this.performanceMode && wasPerformanceMode) {
+            // Reset pagination when leaving performance mode
+            this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+          }
+        },
+ 
         // Ordenação separada
         sortCollection() {
           this.filteredCollection.sort((a, b) => {
@@ -2598,87 +2719,28 @@ async searchMissingCovers(items) {
         },
 
       showNotification(message, type = 'success') {
-                this.notification = { show: true, message, type };
-                setTimeout(() => {
-                  this.notification.show = false;
-                }, 4000);
-                setTimeout(() => lucide.createIcons(), 10);
-              },
+          this.notification = { show: true, message, type };
+          setTimeout(() => {
+            this.notification.show = false;
+          }, 4000);
+          setTimeout(() => lucide.createIcons(), 10);
+        },
 
-              // Ir para página específica
-                goToPage(page) {
-                  if (page >= 1 && page <= this.pagination.totalPages) {
-                    this.pagination.currentPage = page;
-                    // Force re-render and icon refresh
-                    setTimeout(() => {
-                      lucide.createIcons();
-                      if (this.performanceMode) {
-                        this.observeImages();
-                      }
-                    }, 10);
-                  }
-                },
-
-              // Definir itens por página
-              setItemsPerPage(count) {
-                this.pagination.itemsPerPage = count;
-                this.pagination.currentPage = 1;
-                this.updatePagination();
-                setTimeout(() => {
-                  lucide.createIcons();
-                  if (this.performanceMode) {
-                    this.observeImages();
-                  }
-                }, 50);
-              },
-
-              // Atualizar paginação e recareggar UI
-                updatePaginationAndRefresh() {
-                  this.updatePagination();
-                  setTimeout(() => {
-                    lucide.createIcons();
-                    if (this.performanceMode) {
-                      this.observeImages();
-                    }
-                  }, 10);
-                },
-
-              setupWatchers() {
-                // Watcher para paginação
-                this.$watch('pagination.currentPage', () => {
-                  if (this.performanceMode) {
-                    setTimeout(() => this.observeImages(), 50);
-                  }
-                });
-
-                // Watcher para modo de visualização
-                this.$watch('viewMode', () => {
-                  setTimeout(() => {
-                    lucide.createIcons();
-                    if (this.performanceMode) {
-                      this.observeImages();
-                    }
-                  }, 50);
-                });
-
-                // Watcher para vista atual
-                this.$watch('currentView', () => {
-                  setTimeout(() => {
-                    lucide.createIcons();
-                    if (this.performanceMode && this.currentView === 'collection') {
-                      this.observeImages();
-                    }
-                  }, 100);
-                });
-              }
-
-            })); // Fechamento do Alpine.data
-          }); // Fechamento do document.addEventListener('alpine:init')
+       $watch('currentView', () => {
+          setTimeout(() => {
+            lucide.createIcons();
+            if (this.performanceMode && this.currentView === 'collection') {
+              this.observeImages();
+            }
+          }, 100);
+        })
+        
+      })); // Fechamento do Alpine.data('app')
+    }); // Fechamento do document.addEventListener('alpine:init')
 
     // Inicializar ícones após carregamento
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => lucide.createIcons(), 100);
-      // Re-criar ícones periodicamente para garantir que apareçam
       setInterval(() => lucide.createIcons(), 1000);
     });
   </script>
