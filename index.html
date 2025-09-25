@@ -1,6 +1,1179 @@
- <!-- Pagination Controls (for both grid and list views) -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Katalog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
+  <!-- SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    
+    /* Tema Escuro (padrão) */
+    .theme-dark {
+      background-color: #121212;
+      color: #E0E0E0;
+    }
+    .theme-dark .bg-card { background-color: #1E1E1E; }
+    .theme-dark .bg-input { background-color: #2A2A2A; }
+    .theme-dark .border-custom { border-color: #383838; }
+    .theme-dark .text-muted { color: #888888; }
+    
+    /* Tema Claro */
+    .theme-light {
+      background-color: #f8fafc;
+      color: #1f2937;
+    }
+    .theme-light .bg-card { background-color: #ffffff; }
+    .theme-light .bg-input { background-color: #f1f5f9; }
+    .theme-light .border-custom { border-color: #e2e8f0; }
+    .theme-light .text-muted { color: #374151 !important; }
+    .theme-light .bg-black { background-color: #1f2937 !important; color: #ffffff !important; }
+    .theme-light .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
+    .theme-light .text-white { color: #1f2937 !important; }
+    .theme-light aside.bg-black { background-color: #f8fafc !important; border-right: 1px solid #e2e8f0; }
+    .theme-light aside .text-white { color: #1f2937 !important; }
+    .theme-light aside .text-gray-400 { color: #64748b !important; }
+    .theme-light aside .border-custom { border-color: #e2e8f0 !important; }
+    .theme-light aside .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
+    
+    .theme-light h1, .theme-light h2, .theme-light h3, .theme-light h4 { color: #1f2937 !important; }
+    .theme-light table th { color: #1f2937 !important; }
+    .theme-light table td { color: #1f2937 !important; }
+    .theme-light .font-bold { color: #1f2937 !important; }
+    .theme-light .font-semibold { color: #1f2937 !important; }
+    .theme-light p, .theme-light span, .theme-light div { color: #1f2937 !important; }
+
+    /* Estilos para ordenação */
+    .sort-button { @apply px-2 py-1 text-xs rounded border; }
+    .sort-active { @apply bg-green-500 text-white; }
+    .sort-inactive { @apply bg-gray-200 text-gray-700 hover:bg-gray-300; }
+    .theme-dark .sort-inactive { @apply bg-gray-600 text-gray-300 hover:bg-gray-500; }
+    
+    .btn-primary { background-color: #1DB954; color: #FFFFFF; }
+    .btn-primary:hover { background-color: #1ED760; }
+    .btn-secondary { background-color: #4A4A4A; color: #FFFFFF; }
+    .btn-secondary:hover { background-color: #5A5A5A; }
+    .btn-primary:disabled, button:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
+    .placeholder-custom::placeholder { color: #888888; }
+    [x-cloak] { display: none !important; }
+    
+    .format-badge { @apply px-2 py-1 text-xs font-semibold rounded-full; }
+    .format-cd { @apply bg-blue-500 text-white; }
+    .format-vinil { @apply bg-purple-500 text-white; }
+    .format-cassete { @apply bg-orange-500 text-white; }
+    .format-digital { @apply bg-green-500 text-white; }
+
+    /* Estilos para visualização compartilhada */
+    .shared-header {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .shared-collection-info {
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.3);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Modal de exclusão de conta e outros modais */
+    .delete-account-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+    
+    .delete-account-form {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 0.5rem;
+      max-width: 28rem;
+      width: 100%;
+      margin: 1rem;
+    }
+    
+    .theme-dark .delete-account-form { background-color: #1E1E1E; }
+    .theme-light .delete-account-form { background-color: #ffffff; }
+
+    /* Modal de aviso para imports grandes */
+    .large-import-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 70;
+    }
+
+    .large-import-content {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 0.5rem;
+      max-width: 28rem;
+      width: 100%;
+      margin: 1rem;
+    }
+
+    .theme-dark .large-import-content { background-color: #1E1E1E; }
+    .theme-light .large-import-content { background-color: #ffffff; }
+
+    /* Loading overlay para import modal */
+    .import-loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 0.5rem;
+      padding: 2rem;
+    }
+
+    .progress-container {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: #374151;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1DB954, #1ed760);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      box-shadow: 0 2px 4px rgba(29, 185, 84, 0.3);
+    }
+
+    .progress-text {
+      text-align: center;
+      color: #ffffff;
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-subtitle {
+      text-align: center;
+      color: #d1d5db;
+      font-size: 0.875rem;
+    }
+
+    /* Modal de import mais compacto */
+    .import-modal-compact {
+      max-width: 90vw;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    @media (min-width: 769px) {
+      .import-modal-compact {
+        max-width: 600px;
+        max-height: 80vh;
+      }
+    }
+
+    /* Instruções mais compactas */
+    .import-instructions {
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .import-instructions ul {
+      columns: 2;
+      column-gap: 1rem;
+      break-inside: avoid;
+    }
+
+    @media (max-width: 768px) {
+      .import-instructions ul {
+        columns: 1;
+      }
+    }
+
+    /* Mobile responsivo */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      border-top: 1px solid var(--border-color);
+      z-index: 40;
+    }
+    
+    .theme-dark .mobile-bottom-nav {
+      background-color: #1E1E1E;
+      border-color: #383838;
+    }
+    
+    .theme-light .mobile-bottom-nav {
+      background-color: #ffffff;
+      border-color: #e2e8f0;
+    }
+
+    .mobile-sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 45;
+    }
+
+    .mobile-sidebar {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 80%;
+      max-width: 300px;
+      height: 100%;
+      transition: left 0.3s ease;
+      z-index: 50;
+    }
+
+    .mobile-sidebar.open { left: 0; }
+
+    @media (max-width: 768px) {
+      .desktop-sidebar { display: none; }
+      .main-content { padding-bottom: 80px; }
+      .mobile-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .theme-dark .mobile-header { border-color: #383838; }
+      .theme-light .mobile-header { border-color: #e2e8f0; }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-only { display: none !important; }
+      .mobile-bottom-nav { display: none; }
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 30;
+    }
+
+    @media (min-width: 769px) { .fab { display: none; } }
+    @media (max-width: 768px) {
+      .modal-content {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+      }
+    }
+  </style>
+</head>
+<body x-data="app" x-init="init()" x-cloak :class="`theme-${darkMode ? 'dark' : 'light'}`">
+
+  <!-- Loading -->
+  <div x-show="loading" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div class="flex flex-col items-center text-center p-4">
+      <div class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-white mt-4 text-lg">Carregando...</p>
+    </div>
+  </div>
+
+  <!-- Notificação -->
+  <div x-show="notification.show"
+       class="fixed top-5 right-5 z-50 p-4 rounded-md shadow-lg text-white max-w-sm"
+       :class="{'bg-green-600': notification.type === 'success', 'bg-red-600': notification.type === 'error', 'bg-blue-600': notification.type === 'info'}"
+       x-transition>
+    <p x-text="notification.message"></p>
+  </div>
+
+  <!-- NOVA SEÇÃO: Visualização de Coleção Compartilhada -->
+  <div x-show="isSharedView && !loading">
+    <div class="shared-header">
+      <div class="flex items-center justify-center space-x-3 mb-4">
+        <i data-lucide="disc-3" class="text-4xl"></i>
+        <h1 class="text-3xl font-bold">Katalog</h1>
+      </div>
+      <div x-show="sharedCollection.owner">
+        <h2 class="text-xl mb-2">Coleção de <span x-text="sharedCollection.owner?.displayName || sharedCollection.owner?.email || 'Usuário'"></span></h2>
+        <p class="opacity-90">
+          <span x-text="sharedCollection.records?.length || 0"></span> itens na coleção
+        </p>
+      </div>
+    </div>
+
+    <div class="container mx-auto px-4 pb-8">
+      <!-- Informações sobre a visualização -->
+      <div class="shared-collection-info mb-6">
+        <div class="flex items-center space-x-2 text-green-700">
+          <i data-lucide="eye" class="w-4 h-4"></i>
+          <span class="text-sm font-medium">Você está visualizando uma coleção compartilhada</span>
+        </div>
+      </div>
+
+      <!-- Botão para criar sua própria conta -->
+      <div class="text-center mb-8">
+        <p class="text-muted mb-4">Gostou desta coleção? Crie sua própria conta no Katalog!</p>
+        <button @click="goToLogin()" class="px-6 py-3 btn-primary rounded-lg font-medium">
+          Criar Minha Conta
+        </button>
+      </div>
+
+      <!-- Busca (somente leitura) -->
+      <div class="mb-6">
+        <input x-model="sharedSearchFilter" @input="filterSharedCollection()" 
+               placeholder="Buscar nesta coleção..." 
+               class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+      </div>
+
+      <!-- Controles de visualização -->
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold">
+          Itens (<span x-text="filteredSharedCollection.length"></span>)
+        </h3>
+        <div class="flex space-x-2">
+          <button @click="sharedViewMode = 'grid'" 
+                  :class="sharedViewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
+                  class="px-4 py-2 rounded-md">
+            <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+          </button>
+          <button @click="sharedViewMode = 'list'" 
+                  :class="sharedViewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
+                  class="px-4 py-2 rounded-md">
+            <i data-lucide="list" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid View Compartilhada -->
+      <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
+           class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+        <template x-for="record in filteredSharedCollection" :key="record.id">
+          <div class="bg-card rounded-lg overflow-hidden shadow-lg">
+            <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
+     @load="observeImages()" 
+              class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              @click="showAlbumDetails(record)">
+            <div class="absolute top-2 left-2">
+              <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                    class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+            </div>
+            <div class="p-2 md:p-3">
+              <h3 class="font-bold text-sm md:text-base truncate" x-text="record.album"></h3>
+              <p class="text-xs md:text-sm text-muted truncate" x-text="record.artist"></p>
+              <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- List View Compartilhada -->
+      <div x-show="sharedViewMode === 'list' && filteredSharedCollection.length > 0" 
+           class="bg-card rounded-lg overflow-hidden shadow-lg">
+        <!-- Mobile List View -->
+        <div class="md:hidden">
+          <template x-for="record in filteredSharedCollection" :key="record.id">
+            <div class="border-b border-custom p-4 flex items-center space-x-3">
+              <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                @click="showAlbumDetails(record)">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-sm truncate" x-text="record.album"></h3>
+                <p class="text-xs text-muted truncate" x-text="record.artist"></p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                        class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+                  <span x-show="record.year" class="text-xs text-muted" x-text="record.year"></span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+        
+        <!-- Desktop Table View -->
+        <table class="w-full hidden md:table">
+          <thead class="bg-input">
+            <tr>
+              <th class="text-left p-4 font-semibold">Capa</th>
+              <th class="text-left p-4 font-semibold">Álbum</th>
+              <th class="text-left p-4 font-semibold">Artista</th>
+              <th class="text-left p-4 font-semibold">Formato</th>
+              <th class="text-left p-4 font-semibold">Ano</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="record in filteredSharedCollection" :key="record.id">
+              <tr class="border-b border-custom hover:bg-input">
+                <td class="p-4">
+                 <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                  class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="showAlbumDetails(record)">
+                </td>
+                <td class="p-4 font-semibold" x-text="record.album"></td>
+                <td class="p-4" x-text="record.artist"></td>
+                <td class="p-4">
+                  <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                        class="format-badge" x-text="record.format || 'CD'"></span>
+                </td>
+                <td class="p-4" x-text="record.year || '-'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div x-show="filteredSharedCollection.length > 100" class="text-center mt-6">
+      <p class="text-sm text-muted">
+        Mostrando todos os <span x-text="filteredSharedCollection.length"></span> itens da coleção
+      </p>
+    </div>
+
+      <!-- Empty State -->
+      <div x-show="filteredSharedCollection.length === 0" class="text-center py-20 bg-card rounded-lg">
+        <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-muted mb-4"></i>
+        <h3 class="text-xl font-semibold" x-text="sharedSearchFilter ? 'Nenhum item encontrado' : 'Coleção vazia'"></h3>
+        <p class="text-muted mt-2" x-text="sharedSearchFilter ? 'Tente uma busca diferente' : 'Esta coleção ainda não possui itens'"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Sidebar Overlay (apenas para usuários logados) -->
+  <div x-show="showMobileSidebar && isMobile && !isSharedView" class="mobile-sidebar-overlay mobile-only" @click="showMobileSidebar = false"></div>
+
+  <!-- Mobile Sidebar (apenas para usuários logados) -->
+  <aside x-show="showMobileSidebar && isMobile && !isSharedView" class="mobile-sidebar bg-black mobile-only" :class="{'open': showMobileSidebar}">
+    <div class="p-4 flex items-center justify-between border-b border-custom">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="disc-3" class="text-green-400"></i>
+        <h1 class="text-xl font-bold text-white">Katalog</h1>
+      </div>
+      <button @click="showMobileSidebar = false" class="text-white">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+    <nav class="flex-1 p-4 space-y-2">
+      <a href="#" @click.prevent="currentView = 'collection'; showMobileSidebar = false" 
+         :class="{'bg-green-500 text-white': currentView === 'collection'}"
+         class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+         <i data-lucide="album"></i><span>Minha Coleção</span>
+      </a>
+      <a href="#" @click.prevent="currentView = 'add-record'; showMobileSidebar = false" 
+         :class="{'bg-green-500 text-white': currentView === 'add-record'}"
+         class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+         <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
+      </a>
+      <button @click="importModal.show = true; showMobileSidebar = false" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+        <i data-lucide="upload"></i><span>Importar Excel</span>
+      </button>
+      <button @click="startAutoCoverSearch(); showMobileSidebar = false" 
+        :disabled="collection.length === 0"
+        class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+  <i data-lucide="image"></i><span>Buscar Capas</span>
+</button>
+    </nav>
+    <div class="p-4 border-t border-custom space-y-2">
+      <div class="px-3 py-2 text-xs text-gray-400 break-words">
+        <span x-text="user?.email"></span>
+      </div>
+      <button @click="configModal = true; showMobileSidebar = false" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+        <i data-lucide="settings"></i><span>Configurações</span>
+      </button>
+      <button @click="confirmLogout()" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
+        <i data-lucide="log-out"></i><span>Sair</span>
+      </button>
+    </div>
+  </aside>
+
+<!-- Modal Detalhes do Álbum -->
+<div x-show="albumDetailsModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="albumDetailsModal.show = false">
+  <div class="bg-card rounded-lg max-w-3xl w-full modal-content">
+    <div class="relative">
+      <!-- Header com fundo da capa -->
+      <div class="relative h-32 md:h-40 rounded-t-lg overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+        <img :src="albumDetailsModal.record?.cover_url || `https://placehold.co/600x400/1E1E1E/E0E0E0?text=${albumDetailsModal.record?.album?.charAt(0) || 'A'}`" 
+             class="w-full h-full object-cover blur-sm scale-110">
+        <button @click="albumDetailsModal.show = false" 
+                class="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white rounded-full p-2">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <!-- Conteúdo -->
+      <div class="p-6">
+        <div class="flex flex-col md:flex-row gap-6">
+          <!-- Capa -->
+          <div class="flex-shrink-0 mx-auto md:mx-0">
+            <img :src="albumDetailsModal.record?.cover_url || `https://placehold.co/200x200/1E1E1E/E0E0E0?text=${albumDetailsModal.record?.album?.charAt(0) || 'A'}`" 
+            class="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg shadow-lg">
+          </div>
+          
+        <!-- Informações -->
+        <div class="flex-1 space-y-3">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold" x-text="albumDetailsModal.record?.album"></h2>
+            <p class="text-base text-muted" x-text="albumDetailsModal.record?.artist"></p>
+          </div>
+            
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="font-semibold">Formato:</span>
+                <span :class="'format-' + (albumDetailsModal.record?.format?.toLowerCase() || 'cd')" 
+                      class="format-badge ml-2" x-text="albumDetailsModal.record?.format"></span>
+              </div>
+              <div x-show="albumDetailsModal.record?.year">
+                <span class="font-semibold">Ano:</span>
+                <span x-text="albumDetailsModal.record?.year" class="ml-2"></span>
+              </div>
+              <div x-show="albumDetailsModal.record?.catalog_number" class="col-span-2">
+                <span class="font-semibold">Catálogo:</span>
+                <span x-text="albumDetailsModal.record?.catalog_number" class="ml-2"></span>
+              </div>
+            </div>
+            
+            <div x-show="albumDetailsModal.record?.description" class="bg-input p-4 rounded-lg">
+              <h4 class="font-semibold mb-2">Descrição:</h4>
+              <p class="text-sm text-muted whitespace-pre-wrap" x-text="albumDetailsModal.record?.description"></p>
+            </div>
+            
+            <!-- Links de busca -->
+            <div class="border-t border-custom pt-4">
+              <h4 class="font-semibold mb-3">Buscar online:</h4>
+              <div class="flex flex-wrap gap-2">
+                <button @click="searchOnService('youtube')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm">
+                  <i data-lucide="play" class="w-4 h-4"></i>
+                  <span>YouTube</span>
+                </button>
+                <button @click="searchOnService('spotify')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm">
+                  <i data-lucide="headphones" class="w-4 h-4"></i>
+                  <span>Spotify</span>
+                </button>
+                <button @click="searchOnService('apple')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-md text-sm">
+                  <i data-lucide="music" class="w-4 h-4"></i>
+                  <span>Apple Music</span>
+                </button>
+                <button @click="searchOnService('rateyourmusic')" 
+                        class="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm">
+                  <i data-lucide="star-half" class="w-4 h-4"></i>
+                  <span>Rate Your Music</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Botões de ação -->
+        <div x-show="!isSharedView" class="flex justify-end space-x-3 mt-6 pt-4 border-t border-custom">
+          <button @click="editRecord(albumDetailsModal.record)" 
+                  class="px-4 py-2 btn-primary rounded-md">
+            <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
+            Editar
+          </button>
+          <button @click="confirmDeleteRecord(albumDetailsModal.record?.id)" 
+                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">
+            <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configurações -->
+<div x-show="configModal && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+  <div class="bg-card p-6 rounded-lg max-w-2xl w-full modal-content">
+    <h3 class="text-xl font-bold mb-6">Configurações da Conta</h3>
+    
+    <!-- Layout Desktop: Grid de 2 colunas -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Coluna 1 -->
+      <div class="space-y-4">
+        <!-- Tema -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Tema</h4>
+          <div class="flex items-center justify-between">
+            <span class="text-sm">Modo Escuro</span>
+            <button @click="toggleTheme()" 
+                    class="relative inline-flex h-6 w-11 items-center rounded-full"
+                    :class="darkMode ? 'bg-green-600' : 'bg-gray-400'">
+              <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    :class="darkMode ? 'translate-x-6' : 'translate-x-1'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Compartilhamento da Coleção -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Compartilhamento</h4>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Coleção Pública</span>
+              <button @click="toggleCollectionPrivacy()" 
+                      :disabled="privacyUpdateLoading"
+                      class="relative inline-flex h-6 w-11 items-center rounded-full"
+                      :class="collectionIsPublic ? 'bg-green-600' : 'bg-gray-400'">
+                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                      :class="collectionIsPublic ? 'translate-x-6' : 'translate-x-1'"></span>
+              </button>
+            </div>
+            
+            <div x-show="collectionIsPublic" class="space-y-2 pt-2 border-t border-custom">
+              <div>
+                <label class="text-sm font-medium">URL:</label>
+                <div class="flex items-center space-x-2 mt-1">
+                  <input :value="shareUrl" readonly 
+                         class="flex-1 p-2 bg-card border border-custom rounded text-xs">
+                  <button @click="copyShareUrl()" 
+                          class="px-2 py-2 btn-primary rounded text-xs">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Backup</h4>
+          <button @click="exportToExcel()" 
+                  :disabled="collection.length === 0"
+                  class="w-full py-2 px-4 btn-primary rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed">
+            <div class="flex items-center justify-center space-x-2">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Exportar Excel</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Coluna 2 -->
+      <div class="space-y-4">
+        <!-- Alterar Nome -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Alterar Nome</h4>
+          <div class="space-y-2">
+            <input x-model="newDisplayName" placeholder="Digite o novo nome"
+                   class="w-full p-2 bg-card border border-custom rounded-md text-sm">
+            <button @click="updateDisplayName()" :disabled="!newDisplayName?.trim()"
+                    class="w-full py-2 btn-primary rounded-md text-sm">Salvar</button>
+          </div>
+        </div>
+
+        <!-- Informações da Conta -->
+        <div class="bg-input p-4 rounded-lg">
+          <h4 class="font-semibold mb-3">Conta</h4>
+          <div class="space-y-1 text-sm text-muted">
+            <div><span class="font-medium">Email:</span> <span x-text="user?.email"></span></div>
+            <div><span class="font-medium">Nome:</span> <span x-text="user?.displayName || 'Não definido'"></span></div>
+          </div>
+        </div>
+
+        <!-- Zona de Perigo -->
+        <div class="bg-red-900/20 border border-red-500/30 p-4 rounded-lg">
+          <h4 class="text-red-400 font-semibold mb-2">Zona de Perigo</h4>
+          <button @click="confirmDeleteAccount()" 
+                  class="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-md text-sm">
+            Excluir Conta
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex justify-end mt-6 pt-4 border-t border-custom">
+      <button @click="configModal = false" class="px-6 py-2 btn-secondary rounded-md">Fechar</button>
+    </div>
+  </div>
+</div>    
+  <!-- Modal Confirmação de Exclusão de Conta -->
+  <div x-show="deleteAccountModal.show && !isSharedView" class="delete-account-modal">
+    <div class="delete-account-form">
+      <div class="text-center mb-6">
+        <i data-lucide="alert-triangle" class="mx-auto h-16 w-16 text-red-500 mb-4"></i>
+        <h3 class="text-xl font-bold text-red-400 mb-2">Excluir Conta Permanentemente</h3>
+        <p class="text-sm text-muted">Esta ação não pode ser desfeita. Todos os seus dados serão perdidos.</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Confirme seu email:</label>
+          <input x-model="deleteAccountModal.email" type="email" 
+                 class="w-full p-3 bg-input border border-custom rounded-md"
+                 placeholder="Digite seu email">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium mb-2">Confirme sua senha:</label>
+          <input x-model="deleteAccountModal.password" type="password" 
+                 class="w-full p-3 bg-input border border-custom rounded-md"
+                 placeholder="Digite sua senha">
+        </div>
+        
+        <div class="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+          <label class="flex items-center space-x-2">
+            <input x-model="deleteAccountModal.confirmed" type="checkbox" class="rounded">
+            <span class="text-sm">Eu entendo que esta ação é irreversível e todos os meus dados serão perdidos</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="flex space-x-4 mt-6">
+        <button @click="proceedDeleteAccount()" 
+                :disabled="!deleteAccountModal.email || !deleteAccountModal.password || !deleteAccountModal.confirmed || deleteAccountModal.loading"
+                class="flex-1 py-3 bg-red-700 hover:bg-red-800 disabled:bg-gray-600 text-white rounded-md">
+          <span x-show="!deleteAccountModal.loading">Excluir Conta</span>
+          <span x-show="deleteAccountModal.loading">Excluindo...</span>
+        </button>
+        <button @click="cancelDeleteAccount()" 
+                class="px-6 py-3 btn-secondary rounded-md">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal Import Excel -->
+<div x-show="importModal.show && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" @click.self="importModal.show = false">
+  <div class="bg-card rounded-lg w-full import-modal-compact relative">
+    
+    <!-- Loading overlay com barra de progresso -->
+    <div x-show="importModal.loading" class="import-loading-overlay">
+      <div class="progress-container">
+        <div class="progress-text" x-text="`${importModal.progress}%`"></div>
+        <div class="progress-bar">
+          <div class="progress-fill" :style="`width: ${importModal.progress}%`"></div>
+        </div>
+        <div class="progress-subtitle" x-text="importModal.progressText"></div>
+      </div>
+    </div>
+    
+    <!-- Header -->
+    <div class="p-4 md:p-6 border-b border-custom">
+      <div class="flex justify-between items-center">
+        <h3 class="text-xl font-bold">Importar do Excel</h3>
+        <button @click="closeImportModal()" class="text-gray-500 hover:text-gray-700 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Content -->
+    <div class="p-4 md:p-6 space-y-4">
+      
+      <!-- Instruções compactas -->
+      <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+        <h4 class="font-semibold text-blue-300 mb-2 text-sm">Colunas do Excel:</h4>
+        <div class="import-instructions">
+          <ul class="text-xs text-blue-200 space-y-1">
+            <li>• <strong>album</strong> - Nome do álbum *</li>
+            <li>• <strong>artist</strong> - Nome do artista *</li>
+            <li>• <strong>format</strong> - CD/Vinil/Cassete/Digital *</li>
+            <li>• <strong>year</strong> - Ano de lançamento</li>
+            <li>• <strong>catalog_number</strong> - Número de catálogo</li>
+            <li>• <strong>cover_url</strong> - URL da capa</li>
+            <li>• <strong>description</strong> - Descrição/observações</li>
+          </ul>
+        </div>
+        <p class="text-xs text-blue-300 mt-2">* = obrigatório</p>
+      </div>
+      
+      <!-- Upload -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Arquivo Excel:</label>
+        <input type="file" @change="handleFileUpload($event)" 
+               accept=".xlsx,.xls,.csv" 
+               class="w-full p-2 bg-input border border-custom rounded-md text-sm">
+      </div>
+      
+      <!-- Preview compacto -->
+      <div x-show="importModal.preview.length > 0">
+        <h4 class="font-semibold mb-2 text-sm">Preview:</h4>
+        <div class="bg-input rounded-lg p-3 max-h-32 overflow-y-auto">
+          <template x-for="item in importModal.preview.slice(0, 2)" :key="item.album">
+            <div class="text-xs mb-2 last:mb-0">
+              <div class="font-semibold">
+                <span x-text="item.album"></span> - <span x-text="item.artist"></span>
+              </div>
+              <div class="text-muted">
+                <span x-text="item.format"></span>
+                <span x-show="item.year"> • <span x-text="item.year"></span></span>
+              </div>
+            </div>
+          </template>
+        </div>
+        <p class="text-xs text-muted mt-1" x-text="`Total: ${importModal.data.length} itens`"></p>
+      </div>
+      
+    </div>
+    
+    <!-- Footer com botões -->
+    <div class="p-4 md:p-6 border-t border-custom">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
+                class="flex-1 py-2 px-4 btn-primary rounded-md text-sm">
+          <span x-show="!importModal.loading">Importar Coleção</span>
+          <span x-show="importModal.loading">Importando...</span>
+        </button>
+        <button @click="closeImportModal()" class="px-4 py-2 btn-secondary rounded-md text-sm">
+          Cancelar
+        </button>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- Modal de Aviso para Import Grande -->
+  <div x-show="largeImportModal.show && !isSharedView" class="large-import-modal">
+    <div class="large-import-content">
+      <div class="text-center mb-6">
+        <i data-lucide="alert-triangle" class="mx-auto h-16 w-16 text-orange-500 mb-4"></i>
+        <h3 class="text-xl font-bold text-orange-400 mb-2">Import Grande Detectado</h3>
+        <p class="text-sm text-muted">
+          Você está importando <strong x-text="largeImportModal.totalItems"></strong> itens.
+        </p>
+      </div>
+      
+      <div class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-6">
+        <h4 class="font-semibold text-orange-300 mb-2">⚠️ Atenção:</h4>
+        <ul class="text-sm text-orange-200 space-y-1">
+          <li>• Buscar capas para muitos itens pode ser lento</li>
+          <li>• O processo pode demorar vários minutos</li>
+          <li>• Você pode pular a busca de capas agora</li>
+          <li>• Capas podem ser buscadas depois individualmente</li>
+        </ul>
+      </div>
+      
+      <div class="bg-input p-4 rounded-lg mb-6">
+        <label class="flex items-center space-x-3">
+          <input x-model="largeImportModal.skipCovers" type="checkbox" class="rounded">
+          <div>
+            <span class="font-medium">Pular busca automática de capas</span>
+            <p class="text-xs text-muted">Importar apenas os dados, sem buscar capas online</p>
+          </div>
+        </label>
+      </div>
+      
+      <div class="flex space-x-4">
+        <button @click="proceedLargeImport()" 
+                class="flex-1 py-3 btn-primary rounded-md">
+          <span x-show="!largeImportModal.skipCovers">Continuar com Capas</span>
+          <span x-show="largeImportModal.skipCovers">Continuar sem Capas</span>
+        </button>
+        <button @click="cancelLargeImport()" 
+                class="px-6 py-3 btn-secondary rounded-md">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login (apenas quando não é visualização compartilhada) -->
+  <div x-show="!user && !loading && !isSharedView" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black p-4">
+    <div class="bg-card p-6 md:p-8 rounded-lg shadow-xl max-w-md w-full">
+      <div class="text-center mb-6 md:mb-8">
+        <i data-lucide="disc-3" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-green-400 mb-4"></i>
+        <h1 class="text-2xl md:text-3xl font-bold text-white">Katalog</h1>
+        <p class="text-gray-400 mt-2">Organize sua coleção musical</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div x-show="!showRegister" class="space-y-4">
+          <input x-model="email" type="email" placeholder="seu@email.com" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="password" type="password" placeholder="Sua senha" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <button @click="login()" :disabled="authLoading"
+                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
+            <span x-show="!authLoading">Entrar</span>
+            <span x-show="authLoading">Entrando...</span>
+          </button>
+          
+          <div class="text-center">
+            <span class="text-gray-400 text-sm">Não tem uma conta?</span>
+            <button @click="showRegister = true" class="text-green-400 hover:text-green-300 text-sm ml-1">
+              Cadastre-se
+            </button>
+          </div>
+        </div>
+
+        <div x-show="showRegister" class="space-y-4">
+          <h3 class="text-lg font-semibold text-center">Criar Nova Conta</h3>
+          <input x-model="displayName" type="text" placeholder="Nome de usuário" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="email" type="email" placeholder="seu@email.com" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="password" type="password" placeholder="Senha (min. 6 caracteres)" 
+                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <button @click="register()" :disabled="authLoading"
+                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
+            <span x-show="!authLoading">Cadastrar</span>
+            <span x-show="authLoading">Cadastrando...</span>
+          </button>
+          
+          <div class="text-center">
+            <span class="text-gray-400 text-sm">Já tem uma conta?</span>
+            <button @click="showRegister = false" class="text-green-400 hover:text-green-300 text-sm ml-1">
+              Fazer login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard (apenas para usuários logados, não para visualização compartilhada) -->
+  <div x-show="user && !loading && !isSharedView" class="flex h-screen">
+    <!-- Desktop Sidebar -->
+<aside class="w-64 bg-black flex-shrink-0 flex-col desktop-sidebar hidden md:flex">
+  <div class="p-4 flex items-center space-x-2 border-b border-custom">
+    <i data-lucide="disc-3" class="text-green-400"></i>
+    <h1 class="text-xl font-bold text-white">Katalog</h1>
+  </div>
+  <nav class="flex-1 p-4 space-y-2">
+    <a href="#" @click.prevent="currentView = 'collection'" 
+       :class="{'bg-green-500 text-white': currentView === 'collection'}"
+       class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+       <i data-lucide="album"></i><span>Minha Coleção</span>
+    </a>
+    <a href="#" @click.prevent="currentView = 'add-record'" 
+       :class="{'bg-green-500 text-white': currentView === 'add-record'}"
+       class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+       <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
+    </a>
+    <button @click="importModal.show = true" 
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+      <i data-lucide="upload"></i><span>Importar Excel</span>
+    </button>
+    <button @click="startAutoCoverSearch()" 
+            :disabled="collection.length === 0"
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+      <i data-lucide="image"></i><span>Buscar Capas</span>
+    </button>
+  </nav>
+  <div class="p-4 border-t border-custom space-y-2">
+    <div class="px-3 py-2 text-xs text-gray-400 break-words">
+      <span x-text="user?.email"></span>
+    </div>
+    <button @click="confirmLogout()" 
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
+      <i data-lucide="log-out"></i><span>Sair</span>
+    </button>
+  </div>
+</aside>
+
+    <!-- Main -->
+    <main class="flex-1 overflow-y-auto main-content">
+      <!-- Mobile Header -->
+      <div class="mobile-header mobile-only md:hidden bg-card">
+        <div class="flex justify-between items-center">
+          <button @click="showMobileSidebar = true" class="p-2 rounded-md hover:bg-input">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+          <div class="flex items-center space-x-2">
+            <i data-lucide="disc-3" class="text-green-400"></i>
+            <h1 class="text-xl font-bold">Katalog</h1>
+          </div>
+          <button @click="configModal = true" class="p-2 rounded-md hover:bg-input">
+            <i data-lucide="settings" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="p-4 md:p-8">
+        <!-- Desktop Header -->
+        <div class="hidden md:flex justify-between items-center mb-8">
+          <div>
+            <h1 class="text-2xl font-bold">
+              Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
+            </h1>
+            <p class="text-sm text-muted">Bem-vindo à sua coleção musical</p>
+          </div>
+          <button @click="configModal = true" 
+                  class="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-card rounded-lg border border-custom">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span>Configurações</span>
+          </button>
+        </div>
+
+        <!-- Mobile Welcome -->
+        <div class="md:hidden mb-6">
+          <h2 class="text-xl font-bold">
+            Olá, <span x-text="user?.displayName || 'Usuário'"></span>!
+          </h2>
+          <p class="text-sm text-muted">Bem-vindo à sua coleção</p>
+        </div>
+
+        <!-- Coleção -->
+        <div x-show="currentView === 'collection'">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+            <h2 class="text-2xl md:text-3xl font-bold">Minha Coleção (<span x-text="collection.length"></span>)</h2>
+            <div class="flex space-x-2">
+              <button @click="viewMode = 'grid'" 
+                      :class="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
+                      class="px-3 py-2 md:px-4 md:py-2 rounded-md">
+                <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+              </button>
+              <button @click="viewMode = 'list'" 
+                      :class="viewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
+                      class="px-3 py-2 md:px-4 md:py-2 rounded-md">
+                <i data-lucide="list" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Busca e Ordenação -->
+          <div class="mb-6 space-y-4">
+            <input x-model="searchFilter" @input="filterCollection()" 
+                   placeholder="Buscar por álbum, artista, formato..." 
+                   class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm font-medium">Ordenar por:</span>
+              <button @click="setSortBy('album')" 
+                      :class="sortBy === 'album' ? 'sort-active' : 'sort-inactive'"
+                      class="sort-button">Álbum</button>
+              <button @click="setSortBy('artist')" 
+                      :class="sortBy === 'artist' ? 'sort-active' : 'sort-inactive'"
+                      class="sort-button">Artista</button>
+              <button @click="setSortBy('year')" 
+                      :class="sortBy === 'year' ? 'sort-active' : 'sort-inactive'"
+                      class="sort-button">Ano</button>
+              <button @click="toggleSortOrder()" 
+                      class="sort-button sort-inactive">
+                <i :data-lucide="sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Grid View -->
+          <div x-show="viewMode === 'grid' && filteredCollection.length > 0" 
+               class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+            <template x-for="record in displayedCollection" :key="record.id">
+              <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
+                <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
+     @load="observeImages()" 
+                  class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="showAlbumDetails(record)">
+                <div class="absolute top-2 left-2">
+                  <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                        class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+                </div>
+                <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                  <button @click="editRecord(record)" 
+                          class="bg-blue-600 text-white rounded-full p-1.5 md:p-2 hover:bg-blue-700">
+                    <i data-lucide="edit" class="w-3 h-3 md:w-4 md:h-4"></i>
+                  </button>
+                  <button @click="confirmDeleteRecord(record.id)" 
+                          class="bg-red-600 text-white rounded-full p-1.5 md:p-2 hover:bg-red-700">
+                    <i data-lucide="trash-2" class="w-3 h-3 md:w-4 md:h-4"></i>
+                  </button>
+                </div>
+                <!-- Mobile: Always show buttons -->
+                <div class="absolute bottom-2 right-2 flex space-x-1 md:hidden">
+                  <button @click="editRecord(record)" 
+                          class="bg-blue-600 text-white rounded-full p-1.5 hover:bg-blue-700">
+                    <i data-lucide="edit" class="w-3 h-3"></i>
+                  </button>
+                  <button @click="confirmDeleteRecord(record.id)" 
+                          class="bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                  </button>
+                </div>
+                <div class="p-2 md:p-3">
+                  <h3 class="font-bold text-sm md:text-base truncate" x-text="record.album"></h3>
+                  <p class="text-xs md:text-sm text-muted truncate" x-text="record.artist"></p>
+                  <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- List View -->
+          <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
+               class="bg-card rounded-lg overflow-hidden shadow-lg">
+            <!-- Mobile List View -->
+            <div class="md:hidden">
+              <template x-for="record in displayedCollection" :key="record.id">
+                <div class="border-b border-custom p-4 flex items-center space-x-3">
+                  <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                    class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                    @click="showAlbumDetails(record)">
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-sm truncate" x-text="record.album"></h3>
+                    <p class="text-xs text-muted truncate" x-text="record.artist"></p>
+                    <div class="flex items-center space-x-2 mt-1">
+                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                            class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+                      <span x-show="record.year" class="text-xs text-muted" x-text="record.year"></span>
+                    </div>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button @click="editRecord(record)" 
+                            class="text-blue-500 hover:text-blue-700 p-1">
+                      <i data-lucide="edit" class="w-4 h-4"></i>
+                    </button>
+                    <button @click="confirmDeleteRecord(record.id)" 
+                            class="text-red-500 hover:text-red-700 p-1">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Controles de Paginação (ADICIONE AQUI) -->
           <div x-show="performanceMode && filteredCollection.length > 0" class="flex justify-center items-center space-x-4 mt-8">
-            <button @click="goToPage(pagination.currentPage - 1)" 
+            <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
                     :disabled="pagination.currentPage === 1"
                     class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
               <i data-lucide="chevron-left" class="w-4 h-4"></i>
@@ -13,23 +1186,1458 @@
               <span class="font-semibold" x-text="pagination.totalPages"></span>
             </div>
             
-            <button @click="goToPage(pagination.currentPage + 1)" 
+            <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
                     :disabled="pagination.currentPage === pagination.totalPages"
                     class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
               <i data-lucide="chevron-right" class="w-4 h-4"></i>
             </button>
           </div>
+          </div>
 
-          <!-- Performance Mode Info -->
+          <!-- Info de performance (ADICIONE AQUI TAMBÉM) -->
           <div x-show="performanceMode" class="text-center mt-4">
             <p class="text-xs text-muted">
               Mostrando <span x-text="displayedCollection.length"></span> de 
               <span x-text="filteredCollection.length"></span> itens 
-              (Página <span x-text="pagination.currentPage"></span> de <span x-text="pagination.totalPages"></span>)
+              (Modo Performance ativado para coleções grandes)
             </p>
           </div>
-          
-          <!-- Empty State comes after pagination -->
-          <div x-show="collection.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
-            <!-- empty state content -->
+            
+            <!-- Desktop Table View -->
+            <table class="w-full hidden md:table">
+              <thead class="bg-input">
+                <tr>
+                  <th class="text-left p-4 font-semibold">Capa</th>
+                  <th class="text-left p-4 font-semibold">Álbum</th>
+                  <th class="text-left p-4 font-semibold">Artista</th>
+                  <th class="text-left p-4 font-semibold">Formato</th>
+                  <th class="text-left p-4 font-semibold">Ano</th>
+                  <th class="text-left p-4 font-semibold">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="record in displayedCollection" :key="record.id">
+                  <tr class="border-b border-custom hover:bg-input">
+                    <td class="p-4">
+                      <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                          class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                          @click="showAlbumDetails(record)">
+                    </td>
+                    <td class="p-4 font-semibold" x-text="record.album"></td>
+                    <td class="p-4" x-text="record.artist"></td>
+                    <td class="p-4">
+                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                            class="format-badge" x-text="record.format || 'CD'"></span>
+                    </td>
+                    <td class="p-4" x-text="record.year || '-'"></td>
+                    <td class="p-4">
+                      <div class="flex space-x-2">
+                        <button @click="editRecord(record)" 
+                                class="text-blue-500 hover:text-blue-700">
+                          <i data-lucide="edit" class="w-4 h-4"></i>
+                        </button>
+                        <button @click="confirmDeleteRecord(record.id)" 
+                                class="text-red-500 hover:text-red-700">
+                          <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
+          
+          <!-- Empty State -->
+          <div x-show="collection.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
+            <i data-lucide="folder-x" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-muted mb-4"></i>
+            <h3 class="text-lg md:text-xl font-semibold">Sua coleção está vazia</h3>
+            <p class="text-muted mt-2">Comece adicionando seu primeiro item!</p>
+            <button @click="currentView = 'add-record'" class="mt-4 md:mt-6 px-4 py-2 md:px-6 md:py-2 rounded-full btn-primary">
+              Adicionar Item
+            </button>
+          </div>
+        </div>
+        
+
+        <!-- Form Adicionar -->
+        <div x-show="currentView === 'add-record'">
+          <h2 class="text-2xl md:text-3xl font-bold mb-6">Adicionar Novo Item</h2>
+          <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-4 md:p-8 rounded-lg space-y-4 md:space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
+                <input x-model="newRecord.album" required 
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Artista *</label>
+                <input x-model="newRecord.artist" required 
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Formato *</label>
+                <select x-model="newRecord.format" required
+                        class="w-full p-3 bg-input border border-custom rounded-md">
+                  <option value="">Selecione...</option>
+                  <option value="CD">CD</option>
+                  <option value="Vinil">Vinil</option>
+                  <option value="Cassete">Cassete</option>
+                  <option value="Digital">Digital</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Ano</label>
+                <input x-model="newRecord.year" type="number" min="1900" max="2030"
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
+                <input x-model="newRecord.catalog_number"
+                       class="w-full p-3 bg-input border border-custom rounded-md">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
+              
+              <div class="mb-4">
+                <button type="button" @click="searchCoverOnGoogle()" 
+                        :disabled="!newRecord.album || !newRecord.artist"
+                        class="w-full md:w-auto px-4 py-2 btn-primary rounded-md flex items-center justify-center">
+                  <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                  Buscar Capa no Google Imagens
+                </button>
+                <p class="text-xs text-muted mt-1">
+                  Clique com o botão direito na imagem → "Copiar endereço da imagem"
+                </p>
+              </div>
+              
+              <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
+                     class="w-full p-3 bg-input border border-custom rounded-md mb-4">
+              
+              <div x-show="newRecord.cover_url" class="mb-4">
+                <p class="text-sm text-muted mb-2">Preview:</p>
+                <img :src="newRecord.cover_url" class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-md" 
+                     @error="newRecord.cover_url = ''">
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium mb-1">Descrição/Observações</label>
+              <textarea x-model="newRecord.description" 
+                        placeholder="Adicione informações extras sobre este álbum..."
+                        rows="3"
+                        class="w-full p-3 bg-input border border-custom rounded-md resize-none"></textarea>
+            </div>
+            
+            <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
+              <button type="submit" :disabled="formLoading" 
+                      class="flex-1 py-3 btn-primary rounded-md">
+                <span x-show="!formLoading">Salvar Item</span>
+                <span x-show="formLoading">Salvando...</span>
+              </button>
+              <button type="button" @click="resetForm()" 
+                      class="px-6 py-3 btn-secondary rounded-md">Limpar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav x-show="user && !isSharedView" class="mobile-bottom-nav mobile-only md:hidden">
+      <div class="flex justify-around items-center py-3">
+        <button @click="currentView = 'collection'" 
+                :class="{'text-green-400': currentView === 'collection'}"
+                class="flex flex-col items-center space-y-1 px-2 py-2">
+          <i data-lucide="album" class="w-4 h-4"></i>
+          <span class="text-xs">Coleção</span>
+        </button>
+        <button @click="currentView = 'add-record'" 
+                :class="{'text-green-400': currentView === 'add-record'}"
+                class="flex flex-col items-center space-y-1 px-2 py-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span class="text-xs">Adicionar</span>
+        </button>
+        <button @click="importModal.show = true" 
+                class="flex flex-col items-center space-y-1 px-2 py-2 text-blue-300">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span class="text-xs">Importar</span>
+        </button>
+        <button @click="startAutoCoverSearch()" 
+                :disabled="collection.length === 0"
+                class="flex flex-col items-center space-y-1 px-2 py-2 text-purple-300 disabled:text-gray-500">
+          <i data-lucide="image" class="w-4 h-4"></i>
+          <span class="text-xs">Capas</span>
+        </button>
+      </div>
+    </nav>
+
+  <!-- Floating Action Button (Mobile, apenas para usuários logados) -->
+  <button x-show="currentView === 'collection' && collection.length === 0 && !isSharedView" 
+          @click="currentView = 'add-record'"
+          class="fab btn-primary mobile-only">
+    <i data-lucide="plus" class="w-6 h-6"></i>
+  </button>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
+      authDomain: "katalog-1178e.firebaseapp.com",
+      projectId: "katalog-1178e",
+      storageBucket: "katalog-1178e.firebasestorage.app",
+      messagingSenderId: "998961219093",
+      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('app', () => ({
+        loading: true,
+        user: null,
+        authLoading: false,
+        formLoading: false,
+        
+        // NOVAS VARIÁVEIS PARA COMPARTILHAMENTO
+        isSharedView: false,
+        sharedUserId: null,
+        sharedCollection: { records: [], owner: null },
+        filteredSharedCollection: [],
+        sharedSearchFilter: '',
+        sharedViewMode: 'grid',
+        collectionIsPublic: false,
+        privacyUpdateLoading: false,
+        shareUrl: '',
+        
+        // Device Detection
+        isMobile: window.innerWidth < 769,
+        showMobileSidebar: false,
+        
+        // Tema
+        darkMode: localStorage.getItem('katalog-theme') !== 'light',
+        
+        // UI
+        currentView: 'collection',
+        viewMode: 'grid',
+        showRegister: false,
+        configModal: false,
+        searchFilter: '',
+        
+        // Modals
+        importModal: { show: false, data: [], preview: [], loading: false, progress: 0, progressText: 'Iniciando...'},
+        largeImportModal: {
+          show: false,
+          totalItems: 0,
+          skipCovers: false
+        },
+        
+        // Data
+        collection: [],
+        filteredCollection: [],
+        sortBy: 'album',
+        sortOrder: 'asc',
+        pagination: { currentPage: 1, itemsPerPage: 50, totalPages: 1 },
+        searchTimeout: null,
+        performanceMode: false,
+        imageObserver: null,
+        searchIndex: new Map(),
+        newRecord: { 
+          album: '', 
+          artist: '', 
+          format: '', 
+          year: '', 
+          catalog_number: '', 
+          cover_url: '',
+          description: ''
+        },
+
+        // Modal de detalhes do álbum
+        albumDetailsModal: { show: false, record: null },
+
+        // Auth
+        email: '',
+        password: '',
+        displayName: '',
+        newDisplayName: '',
+        
+        // Notification
+        notification: { show: false, message: '', type: 'success' },
+
+        // Modal de exclusão de conta
+        deleteAccountModal: { 
+          show: false, 
+          email: '', 
+          password: '', 
+          confirmed: false, 
+          loading: false 
+        },
+
+        async init() {
+          try {
+            // NOVA LÓGICA: Verificar se é uma URL compartilhada
+            await this.checkForSharedCollection();
+            
+            if (this.isSharedView) {
+              this.loading = false;
+              lucide.createIcons();
+              return;
+            }
+
+            // Device detection
+            this.checkDevice();
+            window.addEventListener('resize', () => {
+              this.checkDevice();
+            });
+
+            auth.onAuthStateChanged((user) => {
+              this.user = user;
+              if (user) {
+                this.setupCollection(user.uid);
+                this.loadUserSettings(user.uid);
+              } else {
+                this.collection = [];
+                this.filteredCollection = [];
+              }
+              this.loading = false;
+              setTimeout(() => lucide.createIcons(), 100);
+            });
+            
+            lucide.createIcons();
+            setTimeout(() => {
+            if (this.performanceMode) {
+              this.observeImages();
+            }
+          }, 200);
+          } catch (error) {
+            console.error('Erro na inicialização:', error);
+            this.showNotification('Erro ao carregar aplicação', 'error');
+            this.loading = false;
+          }
+        },
+
+      
+        // NOVA FUNÇÃO: Verificar se é uma coleção compartilhada
+        async checkForSharedCollection() {
+          const urlParams = new URLSearchParams(window.location.search);
+          const sharedId = urlParams.get('shared');
+          
+          if (sharedId) {
+            this.isSharedView = true;
+            this.sharedUserId = sharedId;
+            await this.loadSharedCollection(sharedId);
+          }
+        },
+
+        // NOVA FUNÇÃO: Carregar coleção compartilhada
+        async loadSharedCollection(userId) {
+          try {
+            this.loading = true;
+            
+            // Verificar se a coleção é pública
+            const userDoc = await db.collection('users').doc(userId).get();
+            
+            if (!userDoc.exists || !userDoc.data().isPublic) {
+              this.showNotification('Esta coleção é privada ou não existe', 'error');
+              this.isSharedView = false;
+              this.loading = false;
+              return;
+            }
+
+            // Carregar informações do usuário
+            const userData = userDoc.data();
+            this.sharedCollection.owner = {
+              displayName: userData.displayName,
+              email: userData.email
+            };
+
+            // Carregar registros da coleção
+            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+            this.sharedCollection.records = recordsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+
+            this.filteredSharedCollection = [...this.sharedCollection.records];
+            this.loading = false;
+            
+          } catch (error) {
+            console.error('Erro ao carregar coleção compartilhada:', error);
+            this.showNotification('Erro ao carregar coleção compartilhada', 'error');
+            this.isSharedView = false;
+            this.loading = false;
+          }
+        },
+
+        // NOVA FUNÇÃO: Filtrar coleção compartilhada
+        filterSharedCollection() {
+          let filtered = this.sharedCollection.records;
+          
+          if (this.sharedSearchFilter.trim()) {
+            const filter = this.sharedSearchFilter.toLowerCase();
+            filtered = filtered.filter(record => 
+              record.album?.toLowerCase().includes(filter) ||
+              record.artist?.toLowerCase().includes(filter) ||
+              record.format?.toLowerCase().includes(filter) ||
+              record.year?.toString().includes(filter)
+            );
+          }
+          
+          this.filteredSharedCollection = filtered;
+        },
+
+        // NOVA FUNÇÃO: Ir para tela de login
+        goToLogin() {
+          window.location.href = window.location.origin + window.location.pathname;
+        },
+
+        // NOVA FUNÇÃO: Carregar configurações do usuário
+        async loadUserSettings(userId) {
+          try {
+            const userDoc = await db.collection('users').doc(userId).get();
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              this.collectionIsPublic = userData.isPublic || false;
+              this.updateShareUrl();
+            }
+          } catch (error) {
+            console.error('Erro ao carregar configurações:', error);
+          }
+        },
+
+        // NOVA FUNÇÃO: Alternar privacidade da coleção
+        async toggleCollectionPrivacy() {
+          if (this.privacyUpdateLoading) return;
+          
+          this.privacyUpdateLoading = true;
+          try {
+            const newStatus = !this.collectionIsPublic;
+            const userId = this.user.uid;
+            
+            await db.collection('users').doc(userId).set({
+              isPublic: newStatus,
+              displayName: this.user.displayName,
+              email: this.user.email,
+              updatedAt: new Date()
+            }, { merge: true });
+
+            this.collectionIsPublic = newStatus;
+            this.updateShareUrl();
+            
+            this.showNotification(
+              `Coleção agora é ${newStatus ? 'pública' : 'privada'}!`, 
+              'success'
+            );
+            
+          } catch (error) {
+            console.error('Erro ao atualizar privacidade:', error);
+            this.showNotification('Erro ao atualizar privacidade', 'error');
+          }
+          
+          this.privacyUpdateLoading = false;
+        },
+
+        // NOVA FUNÇÃO: Atualizar URL de compartilhamento
+        updateShareUrl() {
+          if (this.collectionIsPublic && this.user) {
+            const baseUrl = window.location.origin + window.location.pathname;
+            this.shareUrl = `${baseUrl}?shared=${this.user.uid}`;
+          } else {
+            this.shareUrl = '';
+          }
+        },
+
+        // NOVA FUNÇÃO: Copiar URL de compartilhamento
+        async copyShareUrl() {
+          try {
+            await navigator.clipboard.writeText(this.shareUrl);
+            this.showNotification('Link copiado para a área de transferência!', 'success');
+          } catch (error) {
+            console.error('Erro ao copiar URL:', error);
+            this.showNotification('Erro ao copiar link', 'error');
+          }
+        },
+        
+        checkDevice() {
+          this.isMobile = window.innerWidth < 769;
+          if (!this.isMobile) {
+            this.showMobileSidebar = false;
+          }
+        },
+
+        // Mostrar detalhes do álbum
+        showAlbumDetails(record) {
+          this.albumDetailsModal = { show: true, record };
+          setTimeout(() => lucide.createIcons(), 10);
+        },
+
+        // Buscar em serviços online
+        searchOnService(service) {
+          const record = this.albumDetailsModal.record;
+          if (!record) return;
+          
+          const query = `${record.artist} ${record.album}`.trim();
+          const encodedQuery = encodeURIComponent(query);
+          
+          let url = '';
+          
+          switch(service) {
+            case 'youtube':
+              url = `https://www.youtube.com/results?search_query=${encodedQuery}`;
+              break;
+            case 'spotify':
+              url = `https://open.spotify.com/search/${encodedQuery}`;
+              break;
+            case 'apple':
+              url = `https://music.apple.com/search?term=${encodedQuery}`;
+              break;
+            case 'rateyourmusic':
+              url = `https://www.rateyourmusic.com/search?searchterm=${encodedQuery}&searchtype=`;
+              break;
+          }
+          
+          if (url) {
+            window.open(url, '_blank');
+          }
+        },
+        
+      async setupCollection(userId) {
+        try {
+          const collectionRef = db.collection('users').doc(userId).collection('records');
+          collectionRef.onSnapshot((snapshot) => {
+            this.collection = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            
+            this.checkPerformanceMode(); // NOVA linha
+            this.filterAndSortCollection();
+          });
+        } catch (error) {
+          console.error('Erro ao configurar coleção:', error);
+          this.showNotification('Erro ao carregar coleção', 'error');
+        }
+      },
+
+        async login() {
+          if (!this.email || !this.password) {
+            this.showNotification('Preencha email e senha', 'error');
+            return;
+          }
+
+          this.authLoading = true;
+          try {
+            await auth.signInWithEmailAndPassword(this.email, this.password);
+            this.showNotification('Login realizado com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro no login:', error);
+            this.showNotification('Erro no login: ' + error.message, 'error');
+          }
+          this.authLoading = false;
+        },
+
+        async register() {
+          if (!this.email || !this.password || !this.displayName) {
+            this.showNotification('Preencha todos os campos', 'error');
+            return;
+          }
+
+          if (this.password.length < 6) {
+            this.showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
+            return;
+          }
+
+          this.authLoading = true;
+          try {
+            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+            await userCredential.user.updateProfile({ displayName: this.displayName });
+            
+            // Criar documento do usuário com configurações padrão
+            await db.collection('users').doc(userCredential.user.uid).set({
+              displayName: this.displayName,
+              email: this.email,
+              isPublic: false,
+              createdAt: new Date()
+            });
+            
+            this.showNotification('Conta criada com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro no registro:', error);
+            this.showNotification('Erro no registro: ' + error.message, 'error');
+          }
+          this.authLoading = false;
+        },
+
+        confirmLogout() {
+          if (confirm('Deseja realmente sair?')) {
+            auth.signOut();
+            this.showNotification('Logout realizado com sucesso!', 'success');
+          }
+        },
+
+        async confirmAddRecord() {
+          if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
+            this.showNotification('Preencha os campos obrigatórios', 'error');
+            return;
+          }
+        
+          // Se não tiver capa definida, tenta buscar automaticamente
+          if (!this.newRecord.cover_url) {
+            await this.fetchAlbumCover();
+          }
+        
+          if (confirm('Adicionar este item à coleção?')) {
+            await this.addRecord();
+          }
+        },
+
+        async addRecord() {
+          this.formLoading = true;
+          try {
+            const userId = this.user.uid;
+            const recordData = {
+              ...this.newRecord,
+              created_at: new Date(),
+              user_id: userId
+            };
+
+            if (this.newRecord.id) {
+              // Atualizar registro existente
+              await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
+              this.showNotification('Item atualizado com sucesso!', 'success');
+            } else {
+              // Adicionar novo registro
+              await db.collection('users').doc(userId).collection('records').add(recordData);
+              this.showNotification('Item adicionado com sucesso!', 'success');
+            }
+            
+            this.resetForm();
+            this.currentView = 'collection';
+          } catch (error) {
+            console.error('Erro ao salvar:', error);
+            this.showNotification('Erro ao salvar item', 'error');
+          }
+          this.formLoading = false;
+        },
+
+        editRecord(record) {
+          // Fechar modal de detalhes se estiver aberto
+          this.albumDetailsModal.show = false;
+          
+          this.newRecord = { ...record };
+          this.currentView = 'add-record';
+          this.showNotification('Editando item...', 'info');
+          // Close mobile sidebar if open
+          this.showMobileSidebar = false;
+        },
+    
+        confirmDeleteRecord(recordId) {
+          if (confirm('Deseja realmente excluir este item?')) {
+            this.deleteRecord(recordId);
+          }
+        },
+
+        async deleteRecord(recordId) {
+          try {
+            const userId = this.user.uid;
+            await db.collection('users').doc(userId).collection('records').doc(recordId).delete();
+            this.showNotification('Item excluído com sucesso!', 'success');
+          } catch (error) {
+            console.error('Erro ao excluir:', error);
+            this.showNotification('Erro ao excluir item', 'error');
+          }
+        },
+
+        // SUBSTITUIR a função filterAndSortCollection() existente por esta:
+      filterAndSortCollection() {
+        if (this.performanceMode) {
+          this.debouncedFilter();
+        } else {
+          let filtered = this.collection;
+          
+          if (this.searchFilter.trim()) {
+            const filter = this.searchFilter.toLowerCase();
+            filtered = filtered.filter(record => 
+              record.album?.toLowerCase().includes(filter) ||
+              record.artist?.toLowerCase().includes(filter) ||
+              record.format?.toLowerCase().includes(filter) ||
+              record.year?.toString().includes(filter)
+            );
+          }
+          
+          this.filteredCollection = filtered;
+          this.sortCollection();
+          this.updatePaginationAndRefresh(); // Changed this line
+        }
+      },
+
+        // Getter para itens paginados
+        get paginatedCollection() {
+          if (!this.performanceMode) return this.filteredCollection;
+          
+          const start = (this.pagination.currentPage - 1) * this.pagination.itemsPerPage;
+          const end = start + this.pagination.itemsPerPage;
+          return this.filteredCollection.slice(start, end);
+        },
+
+        // Getter para itens exibidos (performance ou normal)
+        get displayedCollection() {
+          return this.performanceMode ? this.paginatedCollection : this.filteredCollection;
+        },
+
+        // Atualizar paginação
+        updatePagination() {
+          this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
+          if (this.pagination.currentPage > this.pagination.totalPages) {
+            this.pagination.currentPage = 1;
+          }
+        },
+
+        // Verificar se precisa modo performance
+        checkPerformanceMode() {
+          this.performanceMode = this.collection.length > 500;
+          if (this.performanceMode) {
+            this.initLazyLoading();
+            this.buildSearchIndex();
+          }
+        },
+
+        // Construir índice de busca
+        buildSearchIndex() {
+          this.searchIndex.clear();
+          this.collection.forEach(record => {
+            const searchText = [
+              record.album,
+              record.artist,
+              record.format,
+              record.year?.toString(),
+              record.catalog_number
+            ].join(' ').toLowerCase();
+            
+            this.searchIndex.set(record.id, searchText);
+          });
+        },
+
+        // Busca com debounce
+        debouncedFilter() {
+          clearTimeout(this.searchTimeout);
+          this.searchTimeout = setTimeout(() => {
+            this.filterCollectionOptimized();
+          }, 300);
+        },
+
+        // Filtro otimizado
+        filterCollectionOptimized() {
+          if (!this.searchFilter.trim()) {
+            this.filteredCollection = [...this.collection];
+          } else {
+            const filter = this.searchFilter.toLowerCase();
+            this.filteredCollection = this.collection.filter(record => 
+              this.searchIndex.get(record.id)?.includes(filter)
+            );
+          }
+          this.sortCollection();
+          this.updatePagination();
+        },
+
+        // Ordenação separada
+        sortCollection() {
+          this.filteredCollection.sort((a, b) => {
+            let valueA, valueB;
+            
+            switch(this.sortBy) {
+              case 'album':
+                valueA = (a.album || '').toLowerCase();
+                valueB = (b.album || '').toLowerCase();
+                break;
+              case 'artist':
+                valueA = (a.artist || '').toLowerCase();
+                valueB = (b.artist || '').toLowerCase();
+                break;
+              case 'year':
+                valueA = parseInt(a.year) || 0;
+                valueB = parseInt(b.year) || 0;
+                break;
+              default:
+                return 0;
+            }
+            
+            if (this.sortOrder === 'asc') {
+              return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+            } else {
+              return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+            }
+          });
+        },
+
+        // Lazy loading de imagens
+        initLazyLoading() {
+          if (this.imageObserver) {
+            this.imageObserver.disconnect();
+          }
+          
+          this.imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                  img.src = img.dataset.src;
+                  img.removeAttribute('data-src');
+                  this.imageObserver.unobserve(img);
+                }
+              }
+            });
+          }, { threshold: 0.1 });
+          
+          // Re-observar imagens após mudanças no DOM
+          setTimeout(() => this.observeImages(), 100);
+        },
+
+        observeImages() {
+          document.querySelectorAll('img[data-src]').forEach(img => {
+            this.imageObserver.observe(img);
+          });
+        },
+
+        filterCollection() {
+          this.pagination.currentPage = 1; // Reset para primeira página
+          this.filterAndSortCollection();
+        },
+
+        setSortBy(field) {
+          if (this.sortBy === field) {
+            this.toggleSortOrder();
+          } else {
+            this.sortBy = field;
+            this.sortOrder = 'asc';
+          }
+          this.filterAndSortCollection();
+          setTimeout(() => lucide.createIcons(), 10);
+        },
+
+        toggleSortOrder() {
+          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+          this.filterAndSortCollection();
+          setTimeout(() => lucide.createIcons(), 10);
+        },
+
+        resetForm() {
+        this.newRecord = {
+          album: '', 
+          artist: '', 
+          format: '', 
+          year: '', 
+          catalog_number: '', 
+          cover_url: '',
+          description: '' // NOVA propriedade
+        };
+      },
+
+        searchCoverOnGoogle() {
+          const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
+          window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`, '_blank');
+        },
+
+        async fetchAlbumCover() {
+          try {
+            const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
+            if (!query) return;
+            
+            this.showNotification('Buscando capa...', 'info');
+            
+            // Usando iTunes Search API que não tem restrições de CORS
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+            
+            const response = await fetch(itunesUrl);
+            
+            if (!response.ok) {
+              throw new Error('Erro na busca do iTunes');
+            }
+            
+            const data = await response.json();
+
+            if (data.results && data.results.length > 0) {
+              const album = data.results[0];
+              if (album.artworkUrl100) {
+                // Pega a versão em alta resolução da capa
+                const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                this.newRecord.cover_url = highResUrl;
+                this.showNotification('Capa encontrada automaticamente!', 'success');
+                return;
+              }
+            }
+
+            this.showNotification('Nenhuma capa encontrada automaticamente', 'info');
+          } catch (error) {
+            console.error('Erro ao buscar capa:', error);
+            this.showNotification('Não foi possível buscar capa automática', 'error');
+          }
+        },
+
+        toggleTheme() {
+          this.darkMode = !this.darkMode;
+          localStorage.setItem('katalog-theme', this.darkMode ? 'dark' : 'light');
+        },
+
+        async updateDisplayName() {
+          if (!this.newDisplayName?.trim()) return;
+
+          try {
+            await this.user.updateProfile({ displayName: this.newDisplayName.trim() });
+            
+            // Atualizar também no documento do usuário
+            await db.collection('users').doc(this.user.uid).set({
+              displayName: this.newDisplayName.trim(),
+              email: this.user.email,
+              updatedAt: new Date()
+            }, { merge: true });
+            
+            this.showNotification('Nome atualizado com sucesso!', 'success');
+            this.newDisplayName = '';
+          } catch (error) {
+            console.error('Erro ao atualizar nome:', error);
+            this.showNotification('Erro ao atualizar nome', 'error');
+          }
+        },
+
+        confirmDeleteAccount() {
+          this.deleteAccountModal = { 
+            show: true, 
+            email: '', 
+            password: '', 
+            confirmed: false, 
+            loading: false 
+          };
+          this.configModal = false;
+        },
+
+        cancelDeleteAccount() {
+          this.deleteAccountModal = { 
+            show: false, 
+            email: '', 
+            password: '', 
+            confirmed: false, 
+            loading: false 
+          };
+        },
+
+        async proceedDeleteAccount() {
+          if (!this.deleteAccountModal.email || !this.deleteAccountModal.password || !this.deleteAccountModal.confirmed) {
+            this.showNotification('Preencha todos os campos e confirme a ação', 'error');
+            return;
+          }
+
+          if (this.deleteAccountModal.email !== this.user.email) {
+            this.showNotification('Email não confere com o da conta', 'error');
+            return;
+          }
+
+          this.deleteAccountModal.loading = true;
+          
+          try {
+            const user = firebase.auth().currentUser;
+            
+            // 1. Reautenticar usuário com tratamento de erro melhorado
+            const credential = firebase.auth.EmailAuthProvider.credential(
+              this.deleteAccountModal.email.trim(), 
+              this.deleteAccountModal.password
+            );
+            
+            await user.reauthenticateWithCredential(credential);
+
+            // 2. Deletar todos os registros do Firestore
+            const userId = user.uid;
+            const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+            
+            if (!recordsSnapshot.empty) {
+              const batch = db.batch();
+              recordsSnapshot.forEach(doc => batch.delete(doc.ref));
+              await batch.commit();
+            }
+
+            // 3. Deletar documento do usuário
+            await db.collection('users').doc(userId).delete();
+
+            // 4. Excluir usuário
+            await user.delete();
+
+            this.showNotification('Conta excluída com sucesso!', 'success');
+            
+            // 5. Resetar estado
+            this.cancelDeleteAccount();
+            
+            // 6. Logout será automático após delete()
+
+          } catch (error) {
+            console.error('Erro ao excluir conta:', error);
+            
+            let errorMessage = 'Erro ao excluir conta';
+            
+            switch(error.code) {
+              case 'auth/wrong-password':
+                errorMessage = 'Senha incorreta';
+                break;
+              case 'auth/too-many-requests':
+                errorMessage = 'Muitas tentativas. Tente novamente mais tarde';
+                break;
+              case 'auth/requires-recent-login':
+                errorMessage = 'É necessário fazer login novamente antes de excluir a conta';
+                break;
+              case 'auth/user-token-expired':
+                errorMessage = 'Sessão expirada. Faça login novamente';
+                break;
+              default:
+                errorMessage = `Erro: ${error.message}`;
+            }
+            
+            this.showNotification(errorMessage, 'error');
+          }
+          
+          this.deleteAccountModal.loading = false;
+        },
+        
+        handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        this.importModal.loading = true;
+        this.importModal.progress = 0;
+        this.importModal.progressText = 'Lendo arquivo...';
+        this.showNotification('Processando arquivo...', 'info');
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            this.importModal.progress = 30;
+            this.importModal.progressText = 'Analisando conteúdo...';
+            
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            this.importModal.progress = 60;
+            this.importModal.progressText = 'Processando dados...';
+            
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            this.importModal.progress = 90;
+            this.importModal.progressText = 'Validando registros...';
+            
+            // Pequeno delay para mostrar o progresso
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            this.processImportData(jsonData);
+            
+            this.importModal.progress = 100;
+            this.importModal.progressText = 'Arquivo processado!';
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            this.showNotification('Arquivo processado com sucesso!', 'success');
+            
+          } catch (error) {
+            console.error('Erro ao processar arquivo:', error);
+            this.showNotification('Erro ao processar arquivo Excel', 'error');
+          } finally {
+            this.importModal.loading = false;
+            this.importModal.progress = 0;
+          }
+        };
+        
+        reader.onerror = () => {
+          this.showNotification('Erro ao ler arquivo', 'error');
+          this.importModal.loading = false;
+          this.importModal.progress = 0;
+        };
+        
+        reader.readAsArrayBuffer(file);
+      },
+
+        processImportData(data) {
+          const validRecords = data.filter(row => 
+            row.album && row.artist && row.format
+          ).map(row => ({
+            album: row.album?.toString().trim(),
+            artist: row.artist?.toString().trim(),
+            format: row.format?.toString().trim(),
+            year: row.year ? parseInt(row.year) : '',
+            catalog_number: row.catalog_number?.toString().trim() || '',
+            cover_url: row.cover_url?.toString().trim() || '',
+            description: row.description?.toString().trim() || '' // NOVA linha
+          }));
+
+          this.importModal.data = validRecords;
+          this.importModal.preview = validRecords.slice(0, 3);
+
+          if (validRecords.length === 0) {
+            this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
+          }
+        },
+              
+        // Verificar se é import grande antes de importar
+async importRecords() {
+  if (this.importModal.data.length === 0) return;
+  
+  // Se mais de 200 itens, mostrar aviso
+  if (this.importModal.data.length > 200) {
+    this.largeImportModal = {
+      show: true,
+      totalItems: this.importModal.data.length,
+      skipCovers: false
+    };
+    return;
+  }
+  
+  // Prosseguir normalmente para imports menores
+  await this.executeImport(false);
+},
+
+// Prosseguir com import grande
+async proceedLargeImport() {
+  this.largeImportModal.show = false;
+  await this.executeImport(this.largeImportModal.skipCovers);
+},
+
+// Cancelar import grande
+cancelLargeImport() {
+  this.largeImportModal = {
+    show: false,
+    totalItems: 0,
+    skipCovers: false
+  };
+},
+
+// Executar o import (refatorado)
+async executeImport(skipCovers = false) {
+  if (this.importModal.data.length === 0) return;
+
+  this.importModal.loading = true;
+  this.importModal.progress = 0;
+  this.importModal.progressText = 'Iniciando importação...';
+  
+  try {
+    const userId = this.user.uid;
+    const batch = db.batch();
+    const totalItems = this.importModal.data.length;
+
+    this.showNotification(`Importando ${totalItems} itens...`, 'info');
+
+    if (!skipCovers) {
+      // Fase 1: Buscar capas (70% do progresso)
+      this.importModal.progressText = 'Buscando capas...';
+      
+      for (let i = 0; i < this.importModal.data.length; i++) {
+        const record = this.importModal.data[i];
+        
+        const coverProgress = Math.floor((i / totalItems) * 70);
+        this.importModal.progress = coverProgress;
+        this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+        
+        if (!record.cover_url && record.album && record.artist) {
+          try {
+            const query = `${record.album} ${record.artist}`.trim();
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+            
+            const response = await fetch(itunesUrl);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results && data.results.length > 0) {
+                const album = data.results[0];
+                if (album.artworkUrl100) {
+                  const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                  record.cover_url = highResUrl;
+                }
+              }
+            }
+          } catch (error) {
+            console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      this.importModal.progress = 70;
+    } else {
+      this.importModal.progress = 70;
+    }
+
+    this.importModal.progressText = 'Preparando dados para salvamento...';
+    
+    this.importModal.data.forEach(record => {
+      const docRef = db.collection('users').doc(userId).collection('records').doc();
+      batch.set(docRef, {
+        ...record,
+        created_at: new Date(),
+        user_id: userId
+      });
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+    this.importModal.progress = 85;
+
+    this.importModal.progressText = 'Salvando no banco de dados...';
+    await batch.commit();
+    
+    this.importModal.progress = 100;
+    this.importModal.progressText = 'Importação concluída!';
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
+    this.closeImportModal();
+    
+  } catch (error) {
+    console.error('Erro na importação:', error);
+    this.showNotification('Erro ao importar registros', 'error');
+  }
+  
+  this.importModal.loading = false;
+  this.importModal.progress = 0;
+},
+
+// Iniciar busca automática de capas
+async startAutoCoverSearch() {
+  if (this.collection.length === 0) {
+    this.showNotification('Nenhum item na coleção', 'error');
+    return;
+  }
+  
+  const itemsWithoutCovers = this.collection.filter(record => !record.cover_url);
+  
+  if (itemsWithoutCovers.length === 0) {
+    this.showNotification('Todos os itens já possuem capas!', 'info');
+    return;
+  }
+  
+  if (confirm(`Buscar capas para ${itemsWithoutCovers.length} itens sem capa?`)) {
+    await this.searchMissingCovers(itemsWithoutCovers);
+  }
+},
+
+// Buscar capas ausentes
+async searchMissingCovers(items) {
+  this.importModal.loading = true;
+  this.importModal.show = true;
+  this.importModal.progress = 0;
+  this.importModal.progressText = 'Buscando capas ausentes...';
+  
+  try {
+    const userId = this.user.uid;
+    const totalItems = items.length;
+    let updated = 0;
+    
+    for (let i = 0; i < items.length; i++) {
+      const record = items[i];
+      
+      const progress = Math.floor((i / totalItems) * 100);
+      this.importModal.progress = progress;
+      this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+      
+      try {
+        const query = `${record.album} ${record.artist}`.trim();
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+        
+        const response = await fetch(itunesUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            const album = data.results[0];
+            if (album.artworkUrl100) {
+              const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+              
+              await db.collection('users').doc(userId).collection('records')
+                .doc(record.id).update({ cover_url: highResUrl });
+              
+              updated++;
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+    
+    this.importModal.progress = 100;
+    this.importModal.progressText = 'Busca concluída!';
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
+    
+  } catch (error) {
+    console.error('Erro na busca de capas:', error);
+    this.showNotification('Erro ao buscar capas', 'error');
+  }
+  
+  this.importModal.loading = false;
+  this.importModal.show = false;
+  this.importModal.progress = 0;
+},
+
+        closeImportModal() {
+        this.importModal = { 
+          show: false, 
+          data: [], 
+          preview: [], 
+          loading: false, 
+          progress: 0, 
+          progressText: 'Iniciando...' 
+        };
+        // Limpar o input file
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) fileInput.value = '';
+      },
+
+        // Export de coleção (backup) em arquivo Excel
+        exportToExcel() {
+          if (this.collection.length === 0) {
+            this.showNotification('Nenhum item na coleção para exportar', 'error');
+            return;
+          }
+
+          try {
+            // Preparar dados para exportação
+            const exportData = this.collection.map(record => ({
+              'Álbum': record.album || '',
+              'Artista': record.artist || '',
+              'Formato': record.format || '',
+              'Ano': record.year || '',
+              'Número de Catálogo': record.catalog_number || '',
+              'URL da Capa': record.cover_url || '',
+              'Descrição': record.description || '', // NOVA linha
+              'Data de Adição': record.created_at ? new Date(record.created_at.seconds * 1000).toLocaleDateString('pt-BR') : ''
+            }));
+
+            // Criar workbook
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            
+            // Definir larguras das colunas
+            ws['!cols'] = [
+              { wch: 30 }, // Álbum
+              { wch: 25 }, // Artista  
+              { wch: 10 }, // Formato
+              { wch: 8 },  // Ano
+              { wch: 20 }, // Número de Catálogo
+              { wch: 50 }, // URL da Capa
+              { wch: 40 }, // Descrição - NOVA linha
+              { wch: 15 }  // Data de Adição
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Minha Coleção");
+
+            // Gerar nome do arquivo com data
+            const today = new Date().toISOString().split('T')[0];
+            const fileName = `katalog-backup-${today}.xlsx`;
+
+            // Download do arquivo
+            XLSX.writeFile(wb, fileName);
+
+            this.showNotification(`Backup exportado: ${fileName}`, 'success');
+            
+          } catch (error) {
+            console.error('Erro ao exportar:', error);
+            this.showNotification('Erro ao gerar backup', 'error');
+          }
+        },
+
+      showNotification(message, type = 'success') {
+                this.notification = { show: true, message, type };
+                setTimeout(() => {
+                  this.notification.show = false;
+                }, 4000);
+                setTimeout(() => lucide.createIcons(), 10);
+              },
+
+              // Ir para página específica
+                goToPage(page) {
+                  if (page >= 1 && page <= this.pagination.totalPages) {
+                    this.pagination.currentPage = page;
+                    // Force re-render and icon refresh
+                    setTimeout(() => {
+                      lucide.createIcons();
+                      if (this.performanceMode) {
+                        this.observeImages();
+                      }
+                    }, 10);
+                  }
+                },
+
+              // Definir itens por página
+              setItemsPerPage(count) {
+                this.pagination.itemsPerPage = count;
+                this.pagination.currentPage = 1;
+                this.updatePagination();
+                setTimeout(() => {
+                  lucide.createIcons();
+                  if (this.performanceMode) {
+                    this.observeImages();
+                  }
+                }, 50);
+              },
+
+              // Atualizar paginação e recareggar UI
+                updatePaginationAndRefresh() {
+                  this.updatePagination();
+                  setTimeout(() => {
+                    lucide.createIcons();
+                    if (this.performanceMode) {
+                      this.observeImages();
+                    }
+                  }, 10);
+                },
+
+              setupWatchers() {
+                // Watcher para paginação
+                this.$watch('pagination.currentPage', () => {
+                  if (this.performanceMode) {
+                    setTimeout(() => this.observeImages(), 50);
+                  }
+                });
+
+                // Watcher para modo de visualização
+                this.$watch('viewMode', () => {
+                  setTimeout(() => {
+                    lucide.createIcons();
+                    if (this.performanceMode) {
+                      this.observeImages();
+                    }
+                  }, 50);
+                });
+
+                // Watcher para vista atual
+                this.$watch('currentView', () => {
+                  setTimeout(() => {
+                    lucide.createIcons();
+                    if (this.performanceMode && this.currentView === 'collection') {
+                      this.observeImages();
+                    }
+                  }, 100);
+                });
+              }
+
+            })); // Fechamento do Alpine.data
+          }); // Fechamento do document.addEventListener('alpine:init')
+
+    // Inicializar ícones após carregamento
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => lucide.createIcons(), 100);
+      // Re-criar ícones periodicamente para garantir que apareçam
+      setInterval(() => lucide.createIcons(), 1000);
+    });
+  </script>
+</body>
+</html>
+
