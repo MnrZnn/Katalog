@@ -1141,6 +1141,7 @@
           <!-- List View -->
           <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
                class="bg-card rounded-lg overflow-hidden shadow-lg">
+          </div>
             <!-- Mobile List View -->
             <div class="md:hidden">
               <template x-for="record in displayedCollection" :key="record.id">
@@ -1258,7 +1259,7 @@
             </button>
           </div>
         </div>
-        
+
 
         <!-- Form Adicionar -->
         <div x-show="currentView === 'add-record'">
