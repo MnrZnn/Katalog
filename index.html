@@ -406,7 +406,7 @@
   </aside>
 
   <!-- Modal Detalhes do Álbum -->
-<div x-show="albumDetailsModal.show && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="albumDetailsModal.show = false">
+<div x-show="albumDetailsModal.show" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="albumDetailsModal.show = false">
   <div class="bg-card rounded-lg max-w-2xl w-full modal-content">
     <div class="relative">
       <!-- Header com fundo da capa -->
@@ -487,7 +487,7 @@
         </div>
         
         <!-- Botões de ação -->
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-custom">
+        <div x-show="!isSharedView" class="flex justify-end space-x-3 mt-6 pt-4 border-t border-custom">
           <button @click="editRecord(albumDetailsModal.record)" 
                   class="px-4 py-2 btn-primary rounded-md">
             <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
@@ -663,18 +663,19 @@
       <h3 class="text-xl font-bold mb-4">Importar do Excel</h3>
       
       <div class="space-y-4">
-        <!-- Instruções -->
-        <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-          <h4 class="font-semibold text-blue-300 mb-2">Como preparar seu arquivo Excel:</h4>
-          <ul class="text-sm text-blue-200 space-y-1">
-            <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
-            <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
-            <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
-            <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
-            <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
-            <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
-          </ul>
-        </div>
+  <!-- Instruções -->
+  <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+    <h4 class="font-semibold text-blue-300 mb-2">Como preparar seu arquivo Excel:</h4>
+    <ul class="text-sm text-blue-200 space-y-1">
+      <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
+      <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
+      <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
+      <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
+      <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
+      <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
+      <li>• <strong>description</strong> - Descrição/observações (opcional)</li>
+    </ul>
+  </div>
         
         <!-- Upload -->
         <div>
@@ -684,19 +685,28 @@
                  class="w-full p-3 bg-input border border-custom rounded-md">
         </div>
         
-        <!-- Preview -->
-        <div x-show="importModal.preview.length > 0">
-          <h4 class="font-semibold mb-2">Preview (primeiros 3 itens):</h4>
-          <div class="bg-input rounded-lg p-4 max-h-40 overflow-y-auto">
-            <template x-for="item in importModal.preview.slice(0, 3)" :key="item.album">
-              <div class="text-sm py-1 border-b border-custom last:border-b-0">
-                <strong x-text="item.album"></strong> - <span x-text="item.artist"></span>
-                (<span x-text="item.format"></span>)
+      <!-- Preview -->
+      <div x-show="importModal.preview.length > 0">
+        <h4 class="font-semibold mb-2">Preview (primeiros 3 itens):</h4>
+        <div class="bg-input rounded-lg p-4 max-h-60 overflow-y-auto space-y-3">
+          <template x-for="item in importModal.preview.slice(0, 3)" :key="item.album">
+            <div class="border-b border-custom pb-2 last:border-b-0">
+              <div class="font-semibold text-sm">
+                <span x-text="item.album"></span> - <span x-text="item.artist"></span>
               </div>
-            </template>
-          </div>
-          <p class="text-sm text-muted mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
+              <div class="text-xs text-muted mt-1">
+                <span x-text="item.format"></span>
+                <span x-show="item.year"> • <span x-text="item.year"></span></span>
+                <span x-show="item.catalog_number"> • <span x-text="item.catalog_number"></span></span>
+              </div>
+              <div x-show="item.description" class="text-xs text-muted mt-1 italic">
+                <span x-text="item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description"></span>
+              </div>
+            </div>
+          </template>
         </div>
+        <p class="text-sm text-muted mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
+      </div>
         
         <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
           <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
@@ -1194,9 +1204,12 @@
           year: '', 
           catalog_number: '', 
           cover_url: '',
-          description: '' // NOVA propriedade
+          description: ''
         },
-        
+
+        // Modal de detalhes do álbum
+        albumDetailsModal: { show: false, record: null },
+
         // Auth
         email: '',
         password: '',
@@ -1254,45 +1267,7 @@
           }
         },
 
-        // Modal de detalhes do álbum
-          albumDetailsModal: { show: false, record: null },
-
-          // Mostrar detalhes do álbum
-          showAlbumDetails(record) {
-            this.albumDetailsModal = { show: true, record };
-            setTimeout(() => lucide.createIcons(), 10);
-          },
-
-          // Buscar em serviços online
-          searchOnService(service) {
-            const record = this.albumDetailsModal.record;
-            if (!record) return;
-            
-            const query = `${record.artist} ${record.album}`.trim();
-            const encodedQuery = encodeURIComponent(query);
-            
-            let url = '';
-            
-            switch(service) {
-              case 'youtube':
-                url = `https://www.youtube.com/results?search_query=${encodedQuery}`;
-                break;
-              case 'spotify':
-                url = `https://open.spotify.com/search/${encodedQuery}`;
-                break;
-              case 'apple':
-                url = `https://music.apple.com/search?term=${encodedQuery}`;
-                break;
-              case 'discogs':
-                url = `https://www.discogs.com/search/?q=${encodedQuery}&type=all`;
-                break;
-            }
-            
-            if (url) {
-              window.open(url, '_blank');
-            }
-          },
-
+      
         // NOVA FUNÇÃO: Verificar se é uma coleção compartilhada
         async checkForSharedCollection() {
           const urlParams = new URLSearchParams(window.location.search);
@@ -1438,6 +1413,42 @@
           this.isMobile = window.innerWidth < 769;
           if (!this.isMobile) {
             this.showMobileSidebar = false;
+          }
+        },
+
+        // Mostrar detalhes do álbum
+        showAlbumDetails(record) {
+          this.albumDetailsModal = { show: true, record };
+          setTimeout(() => lucide.createIcons(), 10);
+        },
+
+        // Buscar em serviços online
+        searchOnService(service) {
+          const record = this.albumDetailsModal.record;
+          if (!record) return;
+          
+          const query = `${record.artist} ${record.album}`.trim();
+          const encodedQuery = encodeURIComponent(query);
+          
+          let url = '';
+          
+          switch(service) {
+            case 'youtube':
+              url = `https://www.youtube.com/results?search_query=${encodedQuery}`;
+              break;
+            case 'spotify':
+              url = `https://open.spotify.com/search/${encodedQuery}`;
+              break;
+            case 'apple':
+              url = `https://music.apple.com/search?term=${encodedQuery}`;
+              break;
+            case 'discogs':
+              url = `https://www.discogs.com/search/?q=${encodedQuery}&type=all`;
+              break;
+          }
+          
+          if (url) {
+            window.open(url, '_blank');
           }
         },
 
@@ -1855,7 +1866,8 @@
             format: row.format?.toString().trim(),
             year: row.year ? parseInt(row.year) : '',
             catalog_number: row.catalog_number?.toString().trim() || '',
-            cover_url: row.cover_url?.toString().trim() || ''
+            cover_url: row.cover_url?.toString().trim() || '',
+            description: row.description?.toString().trim() || '' // NOVA linha
           }));
 
           this.importModal.data = validRecords;
@@ -1865,7 +1877,7 @@
             this.showNotification('Nenhum registro válido encontrado no arquivo', 'error');
           }
         },
-      
+              
         async importRecords() {
           if (this.importModal.data.length === 0) return;
         
@@ -1936,7 +1948,7 @@
             this.showNotification('Nenhum item na coleção para exportar', 'error');
             return;
           }
-        
+
           try {
             // Preparar dados para exportação
             const exportData = this.collection.map(record => ({
@@ -1946,9 +1958,10 @@
               'Ano': record.year || '',
               'Número de Catálogo': record.catalog_number || '',
               'URL da Capa': record.cover_url || '',
+              'Descrição': record.description || '', // NOVA linha
               'Data de Adição': record.created_at ? new Date(record.created_at.seconds * 1000).toLocaleDateString('pt-BR') : ''
             }));
-        
+
             // Criar workbook
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
@@ -1961,18 +1974,19 @@
               { wch: 8 },  // Ano
               { wch: 20 }, // Número de Catálogo
               { wch: 50 }, // URL da Capa
+              { wch: 40 }, // Descrição - NOVA linha
               { wch: 15 }  // Data de Adição
             ];
-        
+
             XLSX.utils.book_append_sheet(wb, ws, "Minha Coleção");
-        
+
             // Gerar nome do arquivo com data
             const today = new Date().toISOString().split('T')[0];
             const fileName = `katalog-backup-${today}.xlsx`;
-        
+
             // Download do arquivo
             XLSX.writeFile(wb, fileName);
-        
+
             this.showNotification(`Backup exportado: ${fileName}`, 'success');
             
           } catch (error) {
