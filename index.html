@@ -115,6 +115,59 @@
     .theme-dark .delete-account-form { background-color: #1E1E1E; }
     .theme-light .delete-account-form { background-color: #ffffff; }
 
+    /* Loading overlay para import modal */
+    .import-loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 0.5rem;
+      padding: 2rem;
+    }
+
+    .progress-container {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: #374151;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1DB954, #1ed760);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      box-shadow: 0 2px 4px rgba(29, 185, 84, 0.3);
+    }
+
+    .progress-text {
+      text-align: center;
+      color: #ffffff;
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-subtitle {
+      text-align: center;
+      color: #d1d5db;
+      font-size: 0.875rem;
+    }
+
     /* Mobile responsivo */
     .mobile-bottom-nav {
       position: fixed;
@@ -659,32 +712,43 @@
   
   <!-- Modal Import Excel -->
   <div x-show="importModal.show && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="importModal.show = false">
-    <div class="bg-card p-6 md:p-8 rounded-lg max-w-lg w-full modal-content">
-      <h3 class="text-xl font-bold mb-4">Importar do Excel</h3>
-      
-      <div class="space-y-4">
-  <!-- Instruções -->
-  <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-    <h4 class="font-semibold text-blue-300 mb-2">Como preparar seu arquivo Excel:</h4>
-    <ul class="text-sm text-blue-200 space-y-1">
-      <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
-      <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
-      <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
-      <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
-      <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
-      <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
-      <li>• <strong>description</strong> - Descrição/observações (opcional)</li>
-    </ul>
-  </div>
-        
-        <!-- Upload -->
-        <div>
-          <label class="block text-sm font-medium mb-2">Escolha o arquivo Excel:</label>
-          <input type="file" @change="handleFileUpload($event)" 
-                 accept=".xlsx,.xls,.csv" 
-                 class="w-full p-3 bg-input border border-custom rounded-md">
+    <div class="bg-card p-6 md:p-8 rounded-lg max-w-sm md:max-w-md w-full modal-content relative">    
+    <!-- Loading overlay com barra de progresso -->
+    <div x-show="importModal.loading" class="import-loading-overlay">
+      <div class="progress-container">
+        <div class="progress-text" x-text="`${importModal.progress}%`"></div>
+        <div class="progress-bar">
+          <div class="progress-fill" :style="`width: ${importModal.progress}%`"></div>
         </div>
-        
+        <div class="progress-subtitle" x-text="importModal.progressText"></div>
+      </div>
+    </div>
+    
+    <h3 class="text-xl font-bold mb-4">Importar do Excel</h3>
+    
+    <div class="space-y-4">
+      <!-- Instruções -->
+      <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+        <h4 class="font-semibold text-blue-300 mb-2">Como preparar seu arquivo Excel:</h4>
+        <ul class="text-sm text-blue-200 space-y-1">
+          <li>• <strong>album</strong> - Nome do álbum (obrigatório)</li>
+          <li>• <strong>artist</strong> - Nome do artista (obrigatório)</li>
+          <li>• <strong>format</strong> - CD, Vinil, Cassete ou Digital (obrigatório)</li>
+          <li>• <strong>year</strong> - Ano de lançamento (opcional)</li>
+          <li>• <strong>catalog_number</strong> - Número de catálogo (opcional)</li>
+          <li>• <strong>cover_url</strong> - URL da capa (opcional)</li>
+          <li>• <strong>description</strong> - Descrição/observações (opcional)</li>
+        </ul>
+      </div>
+      
+      <!-- Upload -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Escolha o arquivo Excel:</label>
+        <input type="file" @change="handleFileUpload($event)" 
+               accept=".xlsx,.xls,.csv" 
+               class="w-full p-3 bg-input border border-custom rounded-md">
+      </div>
+      
       <!-- Preview -->
       <div x-show="importModal.preview.length > 0">
         <h4 class="font-semibold mb-2">Preview (primeiros 3 itens):</h4>
@@ -707,18 +771,19 @@
         </div>
         <p class="text-sm text-muted mt-2" x-text="`Total: ${importModal.data.length} itens encontrados`"></p>
       </div>
-        
-        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-          <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
-                  class="flex-1 py-3 btn-primary rounded-md">
-            <span x-show="!importModal.loading">Importar Coleção</span>
-            <span x-show="importModal.loading">Importando...</span>
-          </button>
-          <button @click="closeImportModal()" class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
-        </div>
+      
+      <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+        <button @click="importRecords()" :disabled="importModal.data.length === 0 || importModal.loading" 
+                class="flex-1 py-3 btn-primary rounded-md">
+          <span x-show="!importModal.loading">Importar Coleção</span>
+          <span x-show="importModal.loading">Importando...</span>
+        </button>
+        <button @click="closeImportModal()" class="px-6 py-3 btn-secondary rounded-md">Cancelar</button>
       </div>
     </div>
   </div>
+</div>
+
 
   <!-- Login (apenas quando não é visualização compartilhada) -->
   <div x-show="!user && !loading && !isSharedView" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black p-4">
@@ -1193,7 +1258,7 @@
         searchFilter: '',
         
         // Modals
-        importModal: { show: false, data: [], preview: [], loading: false },
+        importModal: { show: false, data: [], preview: [], loading: false, progress: 0, progressText: 'Iniciando...'},
         
         // Data
         collection: [],
@@ -1573,6 +1638,9 @@
         },
 
         editRecord(record) {
+          // Fechar modal de detalhes se estiver aberto
+          this.albumDetailsModal.show = false;
+          
           this.newRecord = { ...record };
           this.currentView = 'add-record';
           this.showNotification('Editando item...', 'info');
@@ -1839,26 +1907,61 @@
         },
         
         handleFileUpload(event) {
-          const file = event.target.files[0];
-          if (!file) return;
+        const file = event.target.files[0];
+        if (!file) return;
 
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const data = new Uint8Array(e.target.result);
-              const workbook = XLSX.read(data, { type: 'array' });
-              const sheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[sheetName];
-              const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        this.importModal.loading = true;
+        this.importModal.progress = 0;
+        this.importModal.progressText = 'Lendo arquivo...';
+        this.showNotification('Processando arquivo...', 'info');
 
-              this.processImportData(jsonData);
-            } catch (error) {
-              console.error('Erro ao processar arquivo:', error);
-              this.showNotification('Erro ao processar arquivo Excel', 'error');
-            }
-          };
-          reader.readAsArrayBuffer(file);
-        },
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            this.importModal.progress = 30;
+            this.importModal.progressText = 'Analisando conteúdo...';
+            
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            this.importModal.progress = 60;
+            this.importModal.progressText = 'Processando dados...';
+            
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            this.importModal.progress = 90;
+            this.importModal.progressText = 'Validando registros...';
+            
+            // Pequeno delay para mostrar o progresso
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            this.processImportData(jsonData);
+            
+            this.importModal.progress = 100;
+            this.importModal.progressText = 'Arquivo processado!';
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            this.showNotification('Arquivo processado com sucesso!', 'success');
+            
+          } catch (error) {
+            console.error('Erro ao processar arquivo:', error);
+            this.showNotification('Erro ao processar arquivo Excel', 'error');
+          } finally {
+            this.importModal.loading = false;
+            this.importModal.progress = 0;
+          }
+        };
+        
+        reader.onerror = () => {
+          this.showNotification('Erro ao ler arquivo', 'error');
+          this.importModal.loading = false;
+          this.importModal.progress = 0;
+        };
+        
+        reader.readAsArrayBuffer(file);
+      },
 
         processImportData(data) {
           const validRecords = data.filter(row => 
@@ -1882,67 +1985,97 @@
         },
               
         async importRecords() {
-          if (this.importModal.data.length === 0) return;
+      if (this.importModal.data.length === 0) return;
+
+      this.importModal.loading = true;
+      this.importModal.progress = 0;
+      this.importModal.progressText = 'Iniciando importação...';
+      
+      try {
+        const userId = this.user.uid;
+        const batch = db.batch();
+        const totalItems = this.importModal.data.length;
+
+        this.showNotification(`Importando ${totalItems} itens...`, 'info');
+
+        // Fase 1: Buscar capas (70% do progresso)
+        this.importModal.progressText = 'Buscando capas...';
         
-          this.importModal.loading = true;
-          try {
-            const userId = this.user.uid;
-            const batch = db.batch();
-        
-            // Buscar capas para itens que não têm cover_url
-            for (let i = 0; i < this.importModal.data.length; i++) {
-              const record = this.importModal.data[i];
-              
-              // Se não tem capa, tenta buscar automaticamente
-              if (!record.cover_url && record.album && record.artist) {
-                try {
-                  const query = `${record.album} ${record.artist}`.trim();
-                  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-                  
-                  const response = await fetch(itunesUrl);
-                  if (response.ok) {
-                    const data = await response.json();
-                    if (data.results && data.results.length > 0) {
-                      const album = data.results[0];
-                      if (album.artworkUrl100) {
-                        const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                        record.cover_url = highResUrl;
-                      }
-                    }
-                  }
-                } catch (error) {
-                  console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
-                }
-                
-                // Pequeno delay para não sobrecarregar a API
-                await new Promise(resolve => setTimeout(resolve, 100));
-              }
-            }
-        
-            // Salvar todos os registros no Firebase
-            this.importModal.data.forEach(record => {
-              const docRef = db.collection('users').doc(userId).collection('records').doc();
-              batch.set(docRef, {
-                ...record,
-                created_at: new Date(),
-                user_id: userId
-              });
-            });
-        
-            await batch.commit();
-            this.showNotification(`${this.importModal.data.length} itens importados com sucesso!`, 'success');
-            this.closeImportModal();
-            
-          } catch (error) {
-            console.error('Erro na importação:', error);
-            this.showNotification('Erro ao importar registros', 'error');
-          }
+        for (let i = 0; i < this.importModal.data.length; i++) {
+          const record = this.importModal.data[i];
           
-          this.importModal.loading = false;
-        },
+          // Atualizar progresso da busca de capas (0-70%)
+          const coverProgress = Math.floor((i / totalItems) * 70);
+          this.importModal.progress = coverProgress;
+          this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+          
+          // Se não tem capa, tenta buscar automaticamente
+          if (!record.cover_url && record.album && record.artist) {
+            try {
+              const query = `${record.album} ${record.artist}`.trim();
+              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+              
+              const response = await fetch(itunesUrl);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                  const album = data.results[0];
+                  if (album.artworkUrl100) {
+                    const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                    record.cover_url = highResUrl;
+                  }
+                }
+              }
+            } catch (error) {
+              console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+            }
+            
+            // Pequeno delay para não sobrecarregar a API
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        // Fase 2: Preparar dados (70-85%)
+        this.importModal.progress = 70;
+        this.importModal.progressText = 'Preparando dados para salvamento...';
+        
+        this.importModal.data.forEach(record => {
+          const docRef = db.collection('users').doc(userId).collection('records').doc();
+          batch.set(docRef, {
+            ...record,
+            created_at: new Date(),
+            user_id: userId
+          });
+        });
+
+        // Simular um pequeno delay para mostrar o progresso
+        await new Promise(resolve => setTimeout(resolve, 500));
+        this.importModal.progress = 85;
+
+        // Fase 3: Salvar no banco (85-100%)
+        this.importModal.progressText = 'Salvando no banco de dados...';
+        await batch.commit();
+        
+        this.importModal.progress = 100;
+        this.importModal.progressText = 'Importação concluída!';
+        
+        // Pequeno delay para mostrar 100%
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
+        this.closeImportModal();
+        
+      } catch (error) {
+        console.error('Erro na importação:', error);
+        this.showNotification('Erro ao importar registros', 'error');
+      }
+      
+      this.importModal.loading = false;
+      this.importModal.progress = 0;
+    },
 
         closeImportModal() {
-          this.importModal = { show: false, data: [], preview: [], loading: false };
+          this.importModal = { show: false, data: [], preview: [], loading: false, progress: 0, progressText: 'Iniciando...' };
         },
 
         // Export de coleção (backup) em arquivo Excel
@@ -2018,4 +2151,3 @@
   </script>
 </body>
 </html>
-
