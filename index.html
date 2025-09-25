@@ -387,7 +387,7 @@
       <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
         <template x-for="record in filteredSharedCollection" :key="record.id">
-          <div class="bg-card rounded-lg overflow-hidden shadow-lg">
+          <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
             <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
      src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
      @load="observeImages()" 
@@ -429,11 +429,37 @@
           </template>
         </div>
         
-    <div x-show="filteredSharedCollection.length > 100" class="text-center mt-6">
-      <p class="text-sm text-muted">
-        Mostrando todos os <span x-text="filteredSharedCollection.length"></span> itens da coleção
-      </p>
-    </div>
+        <!-- Desktop Table View CORRIGIDO -->
+        <table class="w-full hidden md:table">
+          <thead class="bg-input">
+            <tr>
+              <th class="text-left p-4 font-semibold">Capa</th>
+              <th class="text-left p-4 font-semibold">Álbum</th>
+              <th class="text-left p-4 font-semibold">Artista</th>
+              <th class="text-left p-4 font-semibold">Formato</th>
+              <th class="text-left p-4 font-semibold">Ano</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="record in filteredSharedCollection" :key="record.id">
+              <tr class="border-b border-custom hover:bg-input">
+                <td class="p-4">
+                  <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                      class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                      @click="showAlbumDetails(record)">
+                </td>
+                <td class="p-4 font-semibold" x-text="record.album"></td>
+                <td class="p-4" x-text="record.artist"></td>
+                <td class="p-4">
+                  <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                        class="format-badge" x-text="record.format || 'CD'"></span>
+                </td>
+                <td class="p-4" x-text="record.year || '-'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Empty State -->
       <div x-show="filteredSharedCollection.length === 0" class="text-center py-20 bg-card rounded-lg">
