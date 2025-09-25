@@ -384,25 +384,27 @@
       </div>
 
       <!-- Grid View Compartilhada -->
-      <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
-           class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-       <template x-for="record in filteredSharedCollection" :key="record.id">
-          <tr class="border-b border-custom hover:bg-input">
-            <td class="p-4">
-              <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${(record.album || 'A').charAt(0)}`" 
-                  class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+        <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
+            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+          <template x-for="record in filteredSharedCollection" :key="record.id">
+            <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
+              <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
+                  @load="observeImages()" 
+                  class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   @click="showAlbumDetails(record)">
-            </td>
-            <td class="p-4 font-semibold" x-text="record.album || 'Sem título'"></td>
-            <td class="p-4" x-text="record.artist || 'Artista desconhecido'"></td>
-            <td class="p-4">
-              <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                    class="format-badge" x-text="record.format || 'CD'"></span>
-            </td>
-            <td class="p-4" x-text="record.year || '-'"></td>
-          </tr>
-        </template>
-      </div>
+              <div class="absolute top-2 left-2">
+                <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                      class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+              </div>
+              <div class="p-2 md:p-3">
+                <h3 class="font-bold text-sm md:text-base truncate" x-text="record.album"></h3>
+                <p class="text-xs md:text-sm text-muted truncate" x-text="record.artist"></p>
+                <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
+              </div>
+            </div>
+          </template>
+        </div>
 
       <!-- List View Compartilhada -->
       <div x-show="sharedViewMode === 'list' && filteredSharedCollection.length > 0" 
@@ -1215,45 +1217,45 @@
                   </template>
                 </tbody>
               </table>
+             </div>
 
-        <!-- Controles de Paginação -->
-          <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" 
-              class="flex justify-center items-center space-x-4 mt-8">
-            
-            <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
-                    :disabled="pagination.currentPage === 1"
-                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
-              <i data-lucide="chevron-left" class="w-4 h-4"></i>
-              <span>Anterior</span>
-            </button>
-            
-            <div class="flex items-center space-x-2">
-              <span class="text-sm text-muted">Página</span>
-              <span class="font-bold" x-text="pagination.currentPage"></span>
-              <span class="text-sm text-muted">de</span>
-              <span class="font-bold" x-text="pagination.totalPages"></span>
-            </div>
-            
-            <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
-                    :disabled="pagination.currentPage === pagination.totalPages"
-                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
-              <span>Próxima</span>
-              <i data-lucide="chevron-right" class="w-4 h-4"></i>
-            </button>
+        <!-- Controles de Paginação (MOVIDO PARA CÁ) -->
+        <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" 
+            class="flex justify-center items-center space-x-4 mt-8">
+          
+          <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
+                  :disabled="pagination.currentPage === 1"
+                  class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            <span>Anterior</span>
+          </button>
+          
+          <div class="flex items-center space-x-2">
+            <span class="text-sm text-muted">Página</span>
+            <span class="font-bold" x-text="pagination.currentPage"></span>
+            <span class="text-sm text-muted">de</span>
+            <span class="font-bold" x-text="pagination.totalPages"></span>
           </div>
+          
+          <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
+                  :disabled="pagination.currentPage === pagination.totalPages"
+                  class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+            <span>Próxima</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
 
-          <!-- Info de performance -->
-          <div x-show="performanceMode && filteredCollection.length > 0" class="text-center mt-4">
-            <p class="text-sm text-muted">
-              Mostrando <span x-text="displayedCollection.length"></span> de 
-              <span x-text="filteredCollection.length"></span> itens 
-              (Página <span x-text="pagination.currentPage"></span> de <span x-text="pagination.totalPages"></span>)
-            </p>
-            <p class="text-xs text-muted mt-1">Modo Performance ativo para coleções grandes</p>
-          </div>
-            
-        
-          <!-- Empty State -->
+        <!-- Info de performance -->
+        <div x-show="performanceMode && filteredCollection.length > 0" class="text-center mt-4">
+          <p class="text-sm text-muted">
+            Mostrando <span x-text="displayedCollection.length"></span> de 
+            <span x-text="filteredCollection.length"></span> itens 
+            (Página <span x-text="pagination.currentPage"></span> de <span x-text="pagination.totalPages"></span>)
+          </p>
+          <p class="text-xs text-muted mt-1">Modo Performance ativo para coleções grandes</p>
+        </div>
+
+        <!-- Empty State -->
           <div x-show="collection.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
             <i data-lucide="folder-x" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-muted mb-4"></i>
             <h3 class="text-lg md:text-xl font-semibold">Sua coleção está vazia</h3>
@@ -1711,10 +1713,19 @@ document.addEventListener('alpine:init', () => {
 
     // Mostrar detalhes do álbum
     showAlbumDetails(record) {
-      this.albumDetailsModal = { show: true, record };
-      setTimeout(() => lucide.createIcons(), 10);
+      if (this.performanceMode) {
+        // Em modo performance, usar timeout para evitar travamento
+        this.showNotification('Carregando detalhes...', 'info');
+        setTimeout(() => {
+          this.albumDetailsModal = { show: true, record };
+          setTimeout(() => lucide.createIcons(), 50);
+        }, 50);
+      } else {
+        this.albumDetailsModal = { show: true, record };
+        setTimeout(() => lucide.createIcons(), 10);
+      }
     },
-
+    
     // Buscar em serviços online
     searchOnService(service) {
       const record = this.albumDetailsModal.record;
@@ -1861,21 +1872,50 @@ document.addEventListener('alpine:init', () => {
     },
 
     editRecord(record) {
+      // Fechar modal imediatamente para liberar memória
       this.albumDetailsModal.show = false;
       
-      this.newRecord = { 
-        id: record.id,
-        album: record.album || '', 
-        artist: record.artist || '', 
-        format: record.format || '', 
-        year: record.year || '', 
-        catalog_number: record.catalog_number || '', 
-        cover_url: record.cover_url || '',
-        description: record.description || ''
-      };
-      this.currentView = 'add-record';
-      this.showNotification('Editando item...', 'info');
-      this.showMobileSidebar = false;
+      // Em coleções grandes, usar setTimeout para evitar travamento
+      if (this.performanceMode) {
+        // Mostrar loading primeiro
+        this.showNotification('Carregando editor...', 'info');
+        
+        setTimeout(() => {
+          this.newRecord = {
+            id: record.id || '',
+            album: record.album || '', 
+            artist: record.artist || '', 
+            format: record.format || '', 
+            year: record.year || '', 
+            catalog_number: record.catalog_number || '', 
+            cover_url: record.cover_url || '',
+            description: record.description || ''
+          };
+          
+          // Mudar view em próximo tick
+          this.$nextTick(() => {
+            this.currentView = 'add-record';
+            this.showMobileSidebar = false;
+            this.showNotification('Editando item...', 'info');
+            setTimeout(() => lucide.createIcons(), 100);
+          });
+        }, 100);
+      } else {
+        // Coleções pequenas - funcionamento normal
+        this.newRecord = {
+          id: record.id || '',
+          album: record.album || '', 
+          artist: record.artist || '', 
+          format: record.format || '', 
+          year: record.year || '', 
+          catalog_number: record.catalog_number || '', 
+          cover_url: record.cover_url || '',
+          description: record.description || ''
+        };
+        this.currentView = 'add-record';
+        this.showMobileSidebar = false;
+        this.showNotification('Editando item...', 'info');
+      }
     },
 
     async deleteRecord(recordId) {
