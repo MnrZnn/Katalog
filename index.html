@@ -1141,7 +1141,6 @@
           <!-- List View -->
           <div x-show="viewMode === 'list' && filteredCollection.length > 0" 
                class="bg-card rounded-lg overflow-hidden shadow-lg">
-          </div>
             <!-- Mobile List View -->
             <div class="md:hidden">
               <template x-for="record in displayedCollection" :key="record.id">
@@ -1171,21 +1170,58 @@
                 </div>
               </template>
             </div>
+            
+            <table class="w-full hidden md:table">
+              <thead class="bg-input">
+                <tr>
+                  <th class="text-left p-4 font-semibold">Capa</th>
+                  <th class="text-left p-4 font-semibold">Álbum</th>
+                  <th class="text-left p-4 font-semibold">Artista</th>
+                  <th class="text-left p-4 font-semibold">Formato</th>
+                  <th class="text-left p-4 font-semibold">Ano</th>
+                  <th class="text-left p-4 font-semibold">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="record in displayedCollection" :key="record.id">
+                  <tr class="border-b border-custom hover:bg-input">
+                    <td class="p-4">
+                      <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                          class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                          @click="showAlbumDetails(record)">
+                    </td>
+                    <td class="p-4 font-semibold" x-text="record.album"></td>
+                    <td class="p-4" x-text="record.artist"></td>
+                    <td class="p-4">
+                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                            class="format-badge" x-text="record.format || 'CD'"></span>
+                    </td>
+                    <td class="p-4" x-text="record.year || '-'"></td>
+                    <td class="p-4">
+                      <div class="flex space-x-2">
+                        <button @click="editRecord(record)" 
+                                class="text-blue-500 hover:text-blue-700">
+                          <i data-lucide="edit" class="w-4 h-4"></i>
+                        </button>
+                        <button @click="confirmDeleteRecord(record.id)" 
+                                class="text-red-500 hover:text-red-700">
+                          <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
 
             <!-- Controles de Paginação (ADICIONE AQUI) -->
-          <div x-show="performanceMode && filteredCollection.length > 0" class="flex justify-center items-center space-x-4 mt-8">
+          <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" class="flex justify-center items-center space-x-4 mt-8">
             <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
                     :disabled="pagination.currentPage === 1"
                     class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
               <i data-lucide="chevron-left" class="w-4 h-4"></i>
             </button>
-            
-            <div class="flex items-center space-x-2">
-              <span class="text-sm text-muted">Página</span>
-              <span class="font-semibold" x-text="pagination.currentPage"></span>
-              <span class="text-sm text-muted">de</span>
-              <span class="font-semibold" x-text="pagination.totalPages"></span>
-            </div>
             
             <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
                     :disabled="pagination.currentPage === pagination.totalPages"
@@ -1193,6 +1229,13 @@
               <i data-lucide="chevron-right" class="w-4 h-4"></i>
             </button>
           </div>
+          
+          <div x-show="performanceMode" class="text-center mt-4">
+            <p class="text-xs text-muted">
+              Mostrando <span x-text="displayedCollection.length"></span> de 
+              <span x-text="filteredCollection.length"></span> itens 
+              (Modo Performance ativado para coleções grandes)
+            </p>
           </div>
 
           <!-- Info de performance (ADICIONE AQUI TAMBÉM) -->
