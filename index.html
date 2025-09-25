@@ -386,23 +386,21 @@
       <!-- Grid View Compartilhada -->
       <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-        <template x-for="record in filteredSharedCollection" :key="record.id">
-          <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
-            <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
-     @load="observeImages()" 
-              class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-              @click="showAlbumDetails(record)">
-            <div class="absolute top-2 left-2">
+       <template x-for="record in filteredSharedCollection" :key="record.id">
+          <tr class="border-b border-custom hover:bg-input">
+            <td class="p-4">
+              <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${(record.album || 'A').charAt(0)}`" 
+                  class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="showAlbumDetails(record)">
+            </td>
+            <td class="p-4 font-semibold" x-text="record.album || 'Sem título'"></td>
+            <td class="p-4" x-text="record.artist || 'Artista desconhecido'"></td>
+            <td class="p-4">
               <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                    class="format-badge text-xs" x-text="record.format || 'CD'"></span>
-            </div>
-            <div class="p-2 md:p-3">
-              <h3 class="font-bold text-sm md:text-base truncate" x-text="record.album"></h3>
-              <p class="text-xs md:text-sm text-muted truncate" x-text="record.artist"></p>
-              <p x-show="record.year" class="text-xs text-muted" x-text="record.year"></p>
-            </div>
-          </div>
+                    class="format-badge" x-text="record.format || 'CD'"></span>
+            </td>
+            <td class="p-4" x-text="record.year || '-'"></td>
+          </tr>
         </template>
       </div>
 
@@ -1174,80 +1172,84 @@
               </template>
             </div>
             
-           <!-- Desktop Table View (Shared) -->
-            <table class="w-full hidden md:table">
-              <thead class="bg-input">
-                <tr>
-                  <th class="text-left p-4 font-semibold">Capa</th>
-                  <th class="text-left p-4 font-semibold">Álbum</th>
-                  <th class="text-left p-4 font-semibold">Artista</th>
-                  <th class="text-left p-4 font-semibold">Formato</th>
-                  <th class="text-left p-4 font-semibold">Ano</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="record in filteredSharedCollection" :key="record.id">
-                  <tr class="border-b border-custom hover:bg-input">
-                    <td class="p-4">
-                      <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                          class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                          @click="showAlbumDetails(record)">
-                    </td>
-                    <td class="p-4 font-semibold" x-text="record.album"></td>
-                    <td class="p-4" x-text="record.artist"></td>
-                    <td class="p-4">
-                      <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
-                            class="format-badge" x-text="record.format || 'CD'"></span>
-                    </td>
-                    <td class="p-4" x-text="record.year || '-'"></td>
+           <!-- Desktop Table View -->
+              <table class="w-full hidden md:table">
+                <thead class="bg-input">
+                  <tr>
+                    <th class="text-left p-4 font-semibold">Capa</th>
+                    <th class="text-left p-4 font-semibold">Álbum</th>
+                    <th class="text-left p-4 font-semibold">Artista</th>
+                    <th class="text-left p-4 font-semibold">Formato</th>
+                    <th class="text-left p-4 font-semibold">Ano</th>
+                    <th class="text-left p-4 font-semibold">Ações</th>
                   </tr>
-                </template>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <template x-for="record in displayedCollection" :key="record.id">
+                    <tr class="border-b border-custom hover:bg-input">
+                      <td class="p-4">
+                        <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                            class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                            @click="showAlbumDetails(record)">
+                      </td>
+                      <td class="p-4 font-semibold" x-text="record.album"></td>
+                      <td class="p-4" x-text="record.artist"></td>
+                      <td class="p-4">
+                        <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                              class="format-badge" x-text="record.format || 'CD'"></span>
+                      </td>
+                      <td class="p-4" x-text="record.year || '-'"></td>
+                      <td class="p-4">
+                        <div class="flex space-x-2">
+                          <button @click="editRecord(record)" 
+                                  class="text-blue-500 hover:text-blue-700 p-1">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                          </button>
+                          <button @click="confirmDeleteRecord(record.id)" 
+                                  class="text-red-500 hover:text-red-700 p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
 
-          <!-- Controles de Paginação -->
-            <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" 
-                class="flex justify-center items-center space-x-4 mt-8">
-              
-              <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
-                      :disabled="pagination.currentPage === 1"
-                      class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
-                <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                <span>Anterior</span>
-              </button>
-              
-              <div class="flex items-center space-x-2">
-                <span class="text-sm text-muted">Página</span>
-                <span class="font-bold" x-text="pagination.currentPage"></span>
-                <span class="text-sm text-muted">de</span>
-                <span class="font-bold" x-text="pagination.totalPages"></span>
-              </div>
-              
-              <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
-                      :disabled="pagination.currentPage === pagination.totalPages"
-                      class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
-                <span>Próxima</span>
-                <i data-lucide="chevron-right" class="w-4 h-4"></i>
-              </button>
+        <!-- Controles de Paginação -->
+          <div x-show="performanceMode && filteredCollection.length > 0 && pagination.totalPages > 1" 
+              class="flex justify-center items-center space-x-4 mt-8">
+            
+            <button @click="pagination.currentPage = Math.max(1, pagination.currentPage - 1)" 
+                    :disabled="pagination.currentPage === 1"
+                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              <span>Anterior</span>
+            </button>
+            
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-muted">Página</span>
+              <span class="font-bold" x-text="pagination.currentPage"></span>
+              <span class="text-sm text-muted">de</span>
+              <span class="font-bold" x-text="pagination.totalPages"></span>
             </div>
+            
+            <button @click="pagination.currentPage = Math.min(pagination.totalPages, pagination.currentPage + 1)" 
+                    :disabled="pagination.currentPage === pagination.totalPages"
+                    class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+              <span>Próxima</span>
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
 
-            <!-- Info de performance -->
-            <div x-show="performanceMode && filteredCollection.length > 0" class="text-center mt-4">
-              <p class="text-sm text-muted">
-                Mostrando <span x-text="displayedCollection.length"></span> de 
-                <span x-text="filteredCollection.length"></span> itens 
-                (Página <span x-text="pagination.currentPage"></span> de <span x-text="pagination.totalPages"></span>)
-              </p>
-              <p class="text-xs text-muted mt-1">Modo Performance ativo para coleções grandes</p>
-            </div>
-
-          <!-- Info de performance (ADICIONE AQUI TAMBÉM) -->
-          <div x-show="performanceMode" class="text-center mt-4">
-            <p class="text-xs text-muted">
+          <!-- Info de performance -->
+          <div x-show="performanceMode && filteredCollection.length > 0" class="text-center mt-4">
+            <p class="text-sm text-muted">
               Mostrando <span x-text="displayedCollection.length"></span> de 
               <span x-text="filteredCollection.length"></span> itens 
-              (Modo Performance ativado para coleções grandes)
+              (Página <span x-text="pagination.currentPage"></span> de <span x-text="pagination.totalPages"></span>)
             </p>
+            <p class="text-xs text-muted mt-1">Modo Performance ativo para coleções grandes</p>
           </div>
             
         
@@ -1861,16 +1863,19 @@ document.addEventListener('alpine:init', () => {
     editRecord(record) {
       this.albumDetailsModal.show = false;
       
-      this.newRecord = { ...record };
+      this.newRecord = { 
+        id: record.id,
+        album: record.album || '', 
+        artist: record.artist || '', 
+        format: record.format || '', 
+        year: record.year || '', 
+        catalog_number: record.catalog_number || '', 
+        cover_url: record.cover_url || '',
+        description: record.description || ''
+      };
       this.currentView = 'add-record';
       this.showNotification('Editando item...', 'info');
       this.showMobileSidebar = false;
-    },
-
-    confirmDeleteRecord(recordId) {
-      if (confirm('Deseja realmente excluir este item?')) {
-        this.deleteRecord(recordId);
-      }
     },
 
     async deleteRecord(recordId) {
