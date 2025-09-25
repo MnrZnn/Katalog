@@ -115,6 +115,29 @@
     .theme-dark .delete-account-form { background-color: #1E1E1E; }
     .theme-light .delete-account-form { background-color: #ffffff; }
 
+    /* Modal de aviso para imports grandes */
+    .large-import-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 70;
+    }
+
+    .large-import-content {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 0.5rem;
+      max-width: 28rem;
+      width: 100%;
+      margin: 1rem;
+    }
+
+    .theme-dark .large-import-content { background-color: #1E1E1E; }
+    .theme-light .large-import-content { background-color: #ffffff; }
+
     /* Loading overlay para import modal */
     .import-loading-overlay {
       position: absolute;
@@ -474,6 +497,11 @@
               class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
         <i data-lucide="upload"></i><span>Importar Excel</span>
       </button>
+      <button @click="startAutoCoverSearch(); showMobileSidebar = false" 
+        :disabled="collection.length === 0"
+        class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+  <i data-lucide="image"></i><span>Buscar Capas</span>
+</button>
     </nav>
     <div class="p-4 border-t border-custom space-y-2">
       <div class="px-3 py-2 text-xs text-gray-400 break-words">
@@ -833,6 +861,51 @@
   </div>
 </div>
 
+<!-- Modal de Aviso para Import Grande -->
+  <div x-show="largeImportModal.show && !isSharedView" class="large-import-modal">
+    <div class="large-import-content">
+      <div class="text-center mb-6">
+        <i data-lucide="alert-triangle" class="mx-auto h-16 w-16 text-orange-500 mb-4"></i>
+        <h3 class="text-xl font-bold text-orange-400 mb-2">Import Grande Detectado</h3>
+        <p class="text-sm text-muted">
+          Você está importando <strong x-text="largeImportModal.totalItems"></strong> itens.
+        </p>
+      </div>
+      
+      <div class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-6">
+        <h4 class="font-semibold text-orange-300 mb-2">⚠️ Atenção:</h4>
+        <ul class="text-sm text-orange-200 space-y-1">
+          <li>• Buscar capas para muitos itens pode ser lento</li>
+          <li>• O processo pode demorar vários minutos</li>
+          <li>• Você pode pular a busca de capas agora</li>
+          <li>• Capas podem ser buscadas depois individualmente</li>
+        </ul>
+      </div>
+      
+      <div class="bg-input p-4 rounded-lg mb-6">
+        <label class="flex items-center space-x-3">
+          <input x-model="largeImportModal.skipCovers" type="checkbox" class="rounded">
+          <div>
+            <span class="font-medium">Pular busca automática de capas</span>
+            <p class="text-xs text-muted">Importar apenas os dados, sem buscar capas online</p>
+          </div>
+        </label>
+      </div>
+      
+      <div class="flex space-x-4">
+        <button @click="proceedLargeImport()" 
+                class="flex-1 py-3 btn-primary rounded-md">
+          <span x-show="!largeImportModal.skipCovers">Continuar com Capas</span>
+          <span x-show="largeImportModal.skipCovers">Continuar sem Capas</span>
+        </button>
+        <button @click="cancelLargeImport()" 
+                class="px-6 py-3 btn-secondary rounded-md">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Login (apenas quando não é visualização compartilhada) -->
   <div x-show="!user && !loading && !isSharedView" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black p-4">
     <div class="bg-card p-6 md:p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -890,37 +963,42 @@
   <!-- Dashboard (apenas para usuários logados, não para visualização compartilhada) -->
   <div x-show="user && !loading && !isSharedView" class="flex h-screen">
     <!-- Desktop Sidebar -->
-    <aside class="w-64 bg-black flex-shrink-0 flex-col desktop-sidebar hidden md:flex">
-      <div class="p-4 flex items-center space-x-2 border-b border-custom">
-        <i data-lucide="disc-3" class="text-green-400"></i>
-        <h1 class="text-xl font-bold text-white">Katalog</h1>
-      </div>
-      <nav class="flex-1 p-4 space-y-2">
-        <a href="#" @click.prevent="currentView = 'collection'" 
-           :class="{'bg-green-500 text-white': currentView === 'collection'}"
-           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
-           <i data-lucide="album"></i><span>Minha Coleção</span>
-        </a>
-        <a href="#" @click.prevent="currentView = 'add-record'" 
-           :class="{'bg-green-500 text-white': currentView === 'add-record'}"
-           class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
-           <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
-        </a>
-        <button @click="importModal.show = true" 
-                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
-          <i data-lucide="upload"></i><span>Importar Excel</span>
-        </button>
-      </nav>
-      <div class="p-4 border-t border-custom space-y-2">
-        <div class="px-3 py-2 text-xs text-gray-400 break-words">
-          <span x-text="user?.email"></span>
-        </div>
-        <button @click="confirmLogout()" 
-                class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
-          <i data-lucide="log-out"></i><span>Sair</span>
-        </button>
-      </div>
-    </aside>
+<aside class="w-64 bg-black flex-shrink-0 flex-col desktop-sidebar hidden md:flex">
+  <div class="p-4 flex items-center space-x-2 border-b border-custom">
+    <i data-lucide="disc-3" class="text-green-400"></i>
+    <h1 class="text-xl font-bold text-white">Katalog</h1>
+  </div>
+  <nav class="flex-1 p-4 space-y-2">
+    <a href="#" @click.prevent="currentView = 'collection'" 
+       :class="{'bg-green-500 text-white': currentView === 'collection'}"
+       class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+       <i data-lucide="album"></i><span>Minha Coleção</span>
+    </a>
+    <a href="#" @click.prevent="currentView = 'add-record'" 
+       :class="{'bg-green-500 text-white': currentView === 'add-record'}"
+       class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+       <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
+    </a>
+    <button @click="importModal.show = true" 
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+      <i data-lucide="upload"></i><span>Importar Excel</span>
+    </button>
+    <button @click="startAutoCoverSearch()" 
+            :disabled="collection.length === 0"
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-purple-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+      <i data-lucide="image"></i><span>Buscar Capas</span>
+    </button>
+  </nav>
+  <div class="p-4 border-t border-custom space-y-2">
+    <div class="px-3 py-2 text-xs text-gray-400 break-words">
+      <span x-text="user?.email"></span>
+    </div>
+    <button @click="confirmLogout()" 
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-red-600/50 hover:bg-red-800 text-white">
+      <i data-lucide="log-out"></i><span>Sair</span>
+    </button>
+  </div>
+</aside>
 
     <!-- Main -->
     <main class="flex-1 overflow-y-auto main-content">
@@ -1228,28 +1306,34 @@
     </main>
   </div>
 
-    <!-- Mobile Bottom Navigation (apenas para usuários logados) -->
-  <nav x-show="user && !isSharedView" class="mobile-bottom-nav mobile-only md:hidden">
-    <div class="flex justify-around items-center py-3">
-      <button @click="currentView = 'collection'" 
-              :class="{'text-green-400': currentView === 'collection'}"
-              class="flex flex-col items-center space-y-1 px-3 py-2">
-        <i data-lucide="album" class="w-5 h-5"></i>
-        <span class="text-xs">Coleção</span>
-      </button>
-      <button @click="currentView = 'add-record'" 
-              :class="{'text-green-400': currentView === 'add-record'}"
-              class="flex flex-col items-center space-y-1 px-3 py-2">
-        <i data-lucide="plus-circle" class="w-5 h-5"></i>
-        <span class="text-xs">Adicionar</span>
-      </button>
-      <button @click="importModal.show = true" 
-              class="flex flex-col items-center space-y-1 px-3 py-2 text-blue-300">
-        <i data-lucide="upload" class="w-5 h-5"></i>
-        <span class="text-xs">Importar</span>
-      </button>
-    </div>
-  </nav>
+    <!-- Mobile Bottom Navigation -->
+    <nav x-show="user && !isSharedView" class="mobile-bottom-nav mobile-only md:hidden">
+      <div class="flex justify-around items-center py-3">
+        <button @click="currentView = 'collection'" 
+                :class="{'text-green-400': currentView === 'collection'}"
+                class="flex flex-col items-center space-y-1 px-2 py-2">
+          <i data-lucide="album" class="w-4 h-4"></i>
+          <span class="text-xs">Coleção</span>
+        </button>
+        <button @click="currentView = 'add-record'" 
+                :class="{'text-green-400': currentView === 'add-record'}"
+                class="flex flex-col items-center space-y-1 px-2 py-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span class="text-xs">Adicionar</span>
+        </button>
+        <button @click="importModal.show = true" 
+                class="flex flex-col items-center space-y-1 px-2 py-2 text-blue-300">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span class="text-xs">Importar</span>
+        </button>
+        <button @click="startAutoCoverSearch()" 
+                :disabled="collection.length === 0"
+                class="flex flex-col items-center space-y-1 px-2 py-2 text-purple-300 disabled:text-gray-500">
+          <i data-lucide="image" class="w-4 h-4"></i>
+          <span class="text-xs">Capas</span>
+        </button>
+      </div>
+    </nav>
 
   <!-- Floating Action Button (Mobile, apenas para usuários logados) -->
   <button x-show="currentView === 'collection' && collection.length === 0 && !isSharedView" 
@@ -1307,6 +1391,11 @@
         
         // Modals
         importModal: { show: false, data: [], preview: [], loading: false, progress: 0, progressText: 'Iniciando...'},
+        largeImportModal: {
+          show: false,
+          totalItems: 0,
+          skipCovers: false
+        },
         
         // Data
         collection: [],
@@ -2032,95 +2121,208 @@
           }
         },
               
-        async importRecords() {
-      if (this.importModal.data.length === 0) return;
+        // Verificar se é import grande antes de importar
+async importRecords() {
+  if (this.importModal.data.length === 0) return;
+  
+  // Se mais de 200 itens, mostrar aviso
+  if (this.importModal.data.length > 200) {
+    this.largeImportModal = {
+      show: true,
+      totalItems: this.importModal.data.length,
+      skipCovers: false
+    };
+    return;
+  }
+  
+  // Prosseguir normalmente para imports menores
+  await this.executeImport(false);
+},
 
-      this.importModal.loading = true;
-      this.importModal.progress = 0;
-      this.importModal.progressText = 'Iniciando importação...';
+// Prosseguir com import grande
+async proceedLargeImport() {
+  this.largeImportModal.show = false;
+  await this.executeImport(this.largeImportModal.skipCovers);
+},
+
+// Cancelar import grande
+cancelLargeImport() {
+  this.largeImportModal = {
+    show: false,
+    totalItems: 0,
+    skipCovers: false
+  };
+},
+
+// Executar o import (refatorado)
+async executeImport(skipCovers = false) {
+  if (this.importModal.data.length === 0) return;
+
+  this.importModal.loading = true;
+  this.importModal.progress = 0;
+  this.importModal.progressText = 'Iniciando importação...';
+  
+  try {
+    const userId = this.user.uid;
+    const batch = db.batch();
+    const totalItems = this.importModal.data.length;
+
+    this.showNotification(`Importando ${totalItems} itens...`, 'info');
+
+    if (!skipCovers) {
+      // Fase 1: Buscar capas (70% do progresso)
+      this.importModal.progressText = 'Buscando capas...';
       
-      try {
-        const userId = this.user.uid;
-        const batch = db.batch();
-        const totalItems = this.importModal.data.length;
-
-        this.showNotification(`Importando ${totalItems} itens...`, 'info');
-
-        // Fase 1: Buscar capas (70% do progresso)
-        this.importModal.progressText = 'Buscando capas...';
+      for (let i = 0; i < this.importModal.data.length; i++) {
+        const record = this.importModal.data[i];
         
-        for (let i = 0; i < this.importModal.data.length; i++) {
-          const record = this.importModal.data[i];
-          
-          // Atualizar progresso da busca de capas (0-70%)
-          const coverProgress = Math.floor((i / totalItems) * 70);
-          this.importModal.progress = coverProgress;
-          this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
-          
-          // Se não tem capa, tenta buscar automaticamente
-          if (!record.cover_url && record.album && record.artist) {
-            try {
-              const query = `${record.album} ${record.artist}`.trim();
-              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-              
-              const response = await fetch(itunesUrl);
-              if (response.ok) {
-                const data = await response.json();
-                if (data.results && data.results.length > 0) {
-                  const album = data.results[0];
-                  if (album.artworkUrl100) {
-                    const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                    record.cover_url = highResUrl;
-                  }
+        const coverProgress = Math.floor((i / totalItems) * 70);
+        this.importModal.progress = coverProgress;
+        this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+        
+        if (!record.cover_url && record.album && record.artist) {
+          try {
+            const query = `${record.album} ${record.artist}`.trim();
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+            
+            const response = await fetch(itunesUrl);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results && data.results.length > 0) {
+                const album = data.results[0];
+                if (album.artworkUrl100) {
+                  const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                  record.cover_url = highResUrl;
                 }
               }
-            } catch (error) {
-              console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
             }
-            
-            // Pequeno delay para não sobrecarregar a API
-            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch (error) {
+            console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
           }
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        // Fase 2: Preparar dados (70-85%)
-        this.importModal.progress = 70;
-        this.importModal.progressText = 'Preparando dados para salvamento...';
-        
-        this.importModal.data.forEach(record => {
-          const docRef = db.collection('users').doc(userId).collection('records').doc();
-          batch.set(docRef, {
-            ...record,
-            created_at: new Date(),
-            user_id: userId
-          });
-        });
-
-        // Simular um pequeno delay para mostrar o progresso
-        await new Promise(resolve => setTimeout(resolve, 500));
-        this.importModal.progress = 85;
-
-        // Fase 3: Salvar no banco (85-100%)
-        this.importModal.progressText = 'Salvando no banco de dados...';
-        await batch.commit();
-        
-        this.importModal.progress = 100;
-        this.importModal.progressText = 'Importação concluída!';
-        
-        // Pequeno delay para mostrar 100%
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
-        this.closeImportModal();
-        
-      } catch (error) {
-        console.error('Erro na importação:', error);
-        this.showNotification('Erro ao importar registros', 'error');
       }
       
-      this.importModal.loading = false;
-      this.importModal.progress = 0;
-    },
+      this.importModal.progress = 70;
+    } else {
+      this.importModal.progress = 70;
+    }
+
+    this.importModal.progressText = 'Preparando dados para salvamento...';
+    
+    this.importModal.data.forEach(record => {
+      const docRef = db.collection('users').doc(userId).collection('records').doc();
+      batch.set(docRef, {
+        ...record,
+        created_at: new Date(),
+        user_id: userId
+      });
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+    this.importModal.progress = 85;
+
+    this.importModal.progressText = 'Salvando no banco de dados...';
+    await batch.commit();
+    
+    this.importModal.progress = 100;
+    this.importModal.progressText = 'Importação concluída!';
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
+    this.closeImportModal();
+    
+  } catch (error) {
+    console.error('Erro na importação:', error);
+    this.showNotification('Erro ao importar registros', 'error');
+  }
+  
+  this.importModal.loading = false;
+  this.importModal.progress = 0;
+},
+
+// Iniciar busca automática de capas
+async startAutoCoverSearch() {
+  if (this.collection.length === 0) {
+    this.showNotification('Nenhum item na coleção', 'error');
+    return;
+  }
+  
+  const itemsWithoutCovers = this.collection.filter(record => !record.cover_url);
+  
+  if (itemsWithoutCovers.length === 0) {
+    this.showNotification('Todos os itens já possuem capas!', 'info');
+    return;
+  }
+  
+  if (confirm(`Buscar capas para ${itemsWithoutCovers.length} itens sem capa?`)) {
+    await this.searchMissingCovers(itemsWithoutCovers);
+  }
+},
+
+// Buscar capas ausentes
+async searchMissingCovers(items) {
+  this.importModal.loading = true;
+  this.importModal.show = true;
+  this.importModal.progress = 0;
+  this.importModal.progressText = 'Buscando capas ausentes...';
+  
+  try {
+    const userId = this.user.uid;
+    const totalItems = items.length;
+    let updated = 0;
+    
+    for (let i = 0; i < items.length; i++) {
+      const record = items[i];
+      
+      const progress = Math.floor((i / totalItems) * 100);
+      this.importModal.progress = progress;
+      this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+      
+      try {
+        const query = `${record.album} ${record.artist}`.trim();
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+        
+        const response = await fetch(itunesUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            const album = data.results[0];
+            if (album.artworkUrl100) {
+              const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+              
+              await db.collection('users').doc(userId).collection('records')
+                .doc(record.id).update({ cover_url: highResUrl });
+              
+              updated++;
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+    
+    this.importModal.progress = 100;
+    this.importModal.progressText = 'Busca concluída!';
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
+    
+  } catch (error) {
+    console.error('Erro na busca de capas:', error);
+    this.showNotification('Erro ao buscar capas', 'error');
+  }
+  
+  this.importModal.loading = false;
+  this.importModal.show = false;
+  this.importModal.progress = 0;
+},
 
         closeImportModal() {
         this.importModal = { 
