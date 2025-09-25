@@ -900,7 +900,8 @@
             <template x-for="record in filteredCollection" :key="record.id">
               <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
                 <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                     class="w-full aspect-square object-cover">
+                  class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="showAlbumDetails(record)">
                 <div class="absolute top-2 left-2">
                   <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                         class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -943,7 +944,8 @@
               <template x-for="record in filteredCollection" :key="record.id">
                 <div class="border-b border-custom p-4 flex items-center space-x-3">
                   <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                       class="w-12 h-12 object-cover rounded">
+                    class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                    @click="showAlbumDetails(record)">
                   <div class="flex-1 min-w-0">
                     <h3 class="font-semibold text-sm truncate" x-text="record.album"></h3>
                     <p class="text-xs text-muted truncate" x-text="record.artist"></p>
@@ -984,7 +986,8 @@
                   <tr class="border-b border-custom hover:bg-input">
                     <td class="p-4">
                       <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                           class="w-12 h-12 object-cover rounded">
+                          class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                          @click="showAlbumDetails(record)">
                     </td>
                     <td class="p-4 font-semibold" x-text="record.album"></td>
                     <td class="p-4" x-text="record.artist"></td>
