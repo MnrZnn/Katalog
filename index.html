@@ -1760,238 +1760,24 @@ document.addEventListener('alpine:init', () => {
         window.open(url, '_blank');
       }
     },
-
-// 1. ADICIONAR CACHE LOCAL PARA REDUZIR CONSULTAS
-// Substitua a função setupCollection no seu código:
-
-async setupCollection(userId) {
-  try {
-    // Usar cache local quando possível
-    const cachedCollection = localStorage.getItem(`katalog-cache-${userId}`);
-    if (cachedCollection) {
-      this.collection = JSON.parse(cachedCollection);
-      this.checkPerformanceMode();
-      this.filterAndSortCollection();
-    }
-
-    const collectionRef = db.collection('users').doc(userId).collection('records');
     
-    // Usar onSnapshot apenas se necessário, senão usar get()
-    if (this.realtimeUpdates) {
-      collectionRef.onSnapshot((snapshot) => {
-        this.collection = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        // Salvar no cache
-        localStorage.setItem(`katalog-cache-${userId}`, JSON.stringify(this.collection));
-        
-        this.checkPerformanceMode();
-        this.filterAndSortCollection();
-      });
-    } else {
-      // Usar get() é mais econômico que onSnapshot
-      const snapshot = await collectionRef.get();
-      this.collection = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      localStorage.setItem(`katalog-cache-${userId}`, JSON.stringify(this.collection));
-      this.checkPerformanceMode();
-      this.filterAndSortCollection();
-    }
-  } catch (error) {
-    console.error('Erro ao configurar coleção:', error);
-    // Usar dados do cache em caso de erro
-    const cachedCollection = localStorage.getItem(`katalog-cache-${userId}`);
-    if (cachedCollection) {
-      this.collection = JSON.parse(cachedCollection);
-      this.showNotification('Usando dados salvos localmente', 'info');
-    } else {
-      this.showNotification('Erro ao carregar coleção', 'error');
-    }
-  }
-},
-
-// 2. OTIMIZAR OPERAÇÕES EM LOTE
-async importRecords() {
-  if (this.importModal.data.length === 0) return;
-
-  this.importModal.loading = true;
-  this.importModal.progress = 0;
-  
-  try {
-    const userId = this.user.uid;
-    const batchSize = 500; // Limite do Firestore
-    const batches = [];
-    
-    // Dividir em lotes
-    for (let i = 0; i < this.importModal.data.length; i += batchSize) {
-      const batch = db.batch();
-      const chunk = this.importModal.data.slice(i, i + batchSize);
-      
-      chunk.forEach(record => {
-        const docRef = db.collection('users').doc(userId).collection('records').doc();
-        batch.set(docRef, {
-          ...record,
-          created_at: new Date(),
-          user_id: userId
+    async setupCollection(userId) {
+      try {
+        const collectionRef = db.collection('users').doc(userId).collection('records');
+        collectionRef.onSnapshot((snapshot) => {
+          this.collection = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          this.checkPerformanceMode();
+          this.filterAndSortCollection();
         });
-      });
-      
-      batches.push(batch);
-    }
-
-    // Executar lotes sequencialmente
-    for (let i = 0; i < batches.length; i++) {
-      await batches[i].commit();
-      this.importModal.progress = Math.floor(((i + 1) / batches.length) * 100);
-      this.importModal.progressText = `Salvando lote ${i + 1} de ${batches.length}...`;
-      
-      // Pequena pausa entre lotes
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    this.showNotification(`${this.importModal.data.length} itens importados!`, 'success');
-    this.closeImportModal();
-    
-  } catch (error) {
-    console.error('Erro na importação:', error);
-    if (error.code === 'resource-exhausted') {
-      this.showNotification('Cota do Firebase excedida. Tente novamente em algumas horas.', 'error');
-    } else {
-      this.showNotification('Erro ao importar registros', 'error');
-    }
-  }
-  
-  this.importModal.loading = false;
-},
-
-// 3. IMPLEMENTAR MODO OFFLINE
-init() {
-  // ... código existente ...
-  
-  // Adicionar variável para controle de modo offline
-  this.offlineMode = false;
-  this.realtimeUpdates = true;
-  
-  // Detectar problemas de cota
-  window.addEventListener('unhandledrejection', (event) => {
-    if (event.reason?.code === 'resource-exhausted') {
-      this.handleQuotaExceeded();
-    }
-  });
-},
-
-handleQuotaExceeded() {
-  this.offlineMode = true;
-  this.realtimeUpdates = false;
-  this.showNotification('Cota do Firebase excedida. Funcionando em modo offline.', 'error');
-  
-  // Usar dados do cache
-  const userId = this.user?.uid;
-  if (userId) {
-    const cachedCollection = localStorage.getItem(`katalog-cache-${userId}`);
-    if (cachedCollection) {
-      this.collection = JSON.parse(cachedCollection);
-      this.filterAndSortCollection();
-    }
-  }
-},
-
-// 4. REDUZIR CHAMADAS DESNECESSÁRIAS
-filterAndSortCollection() {
-  // Usar debounce para evitar múltiplas execuções
-  clearTimeout(this.filterTimeout);
-  this.filterTimeout = setTimeout(() => {
-    let filtered = this.collection;
-    
-    if (this.searchFilter.trim()) {
-      const filter = this.searchFilter.toLowerCase();
-      filtered = filtered.filter(record => 
-        record.album?.toLowerCase().includes(filter) ||
-        record.artist?.toLowerCase().includes(filter) ||
-        record.format?.toLowerCase().includes(filter) ||
-        record.year?.toString().includes(filter)
-      );
-    }
-    
-    this.filteredCollection = filtered;
-    this.sortCollection();
-    this.updatePagination();
-    
-    // Não recriar ícones desnecessariamente
-    if (!this.iconsTimeout) {
-      this.iconsTimeout = setTimeout(() => {
-        lucide.createIcons();
-        this.iconsTimeout = null;
-      }, 100);
-    }
-  }, 300);
-},
-
-// 5. IMPLEMENTAR RETRY COM BACKOFF
-async retryWithBackoff(operation, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error.code === 'resource-exhausted' && i < maxRetries - 1) {
-        const delay = Math.pow(2, i) * 1000; // Backoff exponencial
-        this.showNotification(`Limite excedido. Tentando novamente em ${delay/1000}s...`, 'info');
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
+      } catch (error) {
+        console.error('Erro ao configurar coleção:', error);
+        this.showNotification('Erro ao carregar coleção', 'error');
       }
-    }
-  }
-},
-
-// 6. OTIMIZAR BUSCA DE CAPAS
-async fetchAlbumCover() {
-  try {
-    const query = `${this.newRecord.album} ${this.newRecord.artist}`.trim();
-    if (!query) return;
-    
-    // Verificar cache primeiro
-    const cacheKey = `cover-${query}`;
-    const cachedCover = localStorage.getItem(cacheKey);
-    if (cachedCover) {
-      this.newRecord.cover_url = cachedCover;
-      this.showNotification('Capa encontrada no cache!', 'success');
-      return;
-    }
-    
-    this.showNotification('Buscando capa...', 'info');
-    
-    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-    
-    const response = await this.retryWithBackoff(() => fetch(itunesUrl));
-    const data = await response.json();
-
-    if (data.results && data.results.length > 0) {
-      const album = data.results[0];
-      if (album.artworkUrl100) {
-        const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-        
-        // Salvar no cache
-        localStorage.setItem(cacheKey, highResUrl);
-        
-        this.newRecord.cover_url = highResUrl;
-        this.showNotification('Capa encontrada!', 'success');
-        return;
-      }
-    }
-
-    this.showNotification('Nenhuma capa encontrada', 'info');
-    
-  } catch (error) {
-    console.error('Erro ao buscar capa:', error);
-    this.showNotification('Não foi possível buscar capa', 'error');
-  }
-}
+    },
 
     async login() {
       if (!this.email || !this.password) {
@@ -2969,5 +2755,4 @@ document.addEventListener('DOMContentLoaded', () => {
   </script>
 </body>
 </html>
-
 
