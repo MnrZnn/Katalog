@@ -2697,63 +2697,68 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Buscar capas ausentes
-    async searchMissingCovers(items) {
-      this.importModal.loading = true;
-      this.importModal.show = true;
-      this.importModal.progress = 0;
-      this.importModal.progressText = 'Buscando capas ausentes...';
-      
-      try {
-        const userId = this.user.uid;
-        const totalItems = items.length;
-        let updated = 0;
+      async searchMissingCovers(items) {
+        this.importModal.loading = true;
+        this.importModal.show = true;
+        this.importModal.progress = 0;
+        this.importModal.progressText = 'Buscando capas ausentes...';
         
-        for (let i = 0; i < items.length; i++) {
-          const record = items[i];
+        try {
+          const userId = this.user.uid;
+          const totalItems = items.length;
+          let updated = 0;
           
-          const progress = Math.floor((i / totalItems) * 100);
-          this.importModal.progress = progress;
-          this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
-          
-          try {
-            const query = `${record.album} ${record.artist}`.trim();
-            if (response.ok) {
-              const data = await response.json();
-              if (data.results && data.results.length > 0) {
-                const album = data.results[0];
-                if (album.artworkUrl100) {
-                  const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                  
-                  await db.collection('users').doc(userId).collection('records')
-                    .doc(record.id).update({ cover_url: highResUrl });
-                  
-                  updated++;
+          for (let i = 0; i < items.length; i++) {
+            const record = items[i];
+            
+            const progress = Math.floor((i / totalItems) * 100);
+            this.importModal.progress = progress;
+            this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
+            
+            try {
+              const query = `${record.album} ${record.artist}`.trim();
+              const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+              
+              // LINHA COM ERRO - ADICIONAR A BUSCA
+              const response = await fetch(itunesUrl);
+              
+              if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                  const album = data.results[0];
+                  if (album.artworkUrl100) {
+                    const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
+                    
+                    await db.collection('users').doc(userId).collection('records')
+                      .doc(record.id).update({ cover_url: highResUrl });
+                    
+                    updated++;
+                  }
                 }
               }
+            } catch (error) {
+              console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
             }
-          } catch (error) {
-            console.log(`Erro ao buscar capa para: ${record.album} - ${record.artist}`);
+            
+            await new Promise(resolve => setTimeout(resolve, 150));
           }
           
-          await new Promise(resolve => setTimeout(resolve, 150));
+          this.importModal.progress = 100;
+          this.importModal.progressText = 'Busca concluída!';
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
+          
+        } catch (error) {
+          console.error('Erro na busca de capas:', error);
+          this.showNotification('Erro ao buscar capas', 'error');
         }
         
-        this.importModal.progress = 100;
-        this.importModal.progressText = 'Busca concluída!';
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        this.showNotification(`${updated} capas encontradas e atualizadas!`, 'success');
-        
-      } catch (error) {
-        console.error('Erro na busca de capas:', error);
-        this.showNotification('Erro ao buscar capas', 'error');
-      }
-      
-      this.importModal.loading = false;
-      this.importModal.show = false;
-      this.importModal.progress = 0;
-    },
+        this.importModal.loading = false;
+        this.importModal.show = false;
+        this.importModal.progress = 0;
+      },
 
     closeImportModal() {
       this.importModal = { 
