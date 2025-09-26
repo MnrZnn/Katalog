@@ -388,10 +388,10 @@
             class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
           <template x-for="record in filteredSharedCollection" :key="record.id">
             <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
-              <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
-                  class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  @click="showAlbumDetails(record)">
+              <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+                class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                @click="showAlbumDetails(record)"
+                 onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=' + (this.getAttribute('alt') || 'A')">
               <div class="absolute top-2 left-2">
                 <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                       class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -1111,10 +1111,10 @@
                class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             <template x-for="record in displayedCollection" :key="record.id">
               <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
-                <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E" 
+                <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
                   class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  @click="showAlbumDetails(record)">
+                  @click="showAlbumDetails(record)"
+                  onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=' + (this.closest('[x-data]')?.__x?.$data?.record?.album?.charAt(0) || 'A')">
                 <div class="absolute top-2 left-2">
                   <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                         class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -1416,10 +1416,6 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-firebase.firestore().enablePersistence({
-  synchronizeTabs: true
-});
-
 document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     loading: true,
@@ -1517,16 +1513,18 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       try {
-        // Verificar quota antes de continuar
-        const quotaCheck = localStorage.getItem('katalog-quota-check');
-        const today = new Date().toDateString();
+        await this.checkForSharedCollection();
         
-        if (quotaCheck === today) {
-          this.showNotification('Quota Firebase limitada hoje. Funcionalidade reduzida.', 'info');
+        if (this.isSharedView) {
+          this.loading = false;
+          lucide.createIcons();
           return;
         }
-        
-    // resto do código...
+
+        this.checkDevice();
+        window.addEventListener('resize', () => {
+          this.checkDevice();
+        });
 
         auth.onAuthStateChanged((user) => {
           this.user = user;
@@ -1544,7 +1542,7 @@ document.addEventListener('alpine:init', () => {
         lucide.createIcons();
         setTimeout(() => {
           if (this.performanceMode) {
-            this.observeImages();
+            // // this.observeImages();
           }
         }, 200);
 
@@ -1553,7 +1551,7 @@ document.addEventListener('alpine:init', () => {
           setTimeout(() => {
             lucide.createIcons();
             if (this.performanceMode) {
-              this.observeImages();
+              // this.observeImages();
             }
           }, 50);
         });
@@ -1562,7 +1560,7 @@ document.addEventListener('alpine:init', () => {
           setTimeout(() => {
             lucide.createIcons();
             if (this.performanceMode) {
-              this.observeImages();
+              // this.observeImages();
             }
           }, 50);
         });
@@ -1571,7 +1569,7 @@ document.addEventListener('alpine:init', () => {
           setTimeout(() => {
             lucide.createIcons();
             if (this.performanceMode && this.currentView === 'collection') {
-              this.observeImages();
+              // this.observeImages();
             }
           }, 100);
         });
@@ -1775,7 +1773,7 @@ document.addEventListener('alpine:init', () => {
     
     async setupCollection(userId) {
       try {
-        // Carregamento ÚNICO sem listener para parar as consultas
+        // Primeiro carregamento único
         const collectionRef = db.collection('users').doc(userId).collection('records');
         const snapshot = await collectionRef.get();
         
@@ -1784,13 +1782,14 @@ document.addEventListener('alpine:init', () => {
           ...doc.data()
         }));
         
+        this.checkPerformanceMode();
         this.filterAndSortCollection();
-        console.log(`Coleção carregada uma vez: ${this.collection.length} itens`);
         
-        // NÃO configurar listener para economizar quota
+        // Configurar listener apenas após carregamento inicial
+        this.setupCollectionListener(userId);
         
       } catch (error) {
-        console.error('Erro ao carregar coleção:', error);
+        console.error('Erro ao configurar coleção:', error);
         this.showNotification('Erro ao carregar coleção', 'error');
       }
     },
@@ -2044,7 +2043,7 @@ document.addEventListener('alpine:init', () => {
       setTimeout(() => {
         lucide.createIcons();
         if (this.performanceMode) {
-          this.observeImages();
+          // this.observeImages();
         }
       }, 10);
     },
@@ -2270,13 +2269,13 @@ document.addEventListener('alpine:init', () => {
 
     observeImages() {
   // Versão simplificada e segura
-  const images = document.querySelectorAll('img[data-src]');
-  images.forEach(img => {
-    if (img.dataset.src && !img.src.includes('http')) {
-      img.src = img.dataset.src;
-      img.removeAttribute('data-src');
-    }
-  });
+  // const images = document.querySelectorAll('img[data-src]');
+  // images.forEach(img => {
+  //   if (img.dataset.src && !img.src.includes('http')) {
+  //     img.src = img.dataset.src;
+  //     img.removeAttribute('data-src');
+  //   }
+  // });
 },
 
     filterCollection() {
