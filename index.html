@@ -1542,7 +1542,7 @@ document.addEventListener('alpine:init', () => {
         lucide.createIcons();
         setTimeout(() => {
           if (this.performanceMode) {
-            // // this.observeImages();
+            this.observeImages();
           }
         }, 200);
 
@@ -1551,7 +1551,7 @@ document.addEventListener('alpine:init', () => {
           setTimeout(() => {
             lucide.createIcons();
             if (this.performanceMode) {
-              // this.observeImages();
+              this.observeImages();
             }
           }, 50);
         });
@@ -1560,7 +1560,7 @@ document.addEventListener('alpine:init', () => {
           setTimeout(() => {
             lucide.createIcons();
             if (this.performanceMode) {
-              // this.observeImages();
+              this.observeImages();
             }
           }, 50);
         });
@@ -1569,7 +1569,7 @@ document.addEventListener('alpine:init', () => {
           setTimeout(() => {
             lucide.createIcons();
             if (this.performanceMode && this.currentView === 'collection') {
-              // this.observeImages();
+              this.observeImages();
             }
           }, 100);
         });
@@ -2043,7 +2043,7 @@ document.addEventListener('alpine:init', () => {
       setTimeout(() => {
         lucide.createIcons();
         if (this.performanceMode) {
-          // this.observeImages();
+          this.observeImages();
         }
       }, 10);
     },
@@ -2072,8 +2072,7 @@ document.addEventListener('alpine:init', () => {
     // Verificar se precisa modo performance
     checkPerformanceMode() {
       const wasPerformanceMode = this.performanceMode;
-      // DESABILITAR TEMPORARIAMENTE O PERFORMANCE MODE
-      this.performanceMode = false; // this.collection.length > 500;
+      this.performanceMode = this.collection.length > 500; // REATIVAR
       
       if (this.performanceMode && !wasPerformanceMode) {
         this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
@@ -2265,18 +2264,17 @@ document.addEventListener('alpine:init', () => {
         }, { threshold: 0.1 });
         
         setTimeout(() => this.observeImages(), 100);
-    },
+      },
 
     observeImages() {
-  // Versão simplificada e segura
-  // const images = document.querySelectorAll('img[data-src]');
-  // images.forEach(img => {
-  //   if (img.dataset.src && !img.src.includes('http')) {
-  //     img.src = img.dataset.src;
-  //     img.removeAttribute('data-src');
-  //   }
-  // });
-},
+      const images = document.querySelectorAll('img[data-src]');
+      images.forEach(img => {
+        if (img.dataset.src && !img.src.includes('http')) {
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+        }
+      });
+    },
 
     filterCollection() {
       this.pagination.currentPage = 1;
