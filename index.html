@@ -1113,8 +1113,7 @@
             <template x-for="record in displayedCollection" :key="record.id">
               <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
                 <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
-     @load="observeImages()" 
+     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E" 
                   class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   @click="showAlbumDetails(record)">
                 <div class="absolute top-2 left-2">
@@ -1424,6 +1423,8 @@ document.addEventListener('alpine:init', () => {
     user: null,
     authLoading: false,
     formLoading: false,
+    unsubscribe: null,
+    observeTimeout: null,
     
     // Variáveis para compartilhamento
     isSharedView: false,
@@ -1773,20 +1774,59 @@ document.addEventListener('alpine:init', () => {
     
     async setupCollection(userId) {
       try {
+        // Primeiro carregamento único
         const collectionRef = db.collection('users').doc(userId).collection('records');
-        collectionRef.onSnapshot((snapshot) => {
-          this.collection = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
-          this.checkPerformanceMode();
-          this.filterAndSortCollection();
-        });
+        const snapshot = await collectionRef.get();
+        
+        this.collection = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        this.checkPerformanceMode();
+        this.filterAndSortCollection();
+        
+        // Configurar listener apenas após carregamento inicial
+        this.setupCollectionListener(userId);
+        
       } catch (error) {
         console.error('Erro ao configurar coleção:', error);
         this.showNotification('Erro ao carregar coleção', 'error');
       }
+    },
+
+    // Nova função para listener otimizado
+    setupCollectionListener(userId) {
+      const collectionRef = db.collection('users').doc(userId).collection('records');
+      
+      // Listener otimizado que só escuta mudanças
+      this.unsubscribe = collectionRef.onSnapshot((snapshot) => {
+        let hasChanges = false;
+        
+        snapshot.docChanges().forEach((change) => {
+          hasChanges = true;
+          const record = { id: change.doc.id, ...change.doc.data() };
+          
+          if (change.type === 'added') {
+            const exists = this.collection.find(r => r.id === record.id);
+            if (!exists) {
+              this.collection.push(record);
+            }
+          } else if (change.type === 'modified') {
+            const index = this.collection.findIndex(r => r.id === record.id);
+            if (index !== -1) {
+              this.collection[index] = record;
+            }
+          } else if (change.type === 'removed') {
+            this.collection = this.collection.filter(r => r.id !== record.id);
+          }
+        });
+        
+        if (hasChanges) {
+          this.checkPerformanceMode();
+          this.filterAndSortCollection();
+        }
+      });
     },
 
     async login() {
@@ -1838,6 +1878,23 @@ document.addEventListener('alpine:init', () => {
     },
 
      confirmLogout() {
+        // Limpar listener do Firestore
+        if (this.unsubscribe) {
+          this.unsubscribe();
+          this.unsubscribe = null;
+        }
+        
+        // Limpar observer de imagens
+        if (this.imageObserver) {
+          this.imageObserver.disconnect();
+          this.imageObserver = null;
+        }
+        
+        // Limpar timeouts
+        if (this.observeTimeout) {
+          clearTimeout(this.observeTimeout);
+        }
+        
         // Cancelar operações em andamento
         this.cancelAllApiOperations();
         
@@ -2188,31 +2245,45 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Lazy loading de imagens
-    initLazyLoading() {
-      if (this.imageObserver) {
-        this.imageObserver.disconnect();
-      }
-      
-      this.imageObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const img = entry.target;
-            if (img.dataset.src) {
-              img.src = img.dataset.src;
-              img.removeAttribute('data-src');
-              this.imageObserver.unobserve(img);
+      initLazyLoading() {
+        if (this.imageObserver) {
+          this.imageObserver.disconnect();
+        }
+        
+        this.imageObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              if (img.dataset.src) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                img.removeAttribute('data-observed');
+                this.imageObserver.unobserve(img);
+              }
             }
-          }
-        });
-      }, { threshold: 0.1 });
-      
-      setTimeout(() => this.observeImages(), 100);
+          });
+        }, { threshold: 0.1 });
+        
+        setTimeout(() => this.observeImages(), 100);
     },
 
     observeImages() {
-      document.querySelectorAll('img[data-src]').forEach(img => {
-        this.imageObserver.observe(img);
-      });
+      if (!this.imageObserver) return;
+      
+      // Usar requestAnimationFrame para evitar múltiplas chamadas
+      if (this.observeTimeout) {
+        clearTimeout(this.observeTimeout);
+      }
+      
+      this.observeTimeout = setTimeout(() => {
+        const images = document.querySelectorAll('img[data-src]');
+        images.forEach(img => {
+          if (!img.hasAttribute('data-observed')) {
+            this.imageObserver.observe(img);
+            img.setAttribute('data-observed', 'true');
+          }
+        });
+      }, 100);
     },
 
     filterCollection() {
