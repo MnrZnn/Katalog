@@ -2072,7 +2072,8 @@ document.addEventListener('alpine:init', () => {
     // Verificar se precisa modo performance
     checkPerformanceMode() {
       const wasPerformanceMode = this.performanceMode;
-      this.performanceMode = this.collection.length > 500;
+      // DESABILITAR TEMPORARIAMENTE O PERFORMANCE MODE
+      this.performanceMode = false; // this.collection.length > 500;
       
       if (this.performanceMode && !wasPerformanceMode) {
         this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
