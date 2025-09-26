@@ -390,7 +390,6 @@
             <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
               <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
                   src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%231E1E1E'/%3E%3C/svg%3E"
-                  @load="observeImages()" 
                   class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   @click="showAlbumDetails(record)">
               <div class="absolute top-2 left-2">
