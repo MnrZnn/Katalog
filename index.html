@@ -2268,23 +2268,15 @@ document.addEventListener('alpine:init', () => {
     },
 
     observeImages() {
-      if (!this.imageObserver) return;
-      
-      // Usar requestAnimationFrame para evitar múltiplas chamadas
-      if (this.observeTimeout) {
-        clearTimeout(this.observeTimeout);
-      }
-      
-      this.observeTimeout = setTimeout(() => {
-        const images = document.querySelectorAll('img[data-src]');
-        images.forEach(img => {
-          if (!img.hasAttribute('data-observed')) {
-            this.imageObserver.observe(img);
-            img.setAttribute('data-observed', 'true');
-          }
-        });
-      }, 100);
-    },
+  // Versão simplificada e segura
+  const images = document.querySelectorAll('img[data-src]');
+  images.forEach(img => {
+    if (img.dataset.src && !img.src.includes('http')) {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    }
+  });
+},
 
     filterCollection() {
       this.pagination.currentPage = 1;
