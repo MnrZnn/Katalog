@@ -1416,6 +1416,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+firebase.firestore().enablePersistence({
+  synchronizeTabs: true
+});
+
 document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     loading: true,
@@ -1513,18 +1517,16 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       try {
-        await this.checkForSharedCollection();
+        // Verificar quota antes de continuar
+        const quotaCheck = localStorage.getItem('katalog-quota-check');
+        const today = new Date().toDateString();
         
-        if (this.isSharedView) {
-          this.loading = false;
-          lucide.createIcons();
+        if (quotaCheck === today) {
+          this.showNotification('Quota Firebase limitada hoje. Funcionalidade reduzida.', 'info');
           return;
         }
-
-        this.checkDevice();
-        window.addEventListener('resize', () => {
-          this.checkDevice();
-        });
+        
+    // resto do código...
 
         auth.onAuthStateChanged((user) => {
           this.user = user;
@@ -1773,7 +1775,7 @@ document.addEventListener('alpine:init', () => {
     
     async setupCollection(userId) {
       try {
-        // Primeiro carregamento único
+        // Carregamento ÚNICO sem listener para parar as consultas
         const collectionRef = db.collection('users').doc(userId).collection('records');
         const snapshot = await collectionRef.get();
         
@@ -1782,14 +1784,13 @@ document.addEventListener('alpine:init', () => {
           ...doc.data()
         }));
         
-        this.checkPerformanceMode();
         this.filterAndSortCollection();
+        console.log(`Coleção carregada uma vez: ${this.collection.length} itens`);
         
-        // Configurar listener apenas após carregamento inicial
-        this.setupCollectionListener(userId);
+        // NÃO configurar listener para economizar quota
         
       } catch (error) {
-        console.error('Erro ao configurar coleção:', error);
+        console.error('Erro ao carregar coleção:', error);
         this.showNotification('Erro ao carregar coleção', 'error');
       }
     },
