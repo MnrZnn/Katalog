@@ -384,15 +384,15 @@
         </div>
 
       <!-- Grid View Compartilhada -->
-        <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
-          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-        <template x-for="record in filteredSharedCollection" :key="record.id">
+      <div x-show="sharedViewMode === 'grid' && displayedSharedCollection.length > 0" 
+           class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+        <template x-for="record in displayedSharedCollection" :key="record.id">
           <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
             <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`"
-              class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-              @click="showAlbumDetails(record)"
-              :alt="record.album || 'Álbum'"
-              onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=' + (this.getAttribute('alt')?.charAt(0) || 'A')">
+                 class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                 @click="showAlbumDetails(record)"
+                 :alt="record.album || 'Álbum'"
+                 onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=' + (this.getAttribute('alt')?.charAt(0) || 'A')">
             <div class="absolute top-2 left-2">
               <span :class="'format-' + ((record.format || 'CD').toLowerCase())" 
                     class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -407,29 +407,98 @@
       </div>
 
 
-      <!-- List View Compartilhada -->
-      <div x-show="sharedViewMode === 'list' && displayedSharedCollection.length > 0" 
-           class="bg-card rounded-lg overflow-hidden shadow-lg">
-        <!-- Mobile List View -->
-        <div class="md:hidden">
-        <template x-for="record in filteredSharedCollection" :key="record.id">
-          <div class="border-b border-custom p-4 flex items-center space-x-3">
-            <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
-              class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-              :alt="record.album || 'Álbum'"
-              @click="showAlbumDetails(record)">
-            <div class="flex-1 min-w-0">
-              <h3 class="font-semibold text-sm truncate" x-text="record.album || 'Sem título'"></h3>
-              <p class="text-xs text-muted truncate" x-text="record.artist || 'Artista desconhecido'"></p>
-              <div class="flex items-center space-x-2 mt-1">
-                <span :class="'format-' + ((record.format || 'CD').toLowerCase())" 
-                      class="format-badge text-xs" x-text="record.format || 'CD'"></span>
-                <span x-show="record.year" class="text-xs text-muted" x-text="record.year"></span>
-              </div>
-            </div>
+<!-- List View Compartilhada -->
+<div x-show="sharedViewMode === 'list' && displayedSharedCollection.length > 0" 
+     class="bg-card rounded-lg overflow-hidden shadow-lg">
+  
+  <!-- Mobile List View -->
+  <div class="md:hidden">
+    <template x-for="record in displayedSharedCollection" :key="record.id">
+      <div class="border-b border-custom p-4 flex items-center space-x-3">
+        <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
+             class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+             :alt="record.album || 'Álbum'"
+             @click="showAlbumDetails(record)">
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-sm truncate" x-text="record.album || 'Sem título'"></h3>
+          <p class="text-xs text-muted truncate" x-text="record.artist || 'Artista desconhecido'"></p>
+          <div class="flex items-center space-x-2 mt-1">
+            <span :class="'format-' + ((record.format || 'CD').toLowerCase())" 
+                  class="format-badge text-xs" x-text="record.format || 'CD'"></span>
+            <span x-show="record.year" class="text-xs text-muted" x-text="record.year"></span>
           </div>
-        </template>
+        </div>
       </div>
+    </template>
+  </div>
+
+      <!-- Desktop Table View -->
+      <table class="w-full hidden md:table">
+        <thead class="bg-input">
+          <tr>
+            <th class="text-left p-4 font-semibold">Capa</th>
+            <th class="text-left p-4 font-semibold">Álbum</th>
+            <th class="text-left p-4 font-semibold">Artista</th>
+            <th class="text-left p-4 font-semibold">Formato</th>
+            <th class="text-left p-4 font-semibold">Ano</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="record in displayedSharedCollection" :key="record.id">
+            <tr class="border-b border-custom hover:bg-input">
+              <td class="p-4">
+                <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
+                     class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                     :alt="record.album || 'Álbum'"
+                     @click="showAlbumDetails(record)">
+              </td>
+              <td class="p-4 font-semibold" x-text="record.album || 'Sem título'"></td>
+              <td class="p-4" x-text="record.artist || 'Artista desconhecido'"></td>
+              <td class="p-4">
+                <span :class="'format-' + ((record.format || 'CD').toLowerCase())" 
+                      class="format-badge" x-text="record.format || 'CD'"></span>
+              </td>
+              <td class="p-4" x-text="record.year || '-'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Controles de Paginação Compartilhada (POSIÇÃO CORRIGIDA - APÓS O LIST VIEW) -->
+    <div x-show="filteredSharedCollection.length > 0 && sharedPagination.totalPages > 1" 
+         class="flex justify-center items-center space-x-4 mt-8">
+      
+      <button @click="sharedPagination.currentPage = Math.max(1, sharedPagination.currentPage - 1)" 
+              :disabled="sharedPagination.currentPage === 1"
+              class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <span>Anterior</span>
+      </button>
+      
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-muted">Página</span>
+        <span class="font-bold" x-text="sharedPagination.currentPage"></span>
+        <span class="text-sm text-muted">de</span>
+        <span class="font-bold" x-text="sharedPagination.totalPages"></span>
+      </div>
+      
+      <button @click="sharedPagination.currentPage = Math.min(sharedPagination.totalPages, sharedPagination.currentPage + 1)" 
+              :disabled="sharedPagination.currentPage === sharedPagination.totalPages"
+              class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+        <span>Próxima</span>
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+    
+    <!-- Info de paginação -->
+    <div x-show="filteredSharedCollection.length > 0" class="text-center mt-4">
+      <p class="text-sm text-muted">
+        Mostrando <span x-text="displayedSharedCollection.length"></span> de 
+        <span x-text="filteredSharedCollection.length"></span> itens 
+        (Página <span x-text="sharedPagination.currentPage"></span> de <span x-text="sharedPagination.totalPages"></span>)
+      </p>
+    </div>
         
         <!-- Desktop Table View -->
         <table class="w-full hidden md:table">
@@ -443,7 +512,7 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="record in filteredSharedCollection" :key="record.id">
+            <template x-for="record in displayedSharedCollection" :key="record.id">
               <tr class="border-b border-custom hover:bg-input">
                 <td class="p-4">
                   <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
@@ -1439,6 +1508,14 @@ document.addEventListener('alpine:init', () => {
     collectionIsPublic: false,
     privacyUpdateLoading: false,
     shareUrl: '',
+    sharedPagination: { currentPage: 1, itemsPerPage: 50, totalPages: 1 },
+    
+    // Getter para itens compartilhados exibidos
+    get displayedSharedCollection() {
+      const start = (this.sharedPagination.currentPage - 1) * this.sharedPagination.itemsPerPage;
+      const end = start + this.sharedPagination.itemsPerPage;
+      return this.filteredSharedCollection.slice(start, end);
+    },
     
     // Device Detection
     isMobile: window.innerWidth < 769,
@@ -1598,12 +1675,21 @@ async init() {
           });
       
           // Watcher específico para coleção compartilhada
-          this.$watch('filteredSharedCollection', () => {
-            if (this.isSharedView) {
-              this.$nextTick(() => {
-                setTimeout(() => lucide.createIcons(), 50);
-              });
-            }
+            this.$watch('filteredSharedCollection', () => {
+              if (this.isSharedView) {
+                this.$nextTick(() => {
+                  setTimeout(() => lucide.createIcons(), 50);
+                });
+              }
+            });
+            
+            // Watcher para paginação compartilhada (ADICIONAR AQUI)
+            this.$watch('sharedPagination.currentPage', () => {
+              if (this.isSharedView) {
+                setTimeout(() => {
+                  lucide.createIcons();
+                }, 50);
+              }
           });
       
         } catch (error) {
@@ -1688,13 +1774,14 @@ async init() {
 
     // Inicializar filtros
     this.filteredSharedCollection = [...this.sharedCollection.records];
+    this.updateSharedPagination();
     
     console.log('✅ Coleção compartilhada carregada:', {
       owner: this.sharedCollection.owner,
       totalRecords: this.sharedCollection.records.length,
-      filteredRecords: this.filteredSharedCollection.length
+      filteredRecords: this.filteredSharedCollection.length,
+      totalPages: this.sharedPagination.totalPages  // ADICIONAR
     });
-    
     this.loading = false;
     
     // Forçar atualização dos ícones
@@ -1719,40 +1806,52 @@ async init() {
 
     // Filtrar coleção compartilhada
     filterSharedCollection() {
-        console.log('Filtrando coleção compartilhada...', this.sharedCollection.records?.length);
-        
-        if (!this.isSharedView || !this.sharedCollection.records) {
-          this.filteredSharedCollection = [];
-          return;
-        }
-        
-        let filtered = [...this.sharedCollection.records];
-        
-        if (this.sharedSearchFilter && this.sharedSearchFilter.trim()) {
-          const filter = this.sharedSearchFilter.toLowerCase().trim();
-          console.log('Aplicando filtro:', filter);
+          console.log('Filtrando coleção compartilhada...', this.sharedCollection.records?.length);
           
-          filtered = filtered.filter(record => {
-            const album = (record.album || '').toLowerCase();
-            const artist = (record.artist || '').toLowerCase();
-            const format = (record.format || '').toLowerCase();
-            const year = (record.year || '').toString().toLowerCase();
-            const catalog = (record.catalog_number || '').toLowerCase();
+          if (!this.isSharedView || !this.sharedCollection.records) {
+            this.filteredSharedCollection = [];
+            return;
+          }
+          
+          let filtered = [...this.sharedCollection.records];
+          
+          if (this.sharedSearchFilter && this.sharedSearchFilter.trim()) {
+            const filter = this.sharedSearchFilter.toLowerCase().trim();
+            console.log('Aplicando filtro:', filter);
             
-            return album.includes(filter) || 
-                  artist.includes(filter) || 
-                  format.includes(filter) || 
-                  year.includes(filter) ||
-                  catalog.includes(filter);
-          });
-        }
+            filtered = filtered.filter(record => {
+              const album = (record.album || '').toLowerCase();
+              const artist = (record.artist || '').toLowerCase();
+              const format = (record.format || '').toLowerCase();
+              const year = (record.year || '').toString().toLowerCase();
+              const catalog = (record.catalog_number || '').toLowerCase();
+              
+              return album.includes(filter) || 
+                    artist.includes(filter) || 
+                    format.includes(filter) || 
+                    year.includes(filter) ||
+                    catalog.includes(filter);
+            });
+          }
+          
+          this.filteredSharedCollection = filtered;
+          
+          // Atualizar paginação
+          this.updateSharedPagination();
+          
+          console.log('Itens filtrados:', filtered.length);
+          
+          // Garantir que os ícones sejam atualizados
+          setTimeout(() => lucide.createIcons(), 50);
+        },
         
-        this.filteredSharedCollection = filtered;
-        console.log('Itens filtrados:', filtered.length);
-        
-        // Garantir que os ícones sejam atualizados
-        setTimeout(() => lucide.createIcons(), 50);
-      },
+        // Adicionar nova função para atualizar paginação compartilhada:
+        updateSharedPagination() {
+          this.sharedPagination.totalPages = Math.ceil(this.filteredSharedCollection.length / this.sharedPagination.itemsPerPage);
+          if (this.sharedPagination.currentPage > this.sharedPagination.totalPages && this.sharedPagination.totalPages > 0) {
+            this.sharedPagination.currentPage = 1;
+          }
+        },
 
     // Ir para tela de login (limpar compartilhamento)
         goToLogin() {
@@ -2951,3 +3050,4 @@ document.addEventListener('DOMContentLoaded', () => {
   </script>
 </body>
 </html>
+
