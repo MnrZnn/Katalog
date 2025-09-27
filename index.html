@@ -364,29 +364,29 @@
                class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
       </div>
 
-      <!-- Controles de visualização -->
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-2xl font-bold">
-          Itens (<span x-text="displayedSharedCollection.length"></span>)
-        </h3>
-        <div class="flex space-x-2">
-          <button @click="sharedViewMode = 'grid'" 
-                  :class="sharedViewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
-                  class="px-4 py-2 rounded-md">
-            <i data-lucide="grid-3x3" class="w-4 h-4"></i>
-          </button>
-          <button @click="sharedViewMode = 'list'" 
-                  :class="sharedViewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
-                  class="px-4 py-2 rounded-md">
-            <i data-lucide="list" class="w-4 h-4"></i>
-          </button>
+     <!-- Controles de visualização -->
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold">
+            Itens (<span x-text="filteredSharedCollection.length"></span>)
+          </h3>
+          <div class="flex space-x-2">
+            <button @click="sharedViewMode = 'grid'" 
+                    :class="sharedViewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
+                    class="px-4 py-2 rounded-md">
+              <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+            </button>
+            <button @click="sharedViewMode = 'list'" 
+                    :class="sharedViewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
+                    class="px-4 py-2 rounded-md">
+              <i data-lucide="list" class="w-4 h-4"></i>
+            </button>
+          </div>
         </div>
-      </div>
 
       <!-- Grid View Compartilhada -->
-        <div x-show="sharedViewMode === 'grid' && displayedSharedCollection.length > 0" 
+        <div x-show="sharedViewMode === 'grid' && filteredSharedCollection.length > 0" 
           class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-        <template x-for="record in displayedSharedCollection" :key="record.id">
+        <template x-for="record in filteredSharedCollection" :key="record.id">
           <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
             <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`"
               class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
@@ -412,7 +412,7 @@
            class="bg-card rounded-lg overflow-hidden shadow-lg">
         <!-- Mobile List View -->
         <div class="md:hidden">
-        <template x-for="record in displayedSharedCollection" :key="record.id">
+        <template x-for="record in filteredSharedCollection" :key="record.id">
           <div class="border-b border-custom p-4 flex items-center space-x-3">
             <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
               class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
@@ -431,7 +431,7 @@
         </template>
       </div>
         
-        <!-- Desktop Table View CORRIGIDO -->
+        <!-- Desktop Table View -->
         <table class="w-full hidden md:table">
           <thead class="bg-input">
             <tr>
@@ -443,7 +443,7 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="record in displayedSharedCollection" :key="record.id">
+            <template x-for="record in filteredSharedCollection" :key="record.id">
               <tr class="border-b border-custom hover:bg-input">
                 <td class="p-4">
                   <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
@@ -465,7 +465,7 @@
       </div>
 
       <!-- Empty State -->
-      <div x-show="displayedSharedCollection.length === 0" class="text-center py-20 bg-card rounded-lg">
+      <div x-show="filteredSharedCollection.length === 0" class="text-center py-20 bg-card rounded-lg">
         <i data-lucide="folder-x" class="mx-auto h-16 w-16 text-muted mb-4"></i>
         <h3 class="text-xl font-semibold" x-text="sharedSearchFilter ? 'Nenhum item encontrado' : 'Coleção vazia'"></h3>
         <p class="text-muted mt-2" x-text="sharedSearchFilter ? 'Tente uma busca diferente' : 'Esta coleção ainda não possui itens'"></p>
@@ -1514,170 +1514,208 @@ document.addEventListener('alpine:init', () => {
       activeApiTasks: new Set(),
       maxConcurrentRequests: 3,
       requestDelay: 500, // ms entre requests
-
-    async init() {
-  try {
-    // Device detection primeiro
-    this.checkDevice();
-    window.addEventListener('resize', () => {
-      this.checkDevice();
-    });
-
-    // VERIFICAR COMPARTILHAMENTO ANTES DE QUALQUER COISA
-    await this.checkForSharedCollection();
-    
-    // Se for visualização compartilhada, NÃO inicializar Firebase Auth
-    if (this.isSharedView) {
-      this.loading = false;
-      lucide.createIcons();
-      return; // SAIR AQUI MESMO!
-    }
-
-    // Só continuar se NÃO for visualização compartilhada
-    auth.onAuthStateChanged((user) => {
-      this.user = user;
-      if (user) {
-        this.setupCollection(user.uid);
-        this.loadUserSettings(user.uid);
-      } else {
-        this.collection = [];
-        this.filteredCollection = [];
-      }
-      this.loading = false;
-      setTimeout(() => lucide.createIcons(), 100);
-    });
-
-    lucide.createIcons();
-    
-    setTimeout(() => {
-      if (this.performanceMode) {
-        this.observeImages();
-      }
-    }, 200);
-
-    // Watchers só para usuários logados
-    this.$watch('pagination.currentPage', () => {
-      if (!this.isSharedView) {
-        setTimeout(() => {
-          lucide.createIcons();
-          if (this.performanceMode) {
-            this.observeImages();
+async init() {
+        try {
+          console.log('🚀 Iniciando aplicação...');
+          console.log('📍 URL:', window.location.href);
+          console.log('📍 Search:', window.location.search);
+          
+          // Device detection primeiro
+          this.checkDevice();
+          window.addEventListener('resize', () => {
+            this.checkDevice();
+          });
+      
+          // VERIFICAR COMPARTILHAMENTO ANTES DE QUALQUER COISA
+          await this.checkForSharedCollection();
+          
+          console.log('📊 Estado após verificação:', {
+            isSharedView: this.isSharedView,
+            sharedUserId: this.sharedUserId,
+            hasOwner: !!this.sharedCollection.owner,
+            recordsCount: this.sharedCollection.records?.length || 0
+          });
+          
+          // Se for visualização compartilhada, configurar e sair
+          if (this.isSharedView) {
+            console.log('🎯 Modo compartilhado confirmado - finalizando init');
+            this.loading = false;
+            
+            // Garantir ícones
+            setTimeout(() => {
+              lucide.createIcons();
+              console.log('✅ Ícones finais inicializados');
+            }, 500);
+            
+            return; // SAIR AQUI
           }
-        }, 50);
-      }
-    });
-
-    this.$watch('viewMode', () => {
-      if (!this.isSharedView) {
-        setTimeout(() => {
+      
+          // Só continuar se NÃO for visualização compartilhada
+          console.log('🔐 Modo normal - inicializando autenticação...');
+          
+          auth.onAuthStateChanged((user) => {
+            this.user = user;
+            if (user) {
+              this.setupCollection(user.uid);
+              this.loadUserSettings(user.uid);
+            } else {
+              this.collection = [];
+              this.filteredCollection = [];
+            }
+            this.loading = false;
+            setTimeout(() => lucide.createIcons(), 100);
+          });
+      
           lucide.createIcons();
-          if (this.performanceMode) {
-            this.observeImages();
-          }
-        }, 50);
-      }
-    });
-
-  } catch (error) {
-    console.error('Erro na inicialização:', error);
-    this.showNotification('Erro ao carregar aplicação', 'error');
-    this.loading = false;
-  }
-},
-
+          
+          setTimeout(() => {
+            if (this.performanceMode) {
+              this.observeImages();
+            }
+          }, 200);
+      
+          // Watchers só para usuários logados
+          this.$watch('pagination.currentPage', () => {
+            if (!this.isSharedView) {
+              setTimeout(() => {
+                lucide.createIcons();
+                if (this.performanceMode) {
+                  this.observeImages();
+                }
+              }, 50);
+            }
+          });
+      
+          this.$watch('viewMode', () => {
+            if (!this.isSharedView) {
+              setTimeout(() => {
+                lucide.createIcons();
+                if (this.performanceMode) {
+                  this.observeImages();
+                }
+              }, 50);
+            }
+          });
+      
+          // Watcher específico para coleção compartilhada
+          this.$watch('filteredSharedCollection', () => {
+            if (this.isSharedView) {
+              this.$nextTick(() => {
+                setTimeout(() => lucide.createIcons(), 50);
+              });
+            }
+          });
+      
+        } catch (error) {
+          console.error('💥 Erro crítico na inicialização:', error);
+          this.loading = false;
+          this.showNotification('Erro crítico na inicialização', 'error');
+        }
+      },
     // Verificar se é uma coleção compartilhada
-   async checkForSharedCollection() {
+      async checkForSharedCollection() {
       console.log('🔍 Verificando URL para compartilhamento...');
+      console.log('📍 URL atual:', window.location.href);
+      console.log('📍 Search params:', window.location.search);
+      
       const urlParams = new URLSearchParams(window.location.search);
       const sharedId = urlParams.get('shared');
       
-      console.log('📋 URL Params:', window.location.search);
       console.log('🆔 Shared ID encontrado:', sharedId);
       
       if (sharedId) {
-        console.log('✅ Modo compartilhamento ativado');
+        console.log('✅ Modo compartilhamento ativado para ID:', sharedId);
         this.isSharedView = true;
         this.sharedUserId = sharedId;
         
-        console.log('🌟 Estado antes do loadSharedCollection:', {
-          isSharedView: this.isSharedView,
-          loading: this.loading,
-          sharedUserId: this.sharedUserId
-        });
-        
-        await this.loadSharedCollection(sharedId);
+        try {
+          await this.loadSharedCollection(sharedId);
+          console.log('✅ Coleção compartilhada carregada com sucesso');
+        } catch (error) {
+          console.error('❌ Erro ao carregar coleção compartilhada:', error);
+          this.goToLogin();
+        }
       } else {
         console.log('❌ Nenhum ID compartilhado encontrado');
+        this.isSharedView = false;
       }
     },
 
     // Carregar coleção compartilhada
     async loadSharedCollection(userId) {
   try {
-    console.log('Carregando coleção compartilhada para:', userId);
+    console.log('📄 Iniciando carregamento da coleção compartilhada para:', userId);
     this.loading = true;
     
-    // Buscar dados do usuário
+    // Verificar se o Firebase está inicializado
+    if (!db) {
+      throw new Error('Firebase não inicializado');
+    }
+    
+    console.log('🔍 Buscando dados do usuário...');
     const userDoc = await db.collection('users').doc(userId).get();
     
     if (!userDoc.exists) {
-      console.error('Usuário não existe');
-      this.showNotification('Esta coleção não existe', 'error');
-      this.isSharedView = false;
-      this.loading = false;
-      return;
+      console.error('❌ Usuário não existe:', userId);
+      throw new Error('Usuário não encontrado');
     }
 
     const userData = userDoc.data();
-    console.log('Dados do usuário:', userData);
+    console.log('📋 Dados do usuário carregados:', userData);
     
-    if (!userData.isPublic) {
-      console.error('Coleção é privada');
-      this.showNotification('Esta coleção é privada', 'error');
-      this.isSharedView = false;
-      this.loading = false;
-      return;
+    if (!userData || !userData.isPublic) {
+      console.error('🔒 Coleção é privada ou dados inválidos');
+      throw new Error('Coleção privada ou dados inválidos');
     }
 
+    // Definir dados do proprietário
     this.sharedCollection.owner = {
       displayName: userData.displayName || 'Usuário',
-      email: userData.email
+      email: userData.email || 'Email não disponível'
     };
 
-    // Buscar registros
-    console.log('Buscando registros...');
+    console.log('🔍 Buscando registros da coleção...');
     const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-    console.log('Registros encontrados:', recordsSnapshot.docs.length);
+    console.log('📦 Query executada, docs encontrados:', recordsSnapshot.size);
     
-    this.sharedCollection.records = recordsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    this.sharedCollection.records = recordsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
 
     // Inicializar filtros
     this.filteredSharedCollection = [...this.sharedCollection.records];
     
-    console.log('Coleção compartilhada carregada:', this.sharedCollection.records.length, 'itens');
+    console.log('✅ Coleção compartilhada carregada:', {
+      owner: this.sharedCollection.owner,
+      totalRecords: this.sharedCollection.records.length,
+      filteredRecords: this.filteredSharedCollection.length
+    });
+    
     this.loading = false;
     
-    // Garantir que os ícones sejam criados
-    setTimeout(() => lucide.createIcons(), 100);
+    // Forçar atualização dos ícones
+    this.$nextTick(() => {
+      setTimeout(() => {
+        lucide.createIcons();
+        console.log('✅ Ícones inicializados');
+      }, 300);
+    });
     
   } catch (error) {
-    console.error('Erro ao carregar coleção compartilhada:', error);
-    this.showNotification('Erro ao carregar coleçãso compartilhada', 'error');
-    this.isSharedView = false;
+    console.error('💥 Erro detalhado ao carregar coleção compartilhada:', error);
     this.loading = false;
+    this.showNotification(`Erro: ${error.message}`, 'error');
+    
+    // Aguardar um pouco antes de redirecionar
+    setTimeout(() => {
+      this.goToLogin();
+    }, 2000);
   }
 },
-
-    initSharedCollection() {
-      if (this.sharedCollection && this.sharedCollection.records) {
-        this.filteredSharedCollection = [...this.sharedCollection.records];
-      } else {
-        this.filteredSharedCollection = [];
-      }
-     },
 
     // Filtrar coleção compartilhada
     filterSharedCollection() {
@@ -1716,24 +1754,22 @@ document.addEventListener('alpine:init', () => {
         setTimeout(() => lucide.createIcons(), 50);
       },
 
-    // Ir para tela de login
-    goToLogin() {
-      window.location.href = window.location.origin + window.location.pathname;
-    },
-
-    // Carregar configurações do usuário
-    async loadUserSettings(userId) {
-      try {
-        const userDoc = await db.collection('users').doc(userId).get();
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          this.collectionIsPublic = userData.isPublic || false;
-          this.updateShareUrl();
-        }
-      } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
-      }
-    },
+    // Ir para tela de login (limpar compartilhamento)
+        goToLogin() {
+          console.log('🔄 Redirecionando para login...');
+          
+          // Limpar estado de compartilhamento
+          this.isSharedView = false;
+          this.sharedUserId = null;
+          this.sharedCollection = { records: [], owner: null };
+          this.filteredSharedCollection = [];
+          this.sharedSearchFilter = '';
+          this.loading = false;
+          
+          // Limpar URL e recarregar
+          const newUrl = window.location.origin + window.location.pathname;
+          window.location.href = newUrl;
+        },
 
     // Alternar privacidade da coleção
     async toggleCollectionPrivacy() {
@@ -1896,6 +1932,20 @@ document.addEventListener('alpine:init', () => {
         }
       });
     },
+
+    // Carregar configurações do usuário
+      async loadUserSettings(userId) {
+        try {
+          const userDoc = await db.collection('users').doc(userId).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            this.collectionIsPublic = userData.isPublic || false;
+            this.updateShareUrl();
+          }
+        } catch (error) {
+          console.error('Erro ao carregar configurações:', error);
+        }
+      },
 
     async login() {
       if (!this.email || !this.password) {
@@ -2129,20 +2179,6 @@ document.addEventListener('alpine:init', () => {
     },
 
 
-
-    // Getter computado para coleção compartilhada exibida
-      get displayedSharedCollection() {
-        return this.displayedSharedCollectionData();
-      },
-
-        // Função para obter coleção compartilhada exibida
-        displayedSharedCollectionData() {
-          if (!this.isSharedView || !this.filteredSharedCollection) {
-            return [];
-          }
-          return this.filteredSharedCollection;
-        },
-
     // Atualizar paginação
     updatePagination() {
       if (this.performanceMode) {
@@ -2154,18 +2190,18 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Verificar se precisa modo performance
-    checkPerformanceMode() {
-      const wasPerformanceMode = this.performanceMode;
-      this.performanceMode = this.collection.length > 500; // REATIVAR
-      
-      if (this.performanceMode && !wasPerformanceMode) {
-        this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-        this.initLazyLoading();
-        this.buildSearchIndex();
-      } else if (!this.performanceMode && wasPerformanceMode) {
-        this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-      }
-    },
+      checkPerformanceMode() {
+        const wasPerformanceMode = this.performanceMode;
+        this.performanceMode = this.collection.length > 100; // ALTERADO DE 500 PARA 100
+        
+        if (this.performanceMode && !wasPerformanceMode) {
+          this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+          this.initLazyLoading();
+          this.buildSearchIndex();
+        } else if (!this.performanceMode && wasPerformanceMode) {
+          this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+        }
+      },
 
     // Construir índice de busca
     buildSearchIndex() {
@@ -2915,4 +2951,3 @@ document.addEventListener('DOMContentLoaded', () => {
   </script>
 </body>
 </html>
-
