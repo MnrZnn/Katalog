@@ -304,6 +304,14 @@
         max-height: calc(100vh - 2rem);
         overflow-y: auto;
       }
+
+      /* Banner de verificação de email */
+        .verification-banner {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+        }
     }
   </style>
 </head>
@@ -325,7 +333,39 @@
     <p x-text="notification.message"></p>
   </div>
 
-  <!-- NOVA SEÇÃO: Visualização de Coleção Compartilhada -->
+  <!-- Banner de Verificação de Email -->
+    <div x-show="showEmailVerification && !loading && !isSharedView" class="verification-banner">
+    <div class="max-w-2xl mx-auto">
+        <div class="flex items-center justify-center space-x-3 mb-4">
+        <i data-lucide="mail" class="w-8 h-8"></i>
+        <h2 class="text-2xl font-bold">Verifique seu Email</h2>
+        </div>
+        <p class="mb-4">
+        Enviamos um email de verificação para <strong x-text="user?.email"></strong>
+        </p>
+        <p class="text-sm mb-6">
+        Por favor, verifique sua caixa de entrada (e spam) e clique no link de verificação.
+        </p>
+        <div class="flex flex-col md:flex-row gap-4 justify-center">
+        <button @click="checkEmailVerification()" 
+                class="px-6 py-3 bg-white text-green-600 rounded-lg font-medium hover:bg-gray-100">
+            Já Verifiquei - Verificar Agora
+        </button>
+        <button @click="sendEmailVerification()" 
+                :disabled="verificationSent"
+                class="px-6 py-3 bg-green-800 hover:bg-green-900 text-white rounded-lg font-medium disabled:opacity-50">
+            <span x-show="!verificationSent">Reenviar Email</span>
+            <span x-show="verificationSent">Email Enviado ✓</span>
+        </button>
+        </div>
+        <button @click="auth.signOut()" 
+                class="mt-4 text-sm underline hover:no-underline">
+        Sair e usar outra conta
+        </button>
+    </div>
+    </div>
+
+  <!-- Visualização de Coleção Compartilhada -->
   <div x-show="isSharedView && !loading">
     <div class="shared-header">
       <div class="flex items-center justify-center space-x-3 mb-4">
@@ -465,7 +505,7 @@
       </table>
     </div>
     
-    <!-- Controles de Paginação Compartilhada (POSIÇÃO CORRIGIDA - APÓS O LIST VIEW) -->
+    <!-- Controles de Paginação Compartilhada -->
     <div x-show="filteredSharedCollection.length > 0 && sharedPagination.totalPages > 1" 
          class="flex justify-center items-center space-x-4 mt-8">
       
@@ -499,39 +539,6 @@
         (Página <span x-text="sharedPagination.currentPage"></span> de <span x-text="sharedPagination.totalPages"></span>)
       </p>
     </div>
-        
-        <!-- Desktop Table View -->
-        <table class="w-full hidden md:table">
-          <thead class="bg-input">
-            <tr>
-              <th class="text-left p-4 font-semibold">Capa</th>
-              <th class="text-left p-4 font-semibold">Álbum</th>
-              <th class="text-left p-4 font-semibold">Artista</th>
-              <th class="text-left p-4 font-semibold">Formato</th>
-              <th class="text-left p-4 font-semibold">Ano</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="record in displayedSharedCollection" :key="record.id">
-              <tr class="border-b border-custom hover:bg-input">
-                <td class="p-4">
-                  <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
-                      class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                      :alt="record.album || 'Álbum'"
-                      @click="showAlbumDetails(record)">
-                </td>
-                <td class="p-4 font-semibold" x-text="record.album || 'Sem título'"></td>
-                <td class="p-4" x-text="record.artist || 'Artista desconhecido'"></td>
-                <td class="p-4">
-                  <span :class="'format-' + ((record.format || 'CD').toLowerCase())" 
-                        class="format-badge" x-text="record.format || 'CD'"></span>
-                </td>
-                <td class="p-4" x-text="record.year || '-'"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
 
       <!-- Empty State -->
       <div x-show="filteredSharedCollection.length === 0" class="text-center py-20 bg-card rounded-lg">
@@ -701,6 +708,45 @@
   </div>
 </div>
 
+<!-- Modal de Recuperação de Senha -->
+<div x-show="showForgotPassword && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50" @click.self="closeForgotPassword()">
+  <div class="bg-card p-8 rounded-lg max-w-md w-full mx-4">
+    <h3 class="text-2xl font-bold mb-6">Recuperar Senha</h3>
+    
+    <div x-show="!resetEmailSent">
+      <p class="text-sm text-muted mb-4">
+        Digite seu email e enviaremos um link para redefinir sua senha.
+      </p>
+      <input x-model="resetEmail" type="email" placeholder="seu@email.com" 
+             class="w-full p-3 bg-input border border-custom rounded-md mb-4">
+      <div class="flex space-x-4">
+        <button @click="sendPasswordReset()" 
+                :disabled="authLoading"
+                class="flex-1 py-3 btn-primary rounded-md">
+          <span x-show="!authLoading">Enviar Link</span>
+          <span x-show="authLoading">Enviando...</span>
+        </button>
+        <button @click="closeForgotPassword()" 
+                class="px-6 py-3 btn-secondary rounded-md">
+          Cancelar
+        </button>
+      </div>
+    </div>
+    
+    <div x-show="resetEmailSent" class="text-center">
+      <i data-lucide="check-circle" class="w-16 h-16 text-green-500 mx-auto mb-4"></i>
+      <h4 class="text-xl font-bold mb-2">Email Enviado!</h4>
+      <p class="text-sm text-muted mb-6">
+        Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
+      </p>
+      <button @click="closeForgotPassword()" 
+              class="px-8 py-3 btn-primary rounded-md">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Configurações -->
 <div x-show="configModal && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
   <div class="bg-card p-6 rounded-lg max-w-2xl w-full modal-content">
@@ -782,6 +828,15 @@
           </div>
         </div>
 
+        <!-- Alterar Senha -->
+        <div class="bg-input p-4 rounded-lg">
+        <h4 class="font-semibold mb-3">Alterar Senha</h4>
+        <button @click="changePasswordModal = true"
+                class="w-full py-2 btn-primary rounded-md text-sm">
+            Alterar Senha
+        </button>
+        </div>
+
         <!-- Informações da Conta -->
         <div class="bg-input p-4 rounded-lg">
           <h4 class="font-semibold mb-3">Conta</h4>
@@ -807,7 +862,8 @@
     </div>
   </div>
 </div>    
-  <!-- Modal Confirmação de Exclusão de Conta -->
+
+<!-- Modal Confirmação de Exclusão de Conta -->
   <div x-show="deleteAccountModal.show && !isSharedView" class="delete-account-modal">
     <div class="delete-account-form">
       <div class="text-center mb-6">
@@ -854,6 +910,40 @@
     </div>
   </div>
   
+  <!-- Modal Alterar Senha -->
+    <div x-show="changePasswordModal && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div class="bg-card p-6 rounded-lg max-w-md w-full">
+        <div class="text-center mb-6">
+        <i data-lucide="lock" class="mx-auto h-16 w-16 text-primary mb-4"></i>
+        <h3 class="text-xl font-bold mb-2">Alterar Senha</h3>
+        <p class="text-sm text-muted">Digite sua senha atual e a nova senha abaixo.</p>
+        </div>
+
+        <div class="space-y-4">
+        <input x-model="currentPassword" type="password" placeholder="Senha atual"
+                class="w-full p-3 bg-input border border-custom rounded-md">
+        <input x-model="newPassword" type="password" placeholder="Nova senha (mín. 8 caracteres)"
+                class="w-full p-3 bg-input border border-custom rounded-md">
+        <input x-model="confirmNewPassword" type="password" placeholder="Confirme a nova senha"
+                class="w-full p-3 bg-input border border-custom rounded-md">
+        </div>
+
+        <div class="flex space-x-4 mt-6">
+        <button @click="updatePassword()" 
+                :disabled="!currentPassword || !newPassword || !confirmNewPassword || passwordUpdateLoading"
+                class="flex-1 py-3 btn-primary rounded-md">
+            <span x-show="!passwordUpdateLoading">Salvar</span>
+            <span x-show="passwordUpdateLoading">Alterando...</span>
+        </button>
+        <button @click="changePasswordModal = false"
+                class="px-6 py-3 btn-secondary rounded-md">
+            Cancelar
+        </button>
+        </div>
+    </div>
+    </div>
+
+
   <!-- Modal Import Excel -->
 <div x-show="importModal.show && !isSharedView" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" @click.self="importModal.show = false">
   <div class="bg-card rounded-lg w-full import-modal-compact relative">
@@ -1010,6 +1100,10 @@
             <span x-show="!authLoading">Entrar</span>
             <span x-show="authLoading">Entrando...</span>
           </button>
+          <button @click="showForgotPassword = true" 
+                    class="w-full text-sm text-green-400 hover:text-green-300">
+            Esqueci minha senha
+            </button>
           
           <div class="text-center">
             <span class="text-gray-400 text-sm">Não tem uma conta?</span>
@@ -1027,7 +1121,13 @@
                  class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
           <input x-model="password" type="password" placeholder="Senha (min. 6 caracteres)" 
                  class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          <button @click="register()" :disabled="authLoading"
+          <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-sm">
+            <p class="text-blue-300">
+                <i data-lucide="info" class="w-4 h-4 inline mr-2"></i>
+                Você receberá um email de verificação após o cadastro
+            </p>
+            </div>          
+                 <button @click="register()" :disabled="authLoading"
                   class="w-full py-3 px-4 btn-primary rounded-md font-medium">
             <span x-show="!authLoading">Cadastrar</span>
             <span x-show="authLoading">Cadastrando...</span>
@@ -1489,6 +1589,47 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+    // Funções de Segurança
+    const SecurityUtils = {
+    sanitizeText(text) {
+        if (!text) return '';
+        return text.toString()
+        .replace(/[<>]/g, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .trim()
+        .slice(0, 500);
+    },
+
+    rateLimiter: {
+        requests: new Map(),
+        
+        isAllowed(userId, action = 'general') {
+        const key = `${userId}_${action}`;
+        const now = Date.now();
+        const windowMs = 60000;
+        const maxRequests = action === 'login' ? 5 : 30;
+        
+        if (!this.requests.has(key)) {
+            this.requests.set(key, []);
+        }
+        
+        const userRequests = this.requests.get(key);
+        
+        while (userRequests.length > 0 && userRequests[0] < now - windowMs) {
+            userRequests.shift();
+        }
+        
+        if (userRequests.length >= maxRequests) {
+            return false;
+        }
+        
+        userRequests.push(now);
+        return true;
+        }
+    }
+    };
+
 document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     loading: true,
@@ -1569,11 +1710,15 @@ document.addEventListener('alpine:init', () => {
     // Modal de detalhes do álbum
     albumDetailsModal: { show: false, record: null },
 
-    // Auth
+    // Autenticação
     email: '',
     password: '',
     displayName: '',
     newDisplayName: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+    passwordUpdateLoading: false,
     
     // Notification
     notification: { show: false, message: '', type: 'success' },
@@ -1586,6 +1731,19 @@ document.addEventListener('alpine:init', () => {
       confirmed: false, 
       loading: false 
     },
+
+    //Modal Alterar Senha
+    changePasswordModal: false,
+
+    // Sistema de verificação de E-mail
+    emailVerified: false,
+    showEmailVerification: false,
+    verificationSent: false,
+
+    // Variáveis de Redefinição de senhas
+    showForgotPassword: false,
+    resetEmail: '',
+    resetEmailSent: false,
 
     // Controles de tráfego
       activeApiTasks: new Set(),
@@ -1632,16 +1790,28 @@ async init() {
           
           auth.onAuthStateChanged((user) => {
             this.user = user;
+            
             if (user) {
-              this.setupCollection(user.uid);
-              this.loadUserSettings(user.uid);
+                // Verificar se o email está verificado
+                if (!user.emailVerified) {
+                console.log('⚠️ Email não verificado');
+                this.showEmailVerification = true;
+                this.emailVerified = false;
+                } else {
+                this.emailVerified = true;
+                this.showEmailVerification = false;
+                this.setupCollection(user.uid);
+                this.loadUserSettings(user.uid);
+                }
             } else {
-              this.collection = [];
-              this.filteredCollection = [];
+                this.collection = [];
+                this.filteredCollection = [];
+                this.showEmailVerification = false;
             }
+            
             this.loading = false;
             setTimeout(() => lucide.createIcons(), 100);
-          });
+            });
       
           lucide.createIcons();
           
@@ -1698,7 +1868,77 @@ async init() {
           this.showNotification('Erro crítico na inicialização', 'error');
         }
       },
-    // Verificar se é uma coleção compartilhada
+
+      async sendEmailVerification() {
+  if (!this.user) return;
+  
+  try {
+    await this.user.sendEmailVerification();
+    this.verificationSent = true;
+    this.showNotification('Email de verificação enviado!', 'success');
+  } catch (error) {
+    console.error('Erro ao enviar verificação:', error);
+    this.showNotification('Erro ao enviar email de verificação', 'error');
+  }
+},
+
+//Funções de verificação de email
+    async checkEmailVerification() {
+    if (!this.user) return;
+    
+    try {
+        await this.user.reload();
+        if (this.user.emailVerified) {
+        this.emailVerified = true;
+        this.showEmailVerification = false;
+        this.showNotification('Email verificado com sucesso!', 'success');
+        
+        this.setupCollection(this.user.uid);
+        this.loadUserSettings(this.user.uid);
+        } else {
+        this.showNotification('Email ainda não foi verificado', 'info');
+        }
+    } catch (error) {
+        console.error('Erro ao verificar email:', error);
+        this.showNotification('Erro ao verificar email', 'error');
+    }
+    },
+
+    // Função recuperar senha
+    async sendPasswordReset() {
+    if (!this.resetEmail) {
+        this.showNotification('Digite seu email', 'error');
+        return;
+    }
+    
+    if (!SecurityUtils.rateLimiter.isAllowed(this.resetEmail, 'reset')) {
+        this.showNotification('Muitas tentativas. Tente novamente em 1 minuto', 'error');
+        return;
+    }
+    
+    this.authLoading = true;
+    try {
+        await auth.sendPasswordResetEmail(this.resetEmail);
+        this.resetEmailSent = true;
+        this.showNotification('Email de recuperação enviado!', 'success');
+    } catch (error) {
+        console.error('Erro ao enviar recuperação:', error);
+        let message = 'Erro ao enviar email de recuperação';
+        if (error.code === 'auth/user-not-found') {
+        message = 'Email não encontrado';
+        }
+        this.showNotification(message, 'error');
+    }
+    this.authLoading = false;
+    },
+
+    closeForgotPassword() {
+    this.showForgotPassword = false;
+    this.resetEmail = '';
+    this.resetEmailSent = false;
+    },
+
+// Verificar se é uma coleção compartilhada
       async checkForSharedCollection() {
       console.log('🔍 Verificando URL para compartilhamento...');
       console.log('📍 URL atual:', window.location.href);
@@ -2046,80 +2286,122 @@ async init() {
         }
       },
 
+// Função Login
     async login() {
-      if (!this.email || !this.password) {
+    console.log('🚀 FUNÇÃO LOGIN CHAMADA!');
+    console.log('📧 Email:', this.email);
+    console.log('🔑 Senha:', this.password ? '***' : 'VAZIO');
+    
+    if (!this.email || !this.password) {
         this.showNotification('Preencha email e senha', 'error');
         return;
-      }
+    }
 
-      this.authLoading = true;
-      try {
+    if (!SecurityUtils.rateLimiter.isAllowed(this.email, 'login')) {
+        this.showNotification('Muitas tentativas de login. Tente novamente em 1 minuto', 'error');
+        return;
+    }
+
+    console.log('✅ Validações passaram, tentando login...');
+    
+    this.authLoading = true;
+    try {
         await auth.signInWithEmailAndPassword(this.email, this.password);
+        console.log('✅ Login bem sucedido!');
         this.showNotification('Login realizado com sucesso!', 'success');
-      } catch (error) {
-        console.error('Erro no login:', error);
-        this.showNotification('Erro no login: ' + error.message, 'error');
-      }
-      this.authLoading = false;
+    } catch (error) {
+        console.error('❌ Erro no login:', error);
+        let message = 'Erro no login: ';
+        
+        switch(error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+            message += 'Email ou senha incorretos';
+            break;
+        case 'auth/too-many-requests':
+            message += 'Muitas tentativas. Tente novamente mais tarde';
+            break;
+        case 'auth/user-disabled':
+            message += 'Conta desabilitada';
+            break;
+        default:
+            message += error.message;
+        }
+        
+        this.showNotification(message, 'error');
+    }
+    this.authLoading = false;
     },
 
     async register() {
-      if (!this.email || !this.password || !this.displayName) {
+    if (!this.email || !this.password || !this.displayName) {
         this.showNotification('Preencha todos os campos', 'error');
         return;
-      }
+    }
 
-      if (this.password.length < 6) {
-        this.showNotification('Senha deve ter pelo menos 6 caracteres', 'error');
+    if (this.password.length < 8) {
+        this.showNotification('Senha deve ter pelo menos 8 caracteres', 'error');
         return;
-      }
+    }
 
-      this.authLoading = true;
-      try {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.email)) {
+        this.showNotification('Email inválido', 'error');
+        return;
+    }
+
+    if (!SecurityUtils.rateLimiter.isAllowed(this.email, 'register')) {
+        this.showNotification('Muitas tentativas de registro. Aguarde', 'error');
+        return;
+    }
+
+    const sanitizedName = SecurityUtils.sanitizeText(this.displayName);
+    if (sanitizedName.length < 2) {
+        this.showNotification('Nome deve ter pelo menos 2 caracteres', 'error');
+        return;
+    }
+
+    this.authLoading = true;
+    try {
         const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
-        await userCredential.user.updateProfile({ displayName: this.displayName });
+        await userCredential.user.updateProfile({ displayName: sanitizedName });
+        
+        await userCredential.user.sendEmailVerification();
         
         await db.collection('users').doc(userCredential.user.uid).set({
-          displayName: this.displayName,
-          email: this.email,
-          isPublic: false,
-          createdAt: new Date()
+        displayName: sanitizedName,
+        email: this.email,
+        isPublic: false,
+        createdAt: new Date(),
+        emailVerified: false
         });
         
-        this.showNotification('Conta criada com sucesso!', 'success');
-      } catch (error) {
+        this.showNotification('Conta criada! Verifique seu email antes de continuar', 'success');
+        this.showEmailVerification = true;
+        this.verificationSent = true;
+        
+    } catch (error) {
         console.error('Erro no registro:', error);
-        this.showNotification('Erro no registro: ' + error.message, 'error');
-      }
-      this.authLoading = false;
+        let message = 'Erro no registro: ';
+        
+        switch(error.code) {
+        case 'auth/email-already-in-use':
+            message += 'Email já está em uso';
+            break;
+        case 'auth/weak-password':
+            message += 'Senha muito fraca';
+            break;
+        case 'auth/invalid-email':
+            message += 'Email inválido';
+            break;
+        default:
+            message += error.message;
+        }
+        
+        this.showNotification(message, 'error');
+    }
+    this.authLoading = false;
     },
-
-     confirmLogout() {
-        // Limpar listener do Firestore
-        if (this.unsubscribe) {
-          this.unsubscribe();
-          this.unsubscribe = null;
-        }
-        
-        // Limpar observer de imagens
-        if (this.imageObserver) {
-          this.imageObserver.disconnect();
-          this.imageObserver = null;
-        }
-        
-        // Limpar timeouts
-        if (this.observeTimeout) {
-          clearTimeout(this.observeTimeout);
-        }
-        
-        // Cancelar operações em andamento
-        this.cancelAllApiOperations();
-        
-        if (confirm('Deseja realmente sair?')) {
-          auth.signOut();
-          this.showNotification('Logout realizado com sucesso!', 'success');
-        }
-      },
 
       // Nova função para cancelar operações
       cancelAllApiOperations() {
@@ -2130,19 +2412,40 @@ async init() {
       },
 
     async confirmAddRecord() {
-      if (!this.newRecord.album || !this.newRecord.artist || !this.newRecord.format) {
-        this.showNotification('Preencha os campos obrigatórios', 'error');
-        return;
-      }
-    
-      if (!this.newRecord.cover_url) {
-        await this.fetchAlbumCover();
-      }
-    
-      if (confirm('Adicionar este item à coleção?')) {
-        await this.addRecord();
-      }
-    },
+        const album = SecurityUtils.sanitizeText(this.newRecord.album);
+        const artist = SecurityUtils.sanitizeText(this.newRecord.artist);
+        const format = SecurityUtils.sanitizeText(this.newRecord.format);
+        
+        if (!album || !artist || !format) {
+            this.showNotification('Preencha os campos obrigatórios', 'error');
+            return;
+        }
+        
+        if (album.length < 2 || artist.length < 2) {
+            this.showNotification('Álbum e artista devem ter pelo menos 2 caracteres', 'error');
+            return;
+        }
+        
+        
+        if (!SecurityUtils.rateLimiter.isAllowed(this.user.uid, 'add_record')) {
+            this.showNotification('Muitas adições. Aguarde um momento', 'error');
+            return;
+        }
+        
+        this.newRecord.album = album;
+        this.newRecord.artist = artist;
+        this.newRecord.format = format;
+        this.newRecord.catalog_number = SecurityUtils.sanitizeText(this.newRecord.catalog_number);
+        this.newRecord.description = SecurityUtils.sanitizeText(this.newRecord.description);
+        
+        if (!this.newRecord.cover_url) {
+            await this.fetchAlbumCover();
+        }
+
+        if (confirm('Adicionar este item à coleção?')) {
+            await this.addRecord();
+        }
+        },
 
     async addRecord() {
       this.formLoading = true;
@@ -2585,23 +2888,129 @@ async init() {
     },
 
     async updateDisplayName() {
-      if (!this.newDisplayName?.trim()) return;
+        if (!this.newDisplayName?.trim()) {
+            this.showNotification('Digite um novo nome', 'error');
+            return;
+        }
 
-      try {
-        await this.user.updateProfile({ displayName: this.newDisplayName.trim() });
+        const sanitizedName = SecurityUtils.sanitizeText(this.newDisplayName);
         
-        await db.collection('users').doc(this.user.uid).set({
-          displayName: this.newDisplayName.trim(),
-          email: this.user.email,
-          updatedAt: new Date()
-        }, { merge: true });
+        if (sanitizedName.length < 2) {
+            this.showNotification('Nome deve ter pelo menos 2 caracteres', 'error');
+            return;
+        }
+
+        try {
+            await this.user.updateProfile({ displayName: sanitizedName });
+            
+            await db.collection('users').doc(this.user.uid).set({
+            displayName: sanitizedName,
+            email: this.user.email,
+            updatedAt: new Date()
+            }, { merge: true });
+            
+            this.showNotification('Nome atualizado com sucesso!', 'success');
+            this.newDisplayName = '';
+        } catch (error) {
+            console.error('Erro ao atualizar nome:', error);
+            this.showNotification('Erro ao atualizar nome', 'error');
+        }
+    },
+
+    async updatePassword() {
+        if (!this.currentPassword || !this.newPassword || !this.confirmNewPassword) {
+            this.showNotification('Preencha todos os campos', 'error');
+            return;
+        }
+
+        if (this.newPassword.length < 8) {
+            this.showNotification('Nova senha deve ter pelo menos 8 caracteres', 'error');
+            return;
+        }
+
+        if (this.newPassword !== this.confirmNewPassword) {
+            this.showNotification('As senhas não coincidem', 'error');
+            return;
+        }
+
+        if (this.currentPassword === this.newPassword) {
+            this.showNotification('A nova senha deve ser diferente da atual', 'error');
+            return;
+        }
+
+        this.passwordUpdateLoading = true;
+
+        try {
+            const user = firebase.auth().currentUser;
+            
+            // Reautenticar usuário
+            const credential = firebase.auth.EmailAuthProvider.credential(
+            user.email,
+            this.currentPassword
+            );
+            
+            await user.reauthenticateWithCredential(credential);
+            
+            // Alterar senha
+            await user.updatePassword(this.newPassword);
+            
+            this.showNotification('Senha alterada com sucesso!', 'success');
+            
+            // Limpar campos
+            this.currentPassword = '';
+            this.newPassword = '';
+            this.confirmNewPassword = '';
+            
+        } catch (error) {
+            console.error('Erro ao alterar senha:', error);
+            
+            let message = 'Erro ao alterar senha';
+            
+            switch(error.code) {
+            case 'auth/wrong-password':
+                message = 'Senha atual incorreta';
+                break;
+            case 'auth/weak-password':
+                message = 'Nova senha é muito fraca';
+                break;
+            case 'auth/requires-recent-login':
+                message = 'Por segurança, faça login novamente antes de alterar a senha';
+                break;
+            default:
+                message = `Erro: ${error.message}`;
+            }
+            
+            this.showNotification(message, 'error');
+        }
         
-        this.showNotification('Nome atualizado com sucesso!', 'success');
-        this.newDisplayName = '';
-      } catch (error) {
-        console.error('Erro ao atualizar nome:', error);
-        this.showNotification('Erro ao atualizar nome', 'error');
-      }
+        this.passwordUpdateLoading = false;
+        },
+
+    confirmLogout() {
+    // Limpar listener do Firestore
+    if (this.unsubscribe) {
+        this.unsubscribe();
+        this.unsubscribe = null;
+    }
+    
+    // Limpar observer de imagens
+    if (this.imageObserver) {
+        this.imageObserver.disconnect();
+        this.imageObserver = null;
+    }
+    
+    // Limpar timeouts
+    if (this.observeTimeout) {
+        clearTimeout(this.observeTimeout);
+    }
+    
+    // Cancelar operações em andamento
+    this.cancelAllApiOperations();
+    
+    if (confirm('Deseja realmente sair?')) {
+        auth.signOut();
+        this.showNotification('Logout realizado com sucesso!', 'success');
+    }
     },
 
     confirmDeleteAccount() {
