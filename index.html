@@ -21,8 +21,8 @@
 
   <!-- QRCode.js (QR Codes)-->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
-  <style>
+
+<style>
     body { font-family: 'Inter', sans-serif; }
     
     /* Tema Escuro (padrão) */
@@ -444,7 +444,7 @@
 
   <!-- Notificação -->
   <div x-show="notification.show"
-       class="fixed top-5 right-5 z-50 p-4 rounded-md shadow-lg text-white max-w-sm"
+     class="fixed top-5 right-5 z-[9999] p-4 rounded-md shadow-lg text-white max-w-sm"
        :class="{'bg-green-600': notification.type === 'success', 'bg-red-600': notification.type === 'error', 'bg-blue-600': notification.type === 'info'}"
        x-transition>
     <p x-text="notification.message"></p>
@@ -1215,8 +1215,50 @@
         </div>
         <p class="text-xs text-muted mt-1" x-text="`Total: ${importModal.data.length} itens`"></p>
       </div>
-      
     </div>
+
+    <!-- Modal Import Verificação (Contas não verificadas) -->
+<div x-show="!user?.emailVerified && !isSharedView" 
+     class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-2 mb-3 mx-6">
+  <div class="flex items-start space-x-3">
+    <i data-lucide="alert-triangle" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+    <div class="flex-1">
+      <h4 class="font-semibold text-orange-300 mb-1">Conta não verificada - Limites aplicados</h4>
+      
+      <!-- Mostrar status atual -->
+      <div x-show="!importTracking.isBlocked" class="space-y-2">
+        <p class="text-sm text-orange-200">
+          Você pode importar até <strong>100 registros</strong> por vez.
+        </p>
+        <div class="bg-orange-950/50 rounded p-2">
+          <div class="flex justify-between text-xs text-orange-300 mb-1">
+            <span>Importações realizadas:</span>
+            <span><strong x-text="importTracking.importCount"></strong> de 2</span>
+          </div>
+          <div class="w-full bg-orange-950 rounded-full h-2">
+            <div class="bg-orange-500 h-2 rounded-full transition-all" 
+                 :style="`width: ${(importTracking.importCount / 2) * 100}%`"></div>
+          </div>
+          <p class="text-xs text-orange-400 mt-1">
+            Total importado: <strong x-text="importTracking.totalImported"></strong> registros
+          </p>
+        </div>
+      </div>
+      
+      <!-- Aviso de bloqueio -->
+      <div x-show="importTracking.isBlocked" class="space-y-2">
+        <p class="text-sm text-orange-200 font-semibold">
+          Você atingiu o limite de 2 importações. Verifique seu email para continuar importando!
+        </p>
+      </div>
+      
+      <button @click="importModal.show = false; checkEmailVerification()" 
+              class="mt-3 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded text-sm">
+        Verificar Email Agora
+      </button>
+    </div>
+  </div>
+</div>
     
     <!-- Footer com botões -->
     <div class="p-4 md:p-6 border-t border-custom">
@@ -1280,7 +1322,7 @@
     </div>
   </div>
 
-  <!-- Login (apenas quando não é visualização compartilhada) -->
+<!-- Login (apenas quando não é visualização compartilhada) -->
   <div x-show="!user && !loading && !isSharedView" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 to-black p-4">
     <div class="bg-card p-6 md:p-8 rounded-lg shadow-xl max-w-md w-full">
       <div class="text-center mb-6 md:mb-8">
@@ -1809,31 +1851,42 @@ const db = firebase.firestore();
     },
 
     rateLimiter: {
-        requests: new Map(),
-        
-        isAllowed(userId, action = 'general') {
+      requests: new Map(),
+      
+      isAllowed(userId, action = 'general') {
         const key = `${userId}_${action}`;
         const now = Date.now();
         const windowMs = 60000;
-        const maxRequests = action === 'login' ? 5 : 30;
+        
+        // Limites diferentes por ação
+        const limits = {
+          'login': 5,
+          'register': 3,
+          'reset': 3,
+          'file_upload': 3,  // ADICIONAR
+          'add_record': 30,
+          'general': 30
+        };
+        
+        const maxRequests = limits[action] || limits['general'];
         
         if (!this.requests.has(key)) {
-            this.requests.set(key, []);
+          this.requests.set(key, []);
         }
         
         const userRequests = this.requests.get(key);
         
         while (userRequests.length > 0 && userRequests[0] < now - windowMs) {
-            userRequests.shift();
+          userRequests.shift();
         }
         
         if (userRequests.length >= maxRequests) {
-            return false;
+          return false;
         }
         
         userRequests.push(now);
         return true;
-        }
+      }
     }
     };
 
@@ -1843,6 +1896,52 @@ document.addEventListener('alpine:init', () => {
     user: null,
     authLoading: false,
     formLoading: false,
+
+  uploadControl: {
+    attempts: [],
+    blockedUntil: null
+  },
+
+   importTracking: {
+    totalImported: 0,
+    importCount: 0,
+    isBlocked: false
+  },
+  
+
+  // Função de proteção
+    canUpload() {
+      const now = Date.now();
+      const oneMinute = 60000;
+      const fiveMinutes = 300000;
+      
+      // Se está bloqueado temporariamente
+      if (this.uploadControl.blockedUntil && now < this.uploadControl.blockedUntil) {
+        const waitSeconds = Math.ceil((this.uploadControl.blockedUntil - now) / 1000);
+        return {
+          allowed: false,
+          message: `Aguarde ${waitSeconds} segundos antes de tentar novamente`
+        };
+      }
+      
+      // Limpar tentativas antigas (mais de 5 minutos)
+      this.uploadControl.attempts = this.uploadControl.attempts.filter(
+        time => now - time < fiveMinutes
+      );
+      
+      // Máximo 3 uploads em 5 minutos
+      if (this.uploadControl.attempts.length >= 3) {
+        this.uploadControl.blockedUntil = now + oneMinute;
+        return {
+          allowed: false,
+          message: 'Limite de uploads atingido. Aguarde 1 minuto.'
+        };
+      }
+      
+      // Permitir upload e registrar tentativa
+      this.uploadControl.attempts.push(now);
+      return { allowed: true };
+    },
     unsubscribe: null,
     observeTimeout: null,
     
@@ -1888,11 +1987,6 @@ document.addEventListener('alpine:init', () => {
       loading: false, 
       progress: 0, 
       progressText: 'Iniciando...'
-    },
-    largeImportModal: {
-      show: false,
-      totalItems: 0,
-      skipCovers: false
     },
     
     // Data
@@ -1957,11 +2051,13 @@ document.addEventListener('alpine:init', () => {
       activeApiTasks: new Set(),
       maxConcurrentRequests: 3,
       requestDelay: 500, // ms entre requests
+
+      
 async init() {
         try {
           console.log('🚀 Iniciando aplicação...');
-          console.log('📍 URL:', window.location.href);
-          console.log('📍 Search:', window.location.search);
+          console.log('🔍 URL:', window.location.href);
+          console.log('🔍 Search:', window.location.search);
           
           // Device detection primeiro
           this.checkDevice();
@@ -2000,6 +2096,13 @@ async init() {
             this.user = user;
             
             if (user) {
+                console.log('✅ Usuário logado:', user.email);
+                console.log('Email verificado:', user.emailVerified);
+                
+                // SEMPRE carregar a coleção, verificado ou não
+                this.setupCollection(user.uid);
+                this.loadUserSettings(user.uid);
+                
                 // Verificar se o email está verificado
                 if (!user.emailVerified) {
                 console.log('⚠️ Email não verificado');
@@ -2008,8 +2111,6 @@ async init() {
                 } else {
                 this.emailVerified = true;
                 this.showEmailVerification = false;
-                this.setupCollection(user.uid);
-                this.loadUserSettings(user.uid);
                 }
             } else {
                 this.collection = [];
@@ -2497,27 +2598,45 @@ async init() {
     },
     
     async setupCollection(userId) {
-      try {
-        // Primeiro carregamento único
-        const collectionRef = db.collection('users').doc(userId).collection('records');
-        const snapshot = await collectionRef.get();
-        
-        this.collection = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        this.checkPerformanceMode();
-        this.filterAndSortCollection();
-        
-        // Configurar listener apenas após carregamento inicial
-        this.setupCollectionListener(userId);
-        
-      } catch (error) {
-        console.error('Erro ao configurar coleção:', error);
-        this.showNotification('Erro ao carregar coleção', 'error');
+    try {
+      const collectionRef = db.collection('users').doc(userId).collection('records');
+      const snapshot = await collectionRef.get();
+      
+      this.collection = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // CARREGAR TRACKING DE IMPORTS
+      if (!this.user.emailVerified) {
+        const savedTracking = localStorage.getItem(`import_tracking_${userId}`);
+        if (savedTracking) {
+          const tracking = JSON.parse(savedTracking);
+          this.importTracking = {
+            totalImported: tracking.totalImported || 0,
+            importCount: tracking.importCount || 0,
+            isBlocked: tracking.importCount >= 2
+          };
+        }
+      } else {
+        // Limpar tracking se verificou o email
+        localStorage.removeItem(`import_tracking_${userId}`);
+        this.importTracking = {
+          totalImported: 0,
+          importCount: 0,
+          isBlocked: false
+        };
       }
-    },
+      
+      this.checkPerformanceMode();
+      this.filterAndSortCollection();
+      this.setupCollectionListener(userId);
+      
+    } catch (error) {
+      console.error('Erro ao configurar coleção:', error);
+      this.showNotification('Erro ao carregar coleção', 'error');
+    }
+  },
 
     // Nova função para listener otimizado
     setupCollectionListener(userId) {
@@ -2614,75 +2733,76 @@ async init() {
     this.authLoading = false;
     },
 
-    async register() {
+    // Registro de Usuario
+  async register() {
     if (!this.email || !this.password || !this.displayName) {
-        this.showNotification('Preencha todos os campos', 'error');
-        return;
+      this.showNotification('Preencha todos os campos', 'error');
+      return;
     }
 
     if (this.password.length < 8) {
-        this.showNotification('Senha deve ter pelo menos 8 caracteres', 'error');
-        return;
+      this.showNotification('Senha deve ter pelo menos 8 caracteres', 'error');
+      return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.email)) {
-        this.showNotification('Email inválido', 'error');
-        return;
+      this.showNotification('Email inválido', 'error');
+      return;
     }
 
-    if (!SecurityUtils.rateLimiter.isAllowed(this.email, 'register')) {
-        this.showNotification('Muitas tentativas de registro. Aguarde', 'error');
-        return;
-    }
+    // Delay artificial
+    this.authLoading = true;
+    this.showNotification('Validando dados...', 'info');
+    await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 segundos
 
     const sanitizedName = SecurityUtils.sanitizeText(this.displayName);
     if (sanitizedName.length < 2) {
-        this.showNotification('Nome deve ter pelo menos 2 caracteres', 'error');
-        return;
+      this.showNotification('Nome deve ter pelo menos 2 caracteres', 'error');
+      this.authLoading = false;
+      return;
     }
 
-    this.authLoading = true;
     try {
-        const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
-        await userCredential.user.updateProfile({ displayName: sanitizedName });
-        
-        await userCredential.user.sendEmailVerification();
-        
-        await db.collection('users').doc(userCredential.user.uid).set({
+      const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+      await userCredential.user.updateProfile({ displayName: sanitizedName });
+      await userCredential.user.sendEmailVerification();
+      
+      await db.collection('users').doc(userCredential.user.uid).set({
         displayName: sanitizedName,
         email: this.email,
         isPublic: false,
         createdAt: new Date(),
         emailVerified: false
-        });
-        
-        this.showNotification('Conta criada! Verifique seu email antes de continuar', 'success');
-        this.showEmailVerification = true;
-        this.verificationSent = true;
-        
+      });
+      
+      this.showNotification('Conta criada! Verifique seu email', 'success');
+      this.showEmailVerification = true;
+      this.verificationSent = true;
+      
     } catch (error) {
-        console.error('Erro no registro:', error);
-        let message = 'Erro no registro: ';
-        
-        switch(error.code) {
+      console.error('Erro no registro:', error);
+      let message = 'Erro no registro: ';
+      
+      switch(error.code) {
         case 'auth/email-already-in-use':
-            message += 'Email já está em uso';
-            break;
+          message += 'Email já está em uso';
+          break;
         case 'auth/weak-password':
-            message += 'Senha muito fraca';
-            break;
+          message += 'Senha muito fraca';
+          break;
         case 'auth/invalid-email':
-            message += 'Email inválido';
-            break;
+          message += 'Email inválido';
+          break;
         default:
-            message += error.message;
-        }
-        
-        this.showNotification(message, 'error');
+          message += error.message;
+      }
+      
+      this.showNotification(message, 'error');
     }
+    
     this.authLoading = false;
-    },
+  },
 
       // Nova função para cancelar operações
       cancelAllApiOperations() {
@@ -2707,9 +2827,10 @@ async init() {
             return;
         }
         
-        
+        // Rate limiter MENOS restritivo para adições manuais
+        // Permite 30 adições por minuto (limite generoso para uso normal)
         if (!SecurityUtils.rateLimiter.isAllowed(this.user.uid, 'add_record')) {
-            this.showNotification('Muitas adições. Aguarde um momento', 'error');
+            this.showNotification('Muitas adições rápidas. Aguarde alguns segundos', 'error');
             return;
         }
         
@@ -2728,32 +2849,32 @@ async init() {
         }
         },
 
-    async addRecord() {
-      this.formLoading = true;
-      try {
-        const userId = this.user.uid;
-        const recordData = {
-          ...this.newRecord,
-          created_at: new Date(),
-          user_id: userId
-        };
+        async addRecord() {
+          this.formLoading = true;
+          try {
+            const userId = this.user.uid;
+            const recordData = {
+              ...this.newRecord,
+              created_at: new Date(),
+              user_id: userId
+            };
 
-        if (this.newRecord.id) {
-          await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
-          this.showNotification('Item atualizado com sucesso!', 'success');
-        } else {
-          await db.collection('users').doc(userId).collection('records').add(recordData);
-          this.showNotification('Item adicionado com sucesso!', 'success');
-        }
-        
-        this.resetForm();
-        this.currentView = 'collection';
-      } catch (error) {
-        console.error('Erro ao salvar:', error);
-        this.showNotification('Erro ao salvar item', 'error');
-      }
-      this.formLoading = false;
-    },
+            if (this.newRecord.id) {
+              await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
+              this.showNotification('Item atualizado com sucesso!', 'success');
+            } else {
+              await db.collection('users').doc(userId).collection('records').add(recordData);
+              this.showNotification('Item adicionado com sucesso!', 'success');
+            }
+            
+            this.resetForm();
+            this.currentView = 'collection';
+          } catch (error) {
+            console.error('Erro ao salvar:', error);
+            this.showNotification('Erro ao salvar item', 'error');
+          }
+          this.formLoading = false;
+        },
 
     editRecord(record) {
       // Fechar modal imediatamente para liberar memória
@@ -3350,10 +3471,21 @@ async init() {
         await db.collection('users').doc(userId).delete();
         await user.delete();
 
-        this.showNotification('Conta excluída com sucesso!', 'success');
-        this.cancelDeleteAccount();
+          // Limpar estado local
+          this.user = null;
+          this.collection = [];
+          this.filteredCollection = [];
+          localStorage.clear(); // Limpar todos os dados locais
 
-      } catch (error) {
+          this.showNotification('Conta excluída com sucesso!', 'success');
+          this.cancelDeleteAccount();
+
+          // Aguardar notificação aparecer e então recarregar
+          setTimeout(() => {
+            window.location.href = window.location.origin + window.location.pathname;
+          }, 2000);
+
+        } catch (error) {
         console.error('Erro ao excluir conta:', error);
         
         let errorMessage = 'Erro ao excluir conta';
@@ -3382,61 +3514,144 @@ async init() {
     },
         
     handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-      this.importModal.loading = true;
-      this.importModal.progress = 0;
-      this.importModal.progressText = 'Lendo arquivo...';
-      this.showNotification('Processando arquivo...', 'info');
+  // VERIFICAÇÃO DE BLOQUEIO PARA NÃO VERIFICADOS
+  if (!this.user.emailVerified && this.importTracking.isBlocked) {
+    this.showNotification(
+      'Você atingiu o limite de imports. Verifique seu email para continuar!',
+      'error'
+    );
+    event.target.value = '';
+    
+    // Mostrar modal de verificação
+    this.showEmailVerification = true;
+    return;
+  }
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          this.importModal.progress = 30;
-          this.importModal.progressText = 'Analisando conteúdo...';
-          
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          
-          this.importModal.progress = 60;
-          this.importModal.progressText = 'Processando dados...';
-          
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  // VERIFICAÇÃO DE PROTEÇÃO
+  const uploadCheck = this.canUpload();
+  if (!uploadCheck.allowed) {
+    this.showNotification(uploadCheck.message, 'error');
+    event.target.value = '';
+    return;
+  }
 
-          this.importModal.progress = 90;
-          this.importModal.progressText = 'Validando registros...';
-          
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          this.processImportData(jsonData);
-          
-          this.importModal.progress = 100;
-          this.importModal.progressText = 'Arquivo processado!';
-          
-          await new Promise(resolve => setTimeout(resolve, 300));
-          this.showNotification('Arquivo processado com sucesso!', 'success');
-          
-        } catch (error) {
-          console.error('Erro ao processar arquivo:', error);
-          this.showNotification('Erro ao processar arquivo Excel', 'error');
-        } finally {
+  // Validação de tamanho
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    this.showNotification('Arquivo muito grande! Máximo: 10MB', 'error');
+    event.target.value = '';
+    return;
+  }
+
+  // Validação de tipo
+  const validTypes = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'text/csv'
+  ];
+  
+  if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+    this.showNotification('Formato inválido! Use .xlsx, .xls ou .csv', 'error');
+    event.target.value = '';
+    return;
+  }
+
+  this.importModal.loading = true;
+  this.importModal.progress = 0;
+  this.importModal.progressText = 'Lendo arquivo...';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      this.importModal.progress = 30;
+      this.importModal.progressText = 'Analisando conteúdo...';
+      
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      this.importModal.progress = 60;
+      this.importModal.progressText = 'Processando dados...';
+      
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // SISTEMA DE LIMITES PROGRESSIVOS
+      let maxRecords = 3000;
+      
+      if (!this.user.emailVerified) {
+        maxRecords = 100;
+        
+        if (jsonData.length > maxRecords) {
+          this.showNotification(
+            `Usuários não verificados podem importar no máximo ${maxRecords} registros por vez. Verifique seu email!`,
+            'error'
+          );
           this.importModal.loading = false;
-          this.importModal.progress = 0;
+          event.target.value = '';
+          return;
         }
-      };
-      
-      reader.onerror = () => {
-        this.showNotification('Erro ao ler arquivo', 'error');
-        this.importModal.loading = false;
-        this.importModal.progress = 0;
-      };
-      
-      reader.readAsArrayBuffer(file);
-    },
+      } else {
+        if (jsonData.length > maxRecords) {
+          this.showNotification(`Máximo de ${maxRecords} registros por vez`, 'error');
+          this.importModal.loading = false;
+          event.target.value = '';
+          return;
+        }
+      }
 
+      if (jsonData.length === 0) {
+        this.showNotification('Arquivo vazio ou formato incorreto', 'error');
+        this.importModal.loading = false;
+        event.target.value = '';
+        return;
+      }
+
+      this.importModal.progress = 90;
+      this.importModal.progressText = 'Validando registros...';
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      this.processImportData(jsonData);
+      
+      if (this.importModal.data.length > 500) {
+        this.largeImportModal = {
+          show: true,
+          totalItems: this.importModal.data.length,
+          skipCovers: false
+        };
+        this.importModal.loading = false;
+        return;
+      }
+      
+      this.importModal.progress = 100;
+      this.importModal.progressText = 'Arquivo processado!';
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      this.showNotification('Arquivo processado com sucesso!', 'success');
+      
+    } catch (error) {
+      console.error('Erro ao processar arquivo:', error);
+      this.showNotification('Erro ao processar arquivo', 'error');
+    } finally {
+      this.importModal.loading = false;
+      this.importModal.progress = 0;
+    }
+  };
+  
+  reader.onerror = () => {
+    this.showNotification('Erro ao ler arquivo', 'error');
+    this.importModal.loading = false;
+    event.target.value = '';
+  };
+  
+  reader.readAsArrayBuffer(file);
+},
+
+//Importação do Excel
     processImportData(data) {
       const validRecords = data.filter(row => 
         row.album && row.artist && row.format
@@ -3489,6 +3704,57 @@ async init() {
       };
     },
 
+    // Cancelar upload seguro
+      cancelSecureUpload() {
+          if (window.hcaptcha) {
+            try {
+              window.hcaptcha.reset();
+            } catch (e) {
+              console.log('Erro ao resetar hCaptcha:', e);
+            }
+          }
+          
+          this.uploadSecurityCheck = {
+            show: false,
+            captchaToken: null,
+            fileSize: 0,
+            recordCount: 0
+          };
+          this.importModal.data = [];
+          this.importModal.preview = [];
+          
+          const fileInput = document.querySelector('input[type="file"]');
+          if (fileInput) fileInput.value = '';
+        },
+
+      // Prosseguir com upload após CAPTCHA
+      async proceedWithSecureUpload() {
+        if (!this.uploadSecurityCheck.captchaToken) {
+          this.showNotification('Complete a verificação primeiro', 'error');
+          return;
+        }
+        
+        console.log('Token válido, prosseguindo...', this.uploadSecurityCheck.captchaToken);
+        
+        this.uploadSecurityCheck.show = false;
+        this.importModal.loading = false;
+        
+        // Limpar o token após uso
+        const token = this.uploadSecurityCheck.captchaToken;
+        this.uploadSecurityCheck.captchaToken = null;
+        
+        this.showNotification('Verificação concluída! Arquivo pronto para importar', 'success');
+        
+        // Reset do hCaptcha para próximo uso
+        if (window.hcaptcha) {
+          try {
+            window.hcaptcha.reset();
+          } catch (e) {
+            console.log('Não foi possível resetar hCaptcha:', e);
+          }
+        }
+      },
+
     // Executar o import
     async executeImport(skipCovers = false) {
       if (this.importModal.data.length === 0) return;
@@ -3499,18 +3765,20 @@ async init() {
       
       try {
         const userId = this.user.uid;
-        const batch = db.batch();
         const totalItems = this.importModal.data.length;
+        const BATCH_SIZE = 500;
+        let processed = 0;
 
         this.showNotification(`Importando ${totalItems} itens...`, 'info');
 
+        // Buscar capas
         if (!skipCovers) {
           this.importModal.progressText = 'Buscando capas...';
           
           for (let i = 0; i < this.importModal.data.length; i++) {
             const record = this.importModal.data[i];
             
-            const coverProgress = Math.floor((i / totalItems) * 70);
+            const coverProgress = Math.floor((i / totalItems) * 50);
             this.importModal.progress = coverProgress;
             this.importModal.progressText = `Buscando capa ${i + 1} de ${totalItems}...`;
             
@@ -3525,47 +3793,89 @@ async init() {
                   if (data.results && data.results.length > 0) {
                     const album = data.results[0];
                     if (album.artworkUrl100) {
-                      const highResUrl = album.artworkUrl100.replace('100x100bb', '600x600bb');
-                      record.cover_url = highResUrl;
+                      record.cover_url = album.artworkUrl100.replace('100x100bb', '600x600bb');
                     }
                   }
                 }
               } catch (error) {
-                console.log(`Não foi possível buscar capa para: ${record.album} - ${record.artist}`);
+                console.log(`Erro ao buscar capa: ${record.album}`);
               }
               
               await new Promise(resolve => setTimeout(resolve, 100));
             }
           }
-          
-          this.importModal.progress = 70;
-        } else {
-          this.importModal.progress = 70;
         }
 
-        this.importModal.progressText = 'Preparando dados para salvamento...';
+        // Salvar em lotes
+        this.importModal.progressText = 'Salvando registros...';
         
-        this.importModal.data.forEach(record => {
-          const docRef = db.collection('users').doc(userId).collection('records').doc();
-          batch.set(docRef, {
-            ...record,
-            created_at: new Date(),
-            user_id: userId
+        for (let i = 0; i < this.importModal.data.length; i += BATCH_SIZE) {
+          const chunk = this.importModal.data.slice(i, i + BATCH_SIZE);
+          const batch = db.batch();
+          
+          chunk.forEach(record => {
+            const docRef = db.collection('users').doc(userId).collection('records').doc();
+            batch.set(docRef, {
+              ...record,
+              created_at: new Date(),
+              user_id: userId
+            });
           });
-        });
+          
+          await batch.commit();
+          processed += chunk.length;
+          
+          const saveProgress = 50 + Math.floor((processed / totalItems) * 50);
+          this.importModal.progress = saveProgress;
+          this.importModal.progressText = `Salvando ${processed} de ${totalItems}...`;
+          
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
-        this.importModal.progress = 85;
+        // ATUALIZAR CONTADOR PARA USUÁRIOS NÃO VERIFICADOS
+        if (!this.user.emailVerified) {
+          this.importTracking.totalImported += totalItems;
+          this.importTracking.importCount++;
+          
+          // Salvar no localStorage para persistir entre sessões
+          localStorage.setItem(`import_tracking_${userId}`, JSON.stringify({
+            totalImported: this.importTracking.totalImported,
+            importCount: this.importTracking.importCount,
+            lastImport: new Date().toISOString()
+          }));
+          
+          // Bloquear após 2 imports
+          if (this.importTracking.importCount >= 2) {
+            this.importTracking.isBlocked = true;
+            
+            this.showNotification(
+              `Você atingiu o limite de ${this.importTracking.importCount} importações (${this.importTracking.totalImported} registros). Verifique seu email para continuar!`,
+              'error'
+            );
+            
+            // Mostrar tela de verificação automaticamente
+            setTimeout(() => {
+              this.showEmailVerification = true;
+            }, 2000);
+          } else {
+            // Aviso de quantos imports restam
+            const remaining = 2 - this.importTracking.importCount;
+            this.showNotification(
+              `Import concluído! Você pode fazer mais ${remaining} importação(ões) antes de precisar verificar o email.`,
+              'info'
+            );
+          }
+        }
 
-        this.importModal.progressText = 'Salvando no banco de dados...';
-        await batch.commit();
-        
         this.importModal.progress = 100;
         this.importModal.progressText = 'Importação concluída!';
         
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        this.showNotification(`${totalItems} itens importados com sucesso!`, 'success');
+        if (this.user.emailVerified || this.importTracking.importCount < 2) {
+          this.showNotification(`${totalItems} itens importados!`, 'success');
+        }
+        
         this.closeImportModal();
         
       } catch (error) {
@@ -3728,9 +4038,35 @@ async init() {
       }, 4000);
       setTimeout(() => lucide.createIcons(), 10);
     }
-
-  })); // Fechamento do Alpine.data('app')
+})); // Fechamento do Alpine.data('app')
 }); // Fechamento do document.addEventListener('alpine:init')
+
+// Callbacks do hCaptcha (escopo global)
+window.hcaptchaOnSuccess = function(token) {
+  console.log('hCaptcha token recebido:', token);
+  const app = document.querySelector('[x-data="app"]');
+  if (app && app.__x) {
+    app.__x.$data.uploadSecurityCheck.captchaToken = token;
+    app.__x.$data.showNotification('Verificação concluída!', 'success');
+  }
+};
+
+window.hcaptchaOnExpired = function() {
+  console.log('hCaptcha expirado');
+  const app = document.querySelector('[x-data="app"]');
+  if (app && app.__x) {
+    app.__x.$data.uploadSecurityCheck.captchaToken = null;
+    app.__x.$data.showNotification('Verificação expirada. Tente novamente', 'error');
+  }
+};
+
+window.hcaptchaOnError = function(error) {
+  console.error('Erro no hCaptcha:', error);
+  const app = document.querySelector('[x-data="app"]');
+  if (app && app.__x) {
+    app.__x.$data.showNotification('Erro na verificação. Tente novamente', 'error');
+  }
+};
 
 // Inicializar ícones após carregamento
 document.addEventListener('DOMContentLoaded', () => {
