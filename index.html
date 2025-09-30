@@ -91,6 +91,21 @@
       color: #ffffff !important;
     }
 
+    /* Ícones específicos no tema claro */
+    .theme-light [data-lucide="heart"],
+    .theme-light [data-lucide="plus"],
+    .theme-light [data-lucide="album"],
+    .theme-light [data-lucide="plus-circle"] {
+      color: #000000 !important;
+      stroke: #000000 !important;
+    }
+
+    /* Garantir que ícones dentro de badges permaneçam brancos */
+    .theme-light .bg-pink-500 [data-lucide] {
+      color: #ffffff !important;
+      stroke: #ffffff !important;
+    }
+
     /* Estilos para ordenação */
     .sort-button { @apply px-2 py-1 text-xs rounded border; }
     .sort-active { @apply bg-green-500 text-white; }
@@ -693,6 +708,15 @@
          class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
          <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
       </a>
+      <a href="#" @click.prevent="currentView = 'wishlist'; showMobileSidebar = false" 
+        :class="{'bg-green-500 text-white': currentView === 'wishlist'}"
+        class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+        <i data-lucide="heart"></i><span>Lista de Desejos</span>
+      </a>
+      <button @click="configModal = true; configActiveTab = 'share'; showMobileSidebar = false" 
+              class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+        <i data-lucide="share-2"></i><span>Compartilhar</span>
+      </button>
       <button @click="importModal.show = true; showMobileSidebar = false" 
               class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
         <i data-lucide="upload"></i><span>Importar Excel</span>
@@ -811,15 +835,21 @@
         
         <!-- Botões de ação -->
         <div x-show="!isSharedView" class="flex justify-end space-x-3 mt-6 pt-4 border-t border-custom">
+          <button x-show="albumDetailsModal.record?.isWishlist || wishlist.some(w => w.id === albumDetailsModal.record?.id)" 
+                  @click="moveToCollection(albumDetailsModal.record)" 
+                  class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md flex items-center space-x-2">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Adquirido</span>
+          </button>
           <button @click="editRecord(albumDetailsModal.record)" 
-                  class="px-4 py-2 btn-primary rounded-md">
-            <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
-            Editar
+                  class="px-4 py-2 btn-primary rounded-md flex items-center space-x-2">
+            <i data-lucide="edit" class="w-4 h-4"></i>
+            <span>Editar</span>
           </button>
           <button @click="confirmDeleteRecord(albumDetailsModal.record?.id)" 
-                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">
-            <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
-            Excluir
+                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md flex items-center space-x-2">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Excluir</span>
           </button>
         </div>
       </div>
@@ -1405,6 +1435,15 @@
        class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
        <i data-lucide="plus-circle"></i><span>Adicionar Item</span>
     </a>
+    <a href="#" @click.prevent="currentView = 'wishlist'" 
+      :class="{'bg-green-500 text-white': currentView === 'wishlist'}"
+      class="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-white">
+      <i data-lucide="heart"></i><span>Lista de Desejos</span>
+    </a>
+    <button @click="configModal = true; configActiveTab = 'share'" 
+            class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
+      <i data-lucide="share-2"></i><span>Compartilhar</span>
+    </button>
     <button @click="importModal.show = true" 
             class="w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 text-blue-300">
       <i data-lucide="upload"></i><span>Importar Excel</span>
@@ -1695,12 +1734,239 @@
           </div>
         </div>
 
+        <!-- Lista de Desejos -->
+<div x-show="currentView === 'wishlist'">
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+    <h2 class="text-2xl md:text-3xl font-bold">Lista de Desejos (<span x-text="wishlist.length"></span>)</h2>
+    <div class="flex space-x-2">
+      <button @click="viewMode = 'grid'" 
+              :class="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
+              class="px-3 py-2 md:px-4 md:py-2 rounded-md">
+        <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+      </button>
+      <button @click="viewMode = 'list'" 
+              :class="viewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
+              class="px-3 py-2 md:px-4 md:py-2 rounded-md">
+        <i data-lucide="list" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Busca e Ordenação -->
+  <div class="mb-6 space-y-4">
+    <input x-model="searchFilter" @input="filterWishlist()" 
+           placeholder="Buscar por álbum, artista, formato..." 
+           class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+    
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-sm font-medium">Ordenar por:</span>
+      <button @click="setSortBy('album'); filterWishlist()" 
+              :class="sortBy === 'album' ? 'sort-active' : 'sort-inactive'"
+              class="sort-button">Álbum</button>
+      <button @click="setSortBy('artist'); filterWishlist()" 
+              :class="sortBy === 'artist' ? 'sort-active' : 'sort-inactive'"
+              class="sort-button">Artista</button>
+      <button @click="toggleSortOrder(); filterWishlist()" 
+              class="sort-button sort-inactive">
+        <i :data-lucide="sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'" class="w-3 h-3"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Grid View Wishlist -->
+  <div x-show="viewMode === 'grid' && filteredWishlist.length > 0" 
+       class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5">
+    <template x-for="record in displayedWishlist" :key="record.id">
+      <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
+        <!-- Badge de wishlist -->
+        <div class="absolute top-2 left-2 z-10">
+          <span class="bg-pink-500 text-white px-2 py-1 text-xs font-semibold rounded-full flex items-center space-x-1">
+            <i data-lucide="heart" class="w-3 h-3"></i>
+            <span>Desejo</span>
+          </span>
+        </div>
+        
+        <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+             class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+             @click="showAlbumDetails(record)"
+             onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=A'">
+        
+        <!-- Botões desktop -->
+        <div class="absolute top-2 right-2 hidden md:flex flex-col space-y-1 opacity-0 group-hover:opacity-100">
+          <button @click="moveToCollection(record)" 
+                  class="bg-green-600 text-white rounded-full p-2 hover:bg-green-700"
+                  title="Adicionar à coleção">
+            <i data-lucide="check" class="w-4 h-4"></i>
+          </button>
+          <button @click="editRecord(record)" 
+                  class="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700">
+            <i data-lucide="edit" class="w-4 h-4"></i>
+          </button>
+          <button @click="confirmDeleteRecord(record.id, true)" 
+                  class="bg-red-600 text-white rounded-full p-2 hover:bg-red-700">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+        
+        <!-- Botões mobile -->
+        <div class="absolute bottom-2 right-2 flex md:hidden space-x-1">
+          <button @click="moveToCollection(record)" 
+                  class="bg-green-600 text-white rounded-full p-1.5 hover:bg-green-700">
+            <i data-lucide="check" class="w-3 h-3"></i>
+          </button>
+          <button @click="editRecord(record)" 
+                  class="bg-blue-600 text-white rounded-full p-1.5 hover:bg-blue-700">
+            <i data-lucide="edit" class="w-3 h-3"></i>
+          </button>
+          <button @click="confirmDeleteRecord(record.id, true)" 
+                  class="bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+          </button>
+        </div>
+        
+        <div class="p-2 md:p-3">
+          <h3 class="font-bold text-sm md:text-base truncate" x-text="record.album"></h3>
+          <p class="text-xs md:text-sm text-muted truncate" x-text="record.artist"></p>
+          <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                class="format-badge text-xs inline-block mt-1" x-text="record.format || 'CD'"></span>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- List View Wishlist -->
+  <div x-show="viewMode === 'list' && filteredWishlist.length > 0" 
+       class="bg-card rounded-lg overflow-hidden shadow-lg">
+    <!-- Mobile List -->
+    <div class="md:hidden">
+      <template x-for="record in displayedWishlist" :key="record.id">
+        <div class="border-b border-custom p-4 flex items-center space-x-3">
+          <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+               class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+               @click="showAlbumDetails(record)">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-sm truncate flex items-center space-x-2">
+              <i data-lucide="heart" class="w-3 h-3 text-pink-500"></i>
+              <span x-text="record.album"></span>
+            </h3>
+            <p class="text-xs text-muted truncate" x-text="record.artist"></p>
+            <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                  class="format-badge text-xs inline-block mt-1" x-text="record.format || 'CD'"></span>
+          </div>
+          <div class="flex flex-col space-y-1">
+            <button @click="moveToCollection(record)" 
+                    class="text-green-500 hover:text-green-700 p-1">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </button>
+            <button @click="editRecord(record)" 
+                    class="text-blue-500 hover:text-blue-700 p-1">
+              <i data-lucide="edit" class="w-4 h-4"></i>
+            </button>
+            <button @click="confirmDeleteRecord(record.id, true)" 
+                    class="text-red-500 hover:text-red-700 p-1">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+    
+    <!-- Desktop Table -->
+    <table class="w-full hidden md:table">
+      <thead class="bg-input">
+        <tr>
+          <th class="text-left p-4 font-semibold">Capa</th>
+          <th class="text-left p-4 font-semibold">Álbum</th>
+          <th class="text-left p-4 font-semibold">Artista</th>
+          <th class="text-left p-4 font-semibold">Formato</th>
+          <th class="text-left p-4 font-semibold">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="record in displayedWishlist" :key="record.id">
+          <tr class="border-b border-custom hover:bg-input">
+            <td class="p-4">
+              <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                   class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                   @click="showAlbumDetails(record)">
+            </td>
+            <td class="p-4">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="heart" class="w-4 h-4 text-pink-500"></i>
+                <span class="font-semibold" x-text="record.album"></span>
+              </div>
+            </td>
+            <td class="p-4" x-text="record.artist"></td>
+            <td class="p-4">
+              <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
+                    class="format-badge" x-text="record.format || 'CD'"></span>
+            </td>
+            <td class="p-4">
+              <div class="flex space-x-2">
+                <button @click="moveToCollection(record)" 
+                        class="text-green-500 hover:text-green-700 p-1"
+                        title="Adicionar à coleção">
+                  <i data-lucide="check" class="w-4 h-4"></i>
+                </button>
+                <button @click="editRecord(record)" 
+                        class="text-blue-500 hover:text-blue-700 p-1">
+                  <i data-lucide="edit" class="w-4 h-4"></i>
+                </button>
+                <button @click="confirmDeleteRecord(record.id, true)" 
+                        class="text-red-500 hover:text-red-700 p-1">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+    <!-- Paginação -->
+    <div x-show="filteredWishlist.length > 0 && wishlistPagination.totalPages > 1" 
+        class="flex justify-center items-center space-x-4 mt-8">
+      <button @click="wishlistPagination.currentPage = Math.max(1, wishlistPagination.currentPage - 1)" 
+              :disabled="wishlistPagination.currentPage === 1"
+              class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <span>Anterior</span>
+      </button>
+      
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-muted">Página</span>
+        <span class="font-bold" x-text="wishlistPagination.currentPage"></span>
+        <span class="text-sm text-muted">de</span>
+        <span class="font-bold" x-text="wishlistPagination.totalPages"></span>
+      </div>
+      
+      <button @click="wishlistPagination.currentPage = Math.min(wishlistPagination.totalPages, wishlistPagination.currentPage + 1)" 
+              :disabled="wishlistPagination.currentPage === wishlistPagination.totalPages"
+              class="px-4 py-2 btn-secondary rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+        <span>Próxima</span>
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="wishlist.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
+      <i data-lucide="heart" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-muted mb-4"></i>
+      <h3 class="text-lg md:text-xl font-semibold">Sua lista de desejos está vazia</h3>
+      <p class="text-muted mt-2">Adicione álbuns que você deseja ter!</p>
+      <button @click="currentView = 'add-record'; newRecord.isWishlist = true" 
+              class="mt-4 md:mt-6 px-4 py-2 md:px-6 md:py-2 rounded-full btn-primary"
+              :class="{'!bg-black !text-white hover:!bg-gray-800': !darkMode}">
+        Adicionar à Lista
+      </button>
+    </div>
+  </div>
+
 
         <!-- Form Adicionar -->
         <div x-show="currentView === 'add-record'">
           <h2 class="text-2xl md:text-3xl font-bold mb-6">Adicionar Novo Item</h2>
           <form @submit.prevent="confirmAddRecord()" class="max-w-3xl mx-auto bg-card p-4 md:p-8 rounded-lg space-y-4 md:space-y-6">
-            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium mb-1">Álbum/Título *</label>
@@ -1714,8 +1980,32 @@
               </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+              <div x-show="!newRecord.isWishlist" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1">Formato *</label>
+                  <select x-model="newRecord.format" required
+                          class="w-full p-3 bg-input border border-custom rounded-md">
+                    <option value="">Selecione...</option>
+                    <option value="CD">CD</option>
+                    <option value="Vinil">Vinil</option>
+                    <option value="Cassete">Cassete</option>
+                    <option value="Digital">Digital</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Ano</label>
+                  <input x-model="newRecord.year" type="number" min="1900" max="2030"
+                        class="w-full p-3 bg-input border border-custom rounded-md">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
+                  <input x-model="newRecord.catalog_number"
+                        class="w-full p-3 bg-input border border-custom rounded-md">
+                </div>
+              </div>
+
+              <!-- Formato simplificado para wishlist -->
+              <div x-show="newRecord.isWishlist">
                 <label class="block text-sm font-medium mb-1">Formato *</label>
                 <select x-model="newRecord.format" required
                         class="w-full p-3 bg-input border border-custom rounded-md">
@@ -1726,17 +2016,6 @@
                   <option value="Digital">Digital</option>
                 </select>
               </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Ano</label>
-                <input x-model="newRecord.year" type="number" min="1900" max="2030"
-                       class="w-full p-3 bg-input border border-custom rounded-md">
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Número de Catálogo</label>
-                <input x-model="newRecord.catalog_number"
-                       class="w-full p-3 bg-input border border-custom rounded-md">
-              </div>
-            </div>
 
             <div>
               <label class="block text-sm font-medium mb-3">Capa do Álbum</label>
@@ -1754,22 +2033,38 @@
               </div>
               
               <input x-model="newRecord.cover_url" placeholder="Cole aqui a URL da capa..."
-                     class="w-full p-3 bg-input border border-custom rounded-md mb-4">
+                    class="w-full p-3 bg-input border border-custom rounded-md mb-4">
               
               <div x-show="newRecord.cover_url" class="mb-4">
                 <p class="text-sm text-muted mb-2">Preview:</p>
                 <img :src="newRecord.cover_url" class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-md" 
-                     @error="newRecord.cover_url = ''">
+                    @error="newRecord.cover_url = ''">
               </div>
             </div>
             
-            <div>
+            <div x-show="!newRecord.isWishlist">
               <label class="block text-sm font-medium mb-1">Descrição/Observações</label>
               <textarea x-model="newRecord.description" 
                         placeholder="Adicione informações extras sobre este álbum..."
                         rows="3"
                         class="w-full p-3 bg-input border border-custom rounded-md resize-none"></textarea>
             </div>
+            <div x-show="!newRecord.id" class="border-t border-custom pt-4 mt-4">
+            <div class="bg-pink-900/20 border border-pink-500/30 rounded-lg p-4">
+              <label class="flex items-center space-x-3 cursor-pointer">
+                <input x-model="newRecord.isWishlist" type="checkbox" class="rounded w-5 h-5">
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="heart" class="w-4 h-4 text-pink-400"></i>
+                    <span class="font-semibold text-pink-300">Adicionar à Lista de Desejos</span>
+                  </div>
+                  <p class="text-xs text-pink-200 mt-1">
+                    Marque para salvar como álbum desejado ao invés de adicionar à coleção
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
             
             <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
               <button type="submit" :disabled="formLoading" 
@@ -1795,22 +2090,22 @@
           <i data-lucide="album" class="w-4 h-4"></i>
           <span class="text-xs">Coleção</span>
         </button>
+        <button @click="currentView = 'wishlist'" 
+                :class="{'text-green-400': currentView === 'wishlist'}"
+                class="flex flex-col items-center space-y-1 px-2 py-2">
+          <i data-lucide="heart" class="w-4 h-4"></i>
+          <span class="text-xs">Desejos</span>
+        </button>
         <button @click="currentView = 'add-record'" 
                 :class="{'text-green-400': currentView === 'add-record'}"
                 class="flex flex-col items-center space-y-1 px-2 py-2">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span class="text-xs">Adicionar</span>
         </button>
-        <button @click="importModal.show = true" 
+        <button @click="configModal = true; configActiveTab = 'share'" 
                 class="flex flex-col items-center space-y-1 px-2 py-2 text-blue-300">
-          <i data-lucide="upload" class="w-4 h-4"></i>
-          <span class="text-xs">Importar</span>
-        </button>
-        <button @click="startAutoCoverSearch()" 
-                :disabled="collection.length === 0"
-                class="flex flex-col items-center space-y-1 px-2 py-2 text-purple-300 disabled:text-gray-500">
-          <i data-lucide="image" class="w-4 h-4"></i>
-          <span class="text-xs">Capas</span>
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+          <span class="text-xs">Compartilhar</span>
         </button>
       </div>
     </nav>
@@ -1825,18 +2120,29 @@
 
   <script>
     // Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
-  authDomain: "katalog-1178e.firebaseapp.com",
-  projectId: "katalog-1178e",
-  storageBucket: "katalog-1178e.firebasestorage.app",
-  messagingSenderId: "998961219093",
-  appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzEu2hLmvPzaFLgQtXUAUkuXvwokD2F-A",
+      authDomain: "katalog-1178e.firebaseapp.com",
+      projectId: "katalog-1178e",
+      storageBucket: "katalog-1178e.firebasestorage.app",
+      messagingSenderId: "998961219093",
+      appId: "1:998961219093:web:6afddd14ad2ddd9ed3301c"
+    };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+    try {
+      firebase.initializeApp(firebaseConfig);
+      console.log('✅ Firebase inicializado com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Firebase:', error);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Verificar conectividade
+    db.enableNetwork().catch(err => {
+      console.error('Erro de rede do Firestore:', err);
+    });
 
     // Funções de Segurança
     const SecurityUtils = {
@@ -1907,7 +2213,14 @@ document.addEventListener('alpine:init', () => {
     importCount: 0,
     isBlocked: false
   },
+
   
+  wishlist: [],
+  filteredWishlist: [],
+  wishlistPagination: { 
+    currentPage: 1, 
+    itemsPerPage: 50, 
+    totalPages: 1 },
 
   // Função de proteção
     canUpload() {
@@ -2006,7 +2319,8 @@ document.addEventListener('alpine:init', () => {
       year: '', 
       catalog_number: '', 
       cover_url: '',
-      description: ''
+      description: '',
+      isWishlist: false  // ADICIONAR ESTA LINHA
     },
 
     // Modal de detalhes do álbum
@@ -2054,129 +2368,140 @@ document.addEventListener('alpine:init', () => {
 
       
 async init() {
+  try {
+    console.log('🚀 Iniciando aplicação...');
+    
+    // Device detection primeiro
+    this.checkDevice();
+    window.addEventListener('resize', () => {
+      this.checkDevice();
+    });
+
+    // VERIFICAR COMPARTILHAMENTO ANTES DE QUALQUER COISA
+    await this.checkForSharedCollection();
+    
+    // Se for visualização compartilhada, configurar e sair
+    if (this.isSharedView) {
+      console.log('🎯 Modo compartilhado confirmado - finalizando init');
+      this.loading = false;
+      
+      setTimeout(() => {
+        lucide.createIcons();
+      }, 500);
+      
+      return;
+    }
+
+    // Só continuar se NÃO for visualização compartilhada
+    console.log('🔐 Modo normal - inicializando autenticação...');
+    
+    // Aguardar Firebase estar pronto
+    await new Promise((resolve) => {
+      if (firebase.apps.length > 0) {
+        resolve();
+      } else {
+        setTimeout(resolve, 1000);
+      }
+    });
+    
+    auth.onAuthStateChanged(async (user) => {
+      this.user = user;
+      
+      if (user) {
+        console.log('✅ Usuário logado:', user.email);
+        console.log('Email verificado:', user.emailVerified);
+        
         try {
-          console.log('🚀 Iniciando aplicação...');
-          console.log('🔍 URL:', window.location.href);
-          console.log('🔍 Search:', window.location.search);
+          // Carregar dados do usuário
+          await this.setupCollection(user.uid);
+          await this.loadUserSettings(user.uid);
           
-          // Device detection primeiro
-          this.checkDevice();
-          window.addEventListener('resize', () => {
-            this.checkDevice();
-          });
-      
-          // VERIFICAR COMPARTILHAMENTO ANTES DE QUALQUER COISA
-          await this.checkForSharedCollection();
-          
-          console.log('📊 Estado após verificação:', {
-            isSharedView: this.isSharedView,
-            sharedUserId: this.sharedUserId,
-            hasOwner: !!this.sharedCollection.owner,
-            recordsCount: this.sharedCollection.records?.length || 0
-          });
-          
-          // Se for visualização compartilhada, configurar e sair
-          if (this.isSharedView) {
-            console.log('🎯 Modo compartilhado confirmado - finalizando init');
-            this.loading = false;
-            
-            // Garantir ícones
-            setTimeout(() => {
-              lucide.createIcons();
-              console.log('✅ Ícones finais inicializados');
-            }, 500);
-            
-            return; // SAIR AQUI
+          // Verificar se o email está verificado
+          if (!user.emailVerified) {
+            console.log('⚠️ Email não verificado');
+            this.showEmailVerification = true;
+            this.emailVerified = false;
+          } else {
+            this.emailVerified = true;
+            this.showEmailVerification = false;
           }
-      
-          // Só continuar se NÃO for visualização compartilhada
-          console.log('🔐 Modo normal - inicializando autenticação...');
-          
-          auth.onAuthStateChanged((user) => {
-            this.user = user;
-            
-            if (user) {
-                console.log('✅ Usuário logado:', user.email);
-                console.log('Email verificado:', user.emailVerified);
-                
-                // SEMPRE carregar a coleção, verificado ou não
-                this.setupCollection(user.uid);
-                this.loadUserSettings(user.uid);
-                
-                // Verificar se o email está verificado
-                if (!user.emailVerified) {
-                console.log('⚠️ Email não verificado');
-                this.showEmailVerification = true;
-                this.emailVerified = false;
-                } else {
-                this.emailVerified = true;
-                this.showEmailVerification = false;
-                }
-            } else {
-                this.collection = [];
-                this.filteredCollection = [];
-                this.showEmailVerification = false;
-            }
-            
-            this.loading = false;
-            setTimeout(() => lucide.createIcons(), 100);
-            });
-      
-          lucide.createIcons();
-          
-          setTimeout(() => {
-            if (this.performanceMode) {
-              this.observeImages();
-            }
-          }, 200);
-      
-          // Watchers só para usuários logados
-          this.$watch('pagination.currentPage', () => {
-            if (!this.isSharedView) {
-              setTimeout(() => {
-                lucide.createIcons();
-                if (this.performanceMode) {
-                  this.observeImages();
-                }
-              }, 50);
-            }
-          });
-      
-          this.$watch('viewMode', () => {
-            if (!this.isSharedView) {
-              setTimeout(() => {
-                lucide.createIcons();
-                if (this.performanceMode) {
-                  this.observeImages();
-                }
-              }, 50);
-            }
-          });
-      
-          // Watcher específico para coleção compartilhada
-            this.$watch('filteredSharedCollection', () => {
-              if (this.isSharedView) {
-                this.$nextTick(() => {
-                  setTimeout(() => lucide.createIcons(), 50);
-                });
-              }
-            });
-            
-            // Watcher para paginação compartilhada (ADICIONAR AQUI)
-            this.$watch('sharedPagination.currentPage', () => {
-              if (this.isSharedView) {
-                setTimeout(() => {
-                  lucide.createIcons();
-                }, 50);
-              }
-          });
-      
         } catch (error) {
-          console.error('💥 Erro crítico na inicialização:', error);
-          this.loading = false;
-          this.showNotification('Erro crítico na inicialização', 'error');
+          console.error('Erro ao carregar dados do usuário:', error);
+          this.showNotification('Erro ao carregar seus dados', 'error');
         }
-      },
+      } else {
+        this.collection = [];
+        this.filteredCollection = [];
+        this.wishlist = [];
+        this.filteredWishlist = [];
+        this.showEmailVerification = false;
+      }
+      
+      this.loading = false;
+      setTimeout(() => lucide.createIcons(), 100);
+    });
+
+    lucide.createIcons();
+    
+    setTimeout(() => {
+      if (this.performanceMode) {
+        this.observeImages();
+      }
+    }, 200);
+
+    // Watchers
+    this.$watch('pagination.currentPage', () => {
+      if (!this.isSharedView) {
+        setTimeout(() => {
+          lucide.createIcons();
+          if (this.performanceMode) {
+            this.observeImages();
+          }
+        }, 50);
+      }
+    });
+
+    this.$watch('viewMode', () => {
+      if (!this.isSharedView) {
+        setTimeout(() => {
+          lucide.createIcons();
+          if (this.performanceMode) {
+            this.observeImages();
+          }
+        }, 50);
+      }
+    });
+
+    this.$watch('filteredSharedCollection', () => {
+      if (this.isSharedView) {
+        this.$nextTick(() => {
+          setTimeout(() => lucide.createIcons(), 50);
+        });
+      }
+    });
+    
+    this.$watch('sharedPagination.currentPage', () => {
+      if (this.isSharedView) {
+        setTimeout(() => {
+          lucide.createIcons();
+        }, 50);
+      }
+    });
+
+    this.$watch('wishlistPagination.currentPage', () => {
+      if (!this.isSharedView) {
+        setTimeout(() => {
+          lucide.createIcons();
+        }, 50);
+      }
+    });
+
+  } catch (error) {
+    console.error('💥 Erro crítico na inicialização:', error);
+    this.loading = false;
+    this.showNotification('Erro crítico. Recarregue a página.', 'error');
+  }
+},
 
       async sendEmailVerification() {
   if (!this.user) return;
@@ -2598,51 +2923,104 @@ async init() {
     },
     
     async setupCollection(userId) {
-    try {
-      const collectionRef = db.collection('users').doc(userId).collection('records');
-      const snapshot = await collectionRef.get();
-      
-      this.collection = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // CARREGAR TRACKING DE IMPORTS
-      if (!this.user.emailVerified) {
-        const savedTracking = localStorage.getItem(`import_tracking_${userId}`);
-        if (savedTracking) {
+  try {
+    console.log('📄 Carregando dados do usuário:', userId);
+    
+    // Verificar se Firebase está pronto
+    if (!db) {
+      throw new Error('Firebase não inicializado');
+    }
+    
+    // Carregar coleção principal com timeout
+    const collectionRef = db.collection('users').doc(userId).collection('records');
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout ao carregar coleção')), 15000)
+    );
+    
+    const dataPromise = collectionRef.get();
+    const snapshot = await Promise.race([dataPromise, timeoutPromise]);
+    
+    this.collection = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log('✅ Coleção carregada:', this.collection.length, 'itens');
+    
+    // Carregar wishlist com timeout
+    const wishlistRef = db.collection('users').doc(userId).collection('wishlist');
+    const wishlistPromise = wishlistRef.get();
+    const wishlistSnapshot = await Promise.race([wishlistPromise, timeoutPromise]);
+    
+    this.wishlist = wishlistSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log('✅ Wishlist carregada:', this.wishlist.length, 'itens');
+    
+    // CARREGAR TRACKING DE IMPORTS
+    if (!this.user.emailVerified) {
+      const savedTracking = localStorage.getItem(`import_tracking_${userId}`);
+      if (savedTracking) {
+        try {
           const tracking = JSON.parse(savedTracking);
           this.importTracking = {
             totalImported: tracking.totalImported || 0,
             importCount: tracking.importCount || 0,
             isBlocked: tracking.importCount >= 2
           };
+        } catch (e) {
+          console.error('Erro ao ler tracking:', e);
         }
-      } else {
-        // Limpar tracking se verificou o email
-        localStorage.removeItem(`import_tracking_${userId}`);
-        this.importTracking = {
-          totalImported: 0,
-          importCount: 0,
-          isBlocked: false
-        };
       }
-      
-      this.checkPerformanceMode();
-      this.filterAndSortCollection();
-      this.setupCollectionListener(userId);
-      
-    } catch (error) {
-      console.error('Erro ao configurar coleção:', error);
-      this.showNotification('Erro ao carregar coleção', 'error');
+    } else {
+      localStorage.removeItem(`import_tracking_${userId}`);
+      this.importTracking = {
+        totalImported: 0,
+        importCount: 0,
+        isBlocked: false
+      };
     }
-  },
+    
+    this.checkPerformanceMode();
+    this.filterAndSortCollection();
+    this.filterWishlist();
+    this.setupCollectionListener(userId);
+    this.setupWishlistListener(userId);
+    
+    console.log('✅ Setup completo!');
+    
+  } catch (error) {
+    console.error('💥 ERRO CRÍTICO ao configurar coleção:', error);
+    console.error('Tipo do erro:', error.name);
+    console.error('Mensagem:', error.message);
+    
+    // Mostrar erro mais específico
+    if (error.message.includes('Timeout')) {
+      this.showNotification('Tempo esgotado ao carregar dados. Verifique sua conexão.', 'error');
+    } else if (error.message.includes('permission-denied')) {
+      this.showNotification('Sem permissão para acessar dados. Faça logout e login novamente.', 'error');
+    } else if (error.message.includes('Firebase não inicializado')) {
+      this.showNotification('Erro de inicialização. Recarregue a página.', 'error');
+    } else {
+      this.showNotification('Erro ao carregar dados. Tente novamente.', 'error');
+    }
+    
+    // Limpar estado em caso de erro
+    this.collection = [];
+    this.filteredCollection = [];
+    this.wishlist = [];
+    this.filteredWishlist = [];
+  }
+},
 
-    // Nova função para listener otimizado
+    // Nova função para listener 
     setupCollectionListener(userId) {
       const collectionRef = db.collection('users').doc(userId).collection('records');
       
-      // Listener otimizado que só escuta mudanças
+      // Listener que só escuta mudanças
       this.unsubscribe = collectionRef.onSnapshot((snapshot) => {
         let hasChanges = false;
         
@@ -2670,6 +3048,94 @@ async init() {
           this.filterAndSortCollection();
         }
       });
+    },
+
+    // Configurações da Lista de Desejos (Wishlist)
+    setupWishlistListener(userId) {
+      const wishlistRef = db.collection('users').doc(userId).collection('wishlist');
+      
+      wishlistRef.onSnapshot((snapshot) => {
+        let hasChanges = false;
+        
+        snapshot.docChanges().forEach((change) => {
+          hasChanges = true;
+          const record = { id: change.doc.id, ...change.doc.data() };
+          
+          if (change.type === 'added') {
+            const exists = this.wishlist.find(r => r.id === record.id);
+            if (!exists) {
+              this.wishlist.push(record);
+            }
+          } else if (change.type === 'modified') {
+            const index = this.wishlist.findIndex(r => r.id === record.id);
+            if (index !== -1) {
+              this.wishlist[index] = record;
+            }
+          } else if (change.type === 'removed') {
+            this.wishlist = this.wishlist.filter(r => r.id !== record.id);
+          }
+        });
+        
+        if (hasChanges) {
+          this.filterWishlist();
+        }
+      });
+    },
+
+    // Adicionar função de filtro da wishlist:
+    filterWishlist() {
+      let filtered = this.wishlist;
+      
+      if (this.searchFilter.trim()) {
+        const filter = this.searchFilter.toLowerCase();
+        filtered = filtered.filter(record => 
+          record.album?.toLowerCase().includes(filter) ||
+          record.artist?.toLowerCase().includes(filter) ||
+          record.format?.toLowerCase().includes(filter)
+        );
+      }
+      
+      // Aplicar ordenação
+      filtered.sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(this.sortBy) {
+          case 'album':
+            valueA = (a.album || '').toLowerCase();
+            valueB = (b.album || '').toLowerCase();
+            break;
+          case 'artist':
+            valueA = (a.artist || '').toLowerCase();
+            valueB = (b.artist || '').toLowerCase();
+            break;
+          default:
+            return 0;
+        }
+        
+        if (this.sortOrder === 'asc') {
+          return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+      });
+      
+      this.filteredWishlist = filtered;
+      this.updateWishlistPagination();
+      
+      setTimeout(() => lucide.createIcons(), 10);
+    },
+
+    updateWishlistPagination() {
+      this.wishlistPagination.totalPages = Math.ceil(this.filteredWishlist.length / this.wishlistPagination.itemsPerPage);
+      if (this.wishlistPagination.currentPage > this.wishlistPagination.totalPages && this.wishlistPagination.totalPages > 0) {
+        this.wishlistPagination.currentPage = 1;
+      }
+    },
+
+    get displayedWishlist() {
+      const start = (this.wishlistPagination.currentPage - 1) * this.wishlistPagination.itemsPerPage;
+      const end = start + this.wishlistPagination.itemsPerPage;
+      return this.filteredWishlist.slice(start, end);
     },
 
     // Carregar configurações do usuário
@@ -2813,62 +3279,72 @@ async init() {
       },
 
     async confirmAddRecord() {
-        const album = SecurityUtils.sanitizeText(this.newRecord.album);
-        const artist = SecurityUtils.sanitizeText(this.newRecord.artist);
-        const format = SecurityUtils.sanitizeText(this.newRecord.format);
-        
-        if (!album || !artist || !format) {
-            this.showNotification('Preencha os campos obrigatórios', 'error');
-            return;
-        }
-        
-        if (album.length < 2 || artist.length < 2) {
-            this.showNotification('Álbum e artista devem ter pelo menos 2 caracteres', 'error');
-            return;
-        }
-        
-        // Rate limiter MENOS restritivo para adições manuais
-        // Permite 30 adições por minuto (limite generoso para uso normal)
-        if (!SecurityUtils.rateLimiter.isAllowed(this.user.uid, 'add_record')) {
-            this.showNotification('Muitas adições rápidas. Aguarde alguns segundos', 'error');
-            return;
-        }
-        
-        this.newRecord.album = album;
-        this.newRecord.artist = artist;
-        this.newRecord.format = format;
-        this.newRecord.catalog_number = SecurityUtils.sanitizeText(this.newRecord.catalog_number);
-        this.newRecord.description = SecurityUtils.sanitizeText(this.newRecord.description);
-        
-        if (!this.newRecord.cover_url) {
-            await this.fetchAlbumCover();
-        }
+      const album = SecurityUtils.sanitizeText(this.newRecord.album);
+      const artist = SecurityUtils.sanitizeText(this.newRecord.artist);
+      const format = SecurityUtils.sanitizeText(this.newRecord.format);
+      
+      if (!album || !artist || !format) {
+        this.showNotification('Preencha os campos obrigatórios', 'error');
+        return;
+      }
+      
+      if (album.length < 2 || artist.length < 2) {
+        this.showNotification('Álbum e artista devem ter pelo menos 2 caracteres', 'error');
+        return;
+      }
+      
+      if (!SecurityUtils.rateLimiter.isAllowed(this.user.uid, 'add_record')) {
+        this.showNotification('Muitas adições rápidas. Aguarde alguns segundos', 'error');
+        return;
+      }
+      
+      this.newRecord.album = album;
+      this.newRecord.artist = artist;
+      this.newRecord.format = format;
+      this.newRecord.catalog_number = SecurityUtils.sanitizeText(this.newRecord.catalog_number);
+      this.newRecord.description = SecurityUtils.sanitizeText(this.newRecord.description);
+      
+      // BUSCAR CAPA AUTOMATICAMENTE (SEMPRE, WISHLIST OU COLEÇÃO)
+      if (!this.newRecord.cover_url) {
+        await this.fetchAlbumCover();
+      }
 
-        if (confirm('Adicionar este item à coleção?')) {
-            await this.addRecord();
-        }
-        },
+      const action = this.newRecord.isWishlist ? 'lista de desejos' : 'coleção';
+      if (confirm(`Adicionar este item à ${action}?`)) {
+        await this.addRecord();
+      }
+    },
 
         async addRecord() {
           this.formLoading = true;
           try {
             const userId = this.user.uid;
             const recordData = {
-              ...this.newRecord,
+              album: this.newRecord.album,
+              artist: this.newRecord.artist,
+              format: this.newRecord.format,
+              year: this.newRecord.year,
+              catalog_number: this.newRecord.catalog_number,
+              cover_url: this.newRecord.cover_url,
+              description: this.newRecord.description,
               created_at: new Date(),
-              user_id: userId
+              user_id: userId,
+              acquired: false // Para controlar se foi adquirido
             };
 
+            const collection = this.newRecord.isWishlist ? 'wishlist' : 'records';
+
             if (this.newRecord.id) {
-              await db.collection('users').doc(userId).collection('records').doc(this.newRecord.id).update(recordData);
+              await db.collection('users').doc(userId).collection(collection).doc(this.newRecord.id).update(recordData);
               this.showNotification('Item atualizado com sucesso!', 'success');
             } else {
-              await db.collection('users').doc(userId).collection('records').add(recordData);
-              this.showNotification('Item adicionado com sucesso!', 'success');
+              await db.collection('users').doc(userId).collection(collection).add(recordData);
+              const target = this.newRecord.isWishlist ? 'lista de desejos' : 'coleção';
+              this.showNotification(`Item adicionado à ${target}!`, 'success');
             }
             
             this.resetForm();
-            this.currentView = 'collection';
+            this.currentView = this.newRecord.isWishlist ? 'wishlist' : 'collection';
           } catch (error) {
             console.error('Erro ao salvar:', error);
             this.showNotification('Erro ao salvar item', 'error');
@@ -2877,12 +3353,13 @@ async init() {
         },
 
     editRecord(record) {
-      // Fechar modal imediatamente para liberar memória
+      // Fechar modal imediatamente
       this.albumDetailsModal.show = false;
       
-      // Em coleções grandes, usar setTimeout para evitar travamento
+      // Detectar se é da wishlist
+      const isFromWishlist = this.wishlist.some(w => w.id === record.id);
+      
       if (this.performanceMode) {
-        // Mostrar loading primeiro
         this.showNotification('Carregando editor...', 'info');
         
         setTimeout(() => {
@@ -2894,10 +3371,10 @@ async init() {
             year: record.year || '', 
             catalog_number: record.catalog_number || '', 
             cover_url: record.cover_url || '',
-            description: record.description || ''
+            description: record.description || '',
+            isWishlist: isFromWishlist
           };
           
-          // Mudar view em próximo tick
           this.$nextTick(() => {
             this.currentView = 'add-record';
             this.showMobileSidebar = false;
@@ -2906,7 +3383,6 @@ async init() {
           });
         }, 100);
       } else {
-        // Coleções pequenas - funcionamento normal
         this.newRecord = {
           id: record.id || '',
           album: record.album || '', 
@@ -2915,7 +3391,8 @@ async init() {
           year: record.year || '', 
           catalog_number: record.catalog_number || '', 
           cover_url: record.cover_url || '',
-          description: record.description || ''
+          description: record.description || '',
+          isWishlist: isFromWishlist
         };
         this.currentView = 'add-record';
         this.showMobileSidebar = false;
@@ -2923,17 +3400,59 @@ async init() {
       }
     },
 
-    confirmDeleteRecord(recordId) {
-      if (confirm('Deseja realmente excluir este item?')) {
-        this.deleteRecord(recordId);
+    confirmDeleteRecord(recordId, isWishlist = false) {
+      const target = isWishlist ? 'da lista de desejos' : '';
+      if (confirm(`Deseja realmente excluir este item ${target}?`)) {
+        this.deleteRecord(recordId, isWishlist);
       }
     },
 
-    async deleteRecord(recordId) {
+    async moveToCollection(wishlistItem) {
+      if (!confirm('Adicionar este álbum à sua coleção?')) return;
+      
       try {
         const userId = this.user.uid;
-        await db.collection('users').doc(userId).collection('records').doc(recordId).delete();
-        this.showNotification('Item excluído com sucesso!', 'success');
+        
+        // Preparar para adicionar na coleção
+        this.newRecord = {
+          id: '',
+          album: wishlistItem.album,
+          artist: wishlistItem.artist,
+          format: wishlistItem.format,
+          year: wishlistItem.year || '',
+          catalog_number: wishlistItem.catalog_number || '',
+          cover_url: wishlistItem.cover_url || '',
+          description: wishlistItem.description || '',
+          isWishlist: false
+        };
+        
+        // Remover da wishlist
+        await db.collection('users').doc(userId).collection('wishlist').doc(wishlistItem.id).delete();
+        
+        // Mudar para tela de adicionar item
+        this.albumDetailsModal.show = false;
+        this.currentView = 'add-record';
+        this.showNotification('Complete os dados e salve o item!', 'info');
+        
+      } catch (error) {
+        console.error('Erro ao mover item:', error);
+        this.showNotification('Erro ao mover item', 'error');
+      }
+    },
+
+    async deleteRecord(recordId, isWishlist = false) {
+      try {
+        const userId = this.user.uid;
+        const collection = isWishlist ? 'wishlist' : 'records';
+        
+        await db.collection('users').doc(userId).collection(collection).doc(recordId).delete();
+        
+        const message = isWishlist ? 'Item removido da lista de desejos!' : 'Item excluído com sucesso!';
+        this.showNotification(message, 'success');
+        
+        // Fechar modal se estiver aberto
+        this.albumDetailsModal.show = false;
+        
       } catch (error) {
         console.error('Erro ao excluir:', error);
         this.showNotification('Erro ao excluir item', 'error');
@@ -3231,16 +3750,17 @@ async init() {
     },
 
     resetForm() {
-      this.newRecord = {
-        album: '', 
-        artist: '', 
-        format: '', 
-        year: '', 
-        catalog_number: '', 
-        cover_url: '',
-        description: ''
-      };
-    },
+    this.newRecord = {
+      album: '', 
+      artist: '', 
+      format: '', 
+      year: '', 
+      catalog_number: '', 
+      cover_url: '',
+      description: '',
+      isWishlist: false
+    };
+  },
 
     searchCoverOnGoogle() {
       const query = `${this.newRecord.album} ${this.newRecord.artist} album cover`;
