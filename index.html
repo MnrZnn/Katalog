@@ -2603,113 +2603,128 @@ async init() {
 
     // Carregar coleção compartilhada
     async loadSharedCollection(userId) {
-  try {
-    console.log('📄 Iniciando carregamento da coleção compartilhada para:', userId);
-    this.loading = true;
-    
-    // Verificar se o Firebase está inicializado
-    if (!db) {
-      throw new Error('Firebase não inicializado');
-    }
-    
-    console.log('🔍 Buscando dados do usuário...');
-    const userDoc = await db.collection('users').doc(userId).get();
-    
-    if (!userDoc.exists) {
-      console.error('❌ Usuário não existe:', userId);
-      throw new Error('Usuário não encontrado');
-    }
+      try {
+        console.log('📄 Iniciando carregamento da coleção compartilhada para:', userId);
+        this.loading = true;
+        
+        // Verificar se o Firebase está inicializado
+        if (!db) {
+          throw new Error('Firebase não inicializado');
+        }
+        
+        console.log('🔍 Buscando dados do usuário...');
+        const userDoc = await db.collection('users').doc(userId).get();
+        
+        if (!userDoc.exists) {
+          console.error('❌ Usuário não existe:', userId);
+          throw new Error('Usuário não encontrado');
+        }
 
-    const userData = userDoc.data();
-    console.log('📋 Dados do usuário carregados:', userData);
-    
-    if (!userData || !userData.isPublic) {
-      console.error('🔒 Coleção é privada ou dados inválidos');
-      throw new Error('Coleção privada ou dados inválidos');
-    }
+        const userData = userDoc.data();
+        console.log('📋 Dados do usuário carregados:', userData);
+        
+        if (!userData || !userData.isPublic) {
+          console.error('🔒 Coleção é privada ou dados inválidos');
+          throw new Error('Coleção privada ou dados inválidos');
+        }
 
-    // Definir dados do proprietário
-    this.sharedCollection.owner = {
-      displayName: userData.displayName || 'Usuário',
-      email: userData.email || 'Email não disponível'
-    };
+        // Definir dados do proprietário
+        this.sharedCollection.owner = {
+          displayName: userData.displayName || 'Usuário',
+          email: userData.email || 'Email não disponível'
+        };
 
-    console.log('🔍 Buscando registros da coleção...');
-    const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-    console.log('📦 Query executada, docs encontrados:', recordsSnapshot.size);
-    
-    this.sharedCollection.records = recordsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data
-      };
-    });
+        console.log('🔍 Buscando registros da coleção...');
+        const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+        console.log('📦 Query executada, docs encontrados:', recordsSnapshot.size);
+        
+        this.sharedCollection.records = recordsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data
+          };
+        });
 
-    // Inicializar filtros
-    this.filteredSharedCollection = [...this.sharedCollection.records];
-    this.updateSharedPagination();
-    
-    console.log('✅ Coleção compartilhada carregada:', {
-      owner: this.sharedCollection.owner,
-      totalRecords: this.sharedCollection.records.length,
-      filteredRecords: this.filteredSharedCollection.length,
-      totalPages: this.sharedPagination.totalPages  // ADICIONAR
-    });
-    this.loading = false;
-    
-    // Forçar atualização dos ícones
-    this.$nextTick(() => {
-      setTimeout(() => {
-        lucide.createIcons();
-        console.log('✅ Ícones inicializados');
-      }, 300);
-    });
-    
-  } catch (error) {
-    console.error('💥 Erro detalhado ao carregar coleção compartilhada:', error);
-    this.loading = false;
-    this.showNotification(`Erro: ${error.message}`, 'error');
-    
-    // Aguardar um pouco antes de redirecionar
-    setTimeout(() => {
-      this.goToLogin();
-    }, 2000);
-  }
-},
+        // Inicializar filtros - MUDANÇA: usar filterSharedCollection ao invés de copiar diretamente
+        this.filterSharedCollection(); // Isso vai ordenar E paginar
+        
+        console.log('✅ Coleção compartilhada carregada:', {
+          owner: this.sharedCollection.owner,
+          totalRecords: this.sharedCollection.records.length,
+          filteredRecords: this.filteredSharedCollection.length,
+          totalPages: this.sharedPagination.totalPages  // ADICIONAR
+        });
+        this.loading = false;
+        
+        // Forçar atualização dos ícones
+        this.$nextTick(() => {
+          setTimeout(() => {
+            lucide.createIcons();
+            console.log('✅ Ícones inicializados');
+          }, 300);
+        });
+        
+      } catch (error) {
+        console.error('💥 Erro detalhado ao carregar coleção compartilhada:', error);
+        this.loading = false;
+        this.showNotification(`Erro: ${error.message}`, 'error');
+        
+        // Aguardar um pouco antes de redirecionar
+        setTimeout(() => {
+          this.goToLogin();
+        }, 2000);
+      }
+    },
 
     // Filtrar coleção compartilhada
-    filterSharedCollection() {
-          console.log('Filtrando coleção compartilhada...', this.sharedCollection.records?.length);
+        filterSharedCollection() {
+      console.log('Filtrando coleção compartilhada...', this.sharedCollection.records?.length);
+      
+      if (!this.isSharedView || !this.sharedCollection.records) {
+        this.filteredSharedCollection = [];
+        return;
+      }
+      
+      let filtered = [...this.sharedCollection.records];
+      
+      if (this.sharedSearchFilter && this.sharedSearchFilter.trim()) {
+        const filter = this.sharedSearchFilter.toLowerCase().trim();
+        console.log('Aplicando filtro:', filter);
+        
+        filtered = filtered.filter(record => {
+          const album = (record.album || '').toLowerCase();
+          const artist = (record.artist || '').toLowerCase();
+          const format = (record.format || '').toLowerCase();
+          const year = (record.year || '').toString().toLowerCase();
+          const catalog = (record.catalog_number || '').toLowerCase();
           
-          if (!this.isSharedView || !this.sharedCollection.records) {
-            this.filteredSharedCollection = [];
-            return;
-          }
-          
-          let filtered = [...this.sharedCollection.records];
-          
-          if (this.sharedSearchFilter && this.sharedSearchFilter.trim()) {
-            const filter = this.sharedSearchFilter.toLowerCase().trim();
-            console.log('Aplicando filtro:', filter);
-            
-            filtered = filtered.filter(record => {
-              const album = (record.album || '').toLowerCase();
-              const artist = (record.artist || '').toLowerCase();
-              const format = (record.format || '').toLowerCase();
-              const year = (record.year || '').toString().toLowerCase();
-              const catalog = (record.catalog_number || '').toLowerCase();
-              
-              return album.includes(filter) || 
-                    artist.includes(filter) || 
-                    format.includes(filter) || 
-                    year.includes(filter) ||
-                    catalog.includes(filter);
-            });
-          }
+          return album.includes(filter) || 
+                artist.includes(filter) || 
+                format.includes(filter) || 
+                year.includes(filter) ||
+                catalog.includes(filter);
+        });
+      }
+      
+      // ORDENAÇÃO 
+      filtered.sort((a, b) => {
+        // Ordenar por artista
+        const artistA = (a.artist || '').toLowerCase();
+        const artistB = (b.artist || '').toLowerCase();
+        
+        if (artistA !== artistB) {
+          return artistA > artistB ? 1 : -1;
+        }
+        
+        // Se artistas iguais, ordenar por ano
+        const yearA = parseInt(a.year) || 0;
+        const yearB = parseInt(b.year) || 0;
+        return yearA - yearB;
+      });
+      
           
           this.filteredSharedCollection = filtered;
-          
           // Atualizar paginação
           this.updateSharedPagination();
           
@@ -3016,7 +3031,7 @@ async init() {
   }
 },
 
-    // Nova função para listener 
+    // Função para listener 
     setupCollectionListener(userId) {
       const collectionRef = db.collection('users').doc(userId).collection('records');
       
@@ -3042,13 +3057,18 @@ async init() {
             this.collection = this.collection.filter(r => r.id !== record.id);
           }
         });
-        
-        if (hasChanges) {
+            if (hasChanges) {
           this.checkPerformanceMode();
+          this.buildSearchIndex(); // Se estiver em modo performance
           this.filterAndSortCollection();
+          this.updatePagination(); // Forçar atualização da paginação
+          
+          // Forçar atualização dos ícones
+          setTimeout(() => lucide.createIcons(), 100);
         }
       });
     },
+
 
     // Configurações da Lista de Desejos (Wishlist)
     setupWishlistListener(userId) {
@@ -3504,27 +3524,35 @@ async init() {
 
     // Atualizar paginação
     updatePagination() {
-      if (this.performanceMode) {
+        if (this.performanceMode) {
         this.pagination.totalPages = Math.ceil(this.filteredCollection.length / this.pagination.itemsPerPage);
+        
+        //Se a pagina atual ficou invalida voltar para a primeira
         if (this.pagination.currentPage > this.pagination.totalPages && this.pagination.totalPages > 0) {
           this.pagination.currentPage = 1;
+        }
+        
+        //Se não ha paginas garantir que esta na página 1
+        if (this.pagination.totalPages === 0) {
+          this.pagination.currentPage = 1;
+          this.pagination.totalPages = 1;
         }
       }
     },
 
     // Verificar se precisa modo performance
       checkPerformanceMode() {
-        const wasPerformanceMode = this.performanceMode;
-        this.performanceMode = this.collection.length > 100; // ALTERADO DE 500 PARA 100
-        
-        if (this.performanceMode && !wasPerformanceMode) {
-          this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-          this.initLazyLoading();
-          this.buildSearchIndex();
-        } else if (!this.performanceMode && wasPerformanceMode) {
-          this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-        }
-      },
+      const wasPerformanceMode = this.performanceMode;
+      this.performanceMode = true; // ✅ Sempre ativar paginação
+      
+      if (this.performanceMode && !wasPerformanceMode) {
+        this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+        this.initLazyLoading();
+        this.buildSearchIndex();
+      } else if (!this.performanceMode && wasPerformanceMode) {
+        this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
+      }
+    },
 
     // Construir índice de busca
     buildSearchIndex() {
