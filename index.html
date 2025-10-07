@@ -2406,7 +2406,10 @@ async init() {
       this.checkDevice();
     });
 
-    // VERIFICAR COMPARTILHAMENTO ANTES DE QUALQUER COISA
+    // Inicializar lazy loading SEMPRE
+    this.initUniversalLazyLoading();
+
+    // VERIFICAR COMPARTILHAMENTO
     await this.checkForSharedCollection();
     
     // Se for visualização compartilhada, configurar e sair
@@ -2416,6 +2419,7 @@ async init() {
       
       setTimeout(() => {
         lucide.createIcons();
+        this.observeImages();
       }, 500);
       
       return;
@@ -2478,14 +2482,16 @@ async init() {
       }
     }, 200);
 
+    setTimeout(() => {
+      this.observeImages();
+    }, 200);
+
     // Watchers
     this.$watch('pagination.currentPage', () => {
       if (!this.isSharedView) {
         setTimeout(() => {
           lucide.createIcons();
-          if (this.performanceMode) {
-            this.observeImages();
-          }
+          this.observeImages();
         }, 50);
       }
     });
@@ -2494,9 +2500,7 @@ async init() {
       if (!this.isSharedView) {
         setTimeout(() => {
           lucide.createIcons();
-          if (this.performanceMode) {
-            this.observeImages();
-          }
+          this.observeImages();
         }, 50);
       }
     });
@@ -2504,15 +2508,19 @@ async init() {
     this.$watch('filteredSharedCollection', () => {
       if (this.isSharedView) {
         this.$nextTick(() => {
-          setTimeout(() => lucide.createIcons(), 50);
+          setTimeout(() => {
+            lucide.createIcons();
+            this.observeImages();
+          }, 50);
         });
       }
     });
-    
+
     this.$watch('sharedPagination.currentPage', () => {
       if (this.isSharedView) {
         setTimeout(() => {
           lucide.createIcons();
+          this.observeImages();
         }, 50);
       }
     });
@@ -2928,11 +2936,17 @@ async init() {
         this.showNotification('Carregando detalhes...', 'info');
         setTimeout(() => {
           this.albumDetailsModal = { show: true, record };
-          setTimeout(() => lucide.createIcons(), 50);
+          setTimeout(() => {
+            lucide.createIcons();
+            this.observeImages();
+          }, 50);
         }, 50);
       } else {
         this.albumDetailsModal = { show: true, record };
-        setTimeout(() => lucide.createIcons(), 10);
+        setTimeout(() => {
+          lucide.createIcons();
+          this.observeImages();
+        }, 10);
       }
     },
 
@@ -3171,7 +3185,10 @@ async init() {
       this.filteredWishlist = filtered;
       this.updateWishlistPagination();
       
-      setTimeout(() => lucide.createIcons(), 10);
+      setTimeout(() => {
+        lucide.createIcons();
+        this.observeImages();
+      }, 10);
     },
 
     updateWishlistPagination() {
@@ -3532,11 +3549,9 @@ async init() {
       this.updatePagination();
       
       setTimeout(() => {
-        lucide.createIcons();
-        if (this.performanceMode) {
-          this.observeImages();
-        }
-      }, 10);
+      lucide.createIcons();
+      this.observeImages();
+    }, 10);
     },
 
     // Getter para itens exibidos
@@ -3576,7 +3591,6 @@ async init() {
       
       if (this.performanceMode && !wasPerformanceMode) {
         this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
-        this.initLazyLoading();
         this.buildSearchIndex();
       } else if (!this.performanceMode && wasPerformanceMode) {
         this.pagination = { currentPage: 1, itemsPerPage: 50, totalPages: 1 };
@@ -3751,89 +3765,69 @@ async init() {
       });
     },
 
-    // Sistema de cache de imagens
-    imageCache: new Map(),
-    maxCacheSize: 200, // Máximo de imagens em cache
-
-  // Lazy loading aprimorado com cache
-  initLazyLoading() {
+   // Lazy Loading Universal - Simplificado
+  initUniversalLazyLoading() {
     if (this.imageObserver) {
       this.imageObserver.disconnect();
     }
     
-    // Observer com rootMargin para pré-carregar imagens próximas
     this.imageObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const img = entry.target;
           const src = img.dataset.src;
           
-          if (src) {
-            // Verificar cache primeiro
-            if (this.imageCache.has(src)) {
-              img.src = this.imageCache.get(src);
+          if (src && img.src !== src) {
+            const tempImg = new Image();
+            
+            tempImg.onload = () => {
+              img.src = src;
               img.removeAttribute('data-src');
+              img.removeAttribute('data-observed');
               this.imageObserver.unobserve(img);
-            } else {
-              // Carregar imagem
-              const tempImg = new Image();
-              tempImg.onload = () => {
-                // Adicionar ao cache
-                this.addToCache(src, src);
-                img.src = src;
-                img.removeAttribute('data-src');
-                this.imageObserver.unobserve(img);
-              };
-              tempImg.onerror = () => {
-                // Usar placeholder em caso de erro
-                const placeholder = `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${img.alt?.charAt(0) || 'A'}`;
-                img.src = placeholder;
-                img.removeAttribute('data-src');
-                this.imageObserver.unobserve(img);
-              };
-              tempImg.src = src;
-            }
+            };
+            
+            tempImg.onerror = () => {
+              const firstLetter = img.alt?.charAt(0) || 'A';
+              const placeholder = `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${firstLetter}`;
+              img.src = placeholder;
+              img.removeAttribute('data-src');
+              img.removeAttribute('data-observed');
+              this.imageObserver.unobserve(img);
+            };
+            
+            tempImg.src = src;
           }
         }
       });
     }, { 
-      rootMargin: '100px', // Pré-carregar imagens 100px antes de aparecerem
+      rootMargin: '100px',
       threshold: 0.01
     });
     
-    setTimeout(() => this.observeImages(), 100);
+    console.log('✅ Lazy loading universal inicializado');
   },
 
-  // Adicionar imagem ao cache (LRU - Least Recently Used)
-  addToCache(key, value) {
-    // Se cache está cheio, remover a mais antiga
-    if (this.imageCache.size >= this.maxCacheSize) {
-      const firstKey = this.imageCache.keys().next().value;
-      this.imageCache.delete(firstKey);
-    }
-    this.imageCache.set(key, value);
-  },
-
-  // Observar apenas imagens visíveis e próximas
   observeImages() {
-    const images = document.querySelectorAll('img[data-src]');
-    images.forEach(img => {
-      if (!img.dataset.observed) {
-        img.dataset.observed = 'true';
-        this.imageObserver.observe(img);
-      }
+    requestAnimationFrame(() => {
+      const images = document.querySelectorAll('img[data-src]');
+      console.log(`🔍 Encontradas ${images.length} imagens para observar`);
+      
+      images.forEach(img => {
+        if (!img.dataset.observed) {
+          img.dataset.observed = 'true';
+          this.imageObserver.observe(img);
+        }
+      });
     });
   },
 
-  // Limpar observer ao destruir
   cleanupObserver() {
     if (this.imageObserver) {
       this.imageObserver.disconnect();
       this.imageObserver = null;
     }
-  },
-
-  // === FIM DO BLOCO ===
+},
 
     filterCollection() {
       this.pagination.currentPage = 1;
