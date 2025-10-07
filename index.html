@@ -242,6 +242,23 @@
       font-size: 0.875rem;
     }
 
+/* Lazy Loading de Imagens */
+    img[data-src] {
+      background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .theme-light img[data-src] {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+    }
+
     /* Modal de import mais compacto */
     .import-modal-compact {
       max-width: 90vw;
@@ -562,11 +579,11 @@
      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5">
         <template x-for="record in displayedSharedCollection" :key="record.id">
           <div class="bg-card rounded-lg overflow-hidden shadow-lg relative">
-            <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`"
-                 class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                 @click="showAlbumDetails(record)"
-                 :alt="record.album || 'Álbum'"
-                 onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=' + (this.getAttribute('alt')?.charAt(0) || 'A')">
+           <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3C/svg%3E"
+              :alt="record.album || 'Álbum'"
+              class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              @click="showAlbumDetails(record)">
             <div class="absolute top-2 left-2">
               <span :class="'format-' + ((record.format || 'CD').toLowerCase())" 
                     class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -589,10 +606,11 @@
   <div class="md:hidden">
     <template x-for="record in displayedSharedCollection" :key="record.id">
       <div class="border-b border-custom p-4 flex items-center space-x-3">
-        <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
-             class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-             :alt="record.album || 'Álbum'"
-             @click="showAlbumDetails(record)">
+        <img :data-src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3C/svg%3E"
+            :alt="record.album || 'Álbum'"
+            class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+            @click="showAlbumDetails(record)">
         <div class="flex-1 min-w-0">
           <h3 class="font-semibold text-sm truncate" x-text="record.album || 'Sem título'"></h3>
           <p class="text-xs text-muted truncate" x-text="record.artist || 'Artista desconhecido'"></p>
@@ -606,7 +624,7 @@
     </template>
   </div>
 
-      <!-- Desktop Table View -->
+      <!-- Desktop Table View Compartilhada -->
       <table class="w-full hidden md:table">
         <thead class="bg-input">
           <tr>
@@ -621,10 +639,11 @@
           <template x-for="record in displayedSharedCollection" :key="record.id">
             <tr class="border-b border-custom hover:bg-input">
               <td class="p-4">
-                <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`" 
-                     class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                     :alt="record.album || 'Álbum'"
-                     @click="showAlbumDetails(record)">
+                <img :data-src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album ? record.album.charAt(0) : 'A'}`"
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3C/svg%3E"
+                  :alt="record.album || 'Álbum'"
+                  class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                  @click="showAlbumDetails(record)">
               </td>
               <td class="p-4 font-semibold" x-text="record.album || 'Sem título'"></td>
               <td class="p-4" x-text="record.artist || 'Artista desconhecido'"></td>
@@ -1565,10 +1584,11 @@
            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5">
             <template x-for="record in displayedCollection" :key="record.id">
               <div class="bg-card rounded-lg overflow-hidden shadow-lg group relative">
-                <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+                <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3C/svg%3E"
+                  :alt="record.album || 'Álbum'"
                   class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  @click="showAlbumDetails(record)"
-                  onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=' + (this.closest('[x-data]')?.__x?.$data?.record?.album?.charAt(0) || 'A')">
+                @click="showAlbumDetails(record)">
                 <div class="absolute top-2 left-2">
                   <span :class="'format-' + (record.format?.toLowerCase() || 'cd')" 
                         class="format-badge text-xs" x-text="record.format || 'CD'"></span>
@@ -1614,7 +1634,9 @@
             <div class="md:hidden">
               <template x-for="record in displayedCollection" :key="record.id">
                 <div class="border-b border-custom p-4 flex items-center space-x-3">
-                  <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
+                  <img :data-src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3C/svg%3E"
+                    :alt="record.album || 'Álbum'"
                     class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
                     @click="showAlbumDetails(record)">
                   <div class="flex-1 min-w-0">
@@ -1640,7 +1662,7 @@
               </template>
             </div>
             
-           <!-- Desktop Table View -->
+           <!-- Desktop List View -->
               <table class="w-full hidden md:table">
                 <thead class="bg-input">
                   <tr>
@@ -1656,9 +1678,11 @@
                   <template x-for="record in displayedCollection" :key="record.id">
                     <tr class="border-b border-custom hover:bg-input">
                       <td class="p-4">
-                        <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                            class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                            @click="showAlbumDetails(record)">
+                        <img :data-src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3C/svg%3E"
+                        :alt="record.album || 'Álbum'"
+                        class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                        @click="showAlbumDetails(record)">
                       </td>
                       <td class="p-4 font-semibold" x-text="record.album"></td>
                       <td class="p-4" x-text="record.artist"></td>
@@ -1786,10 +1810,11 @@
           </span>
         </div>
         
-        <img :src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
-             class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-             @click="showAlbumDetails(record)"
-             onerror="this.src='https://placehold.co/300x300/1E1E1E/E0E0E0?text=A'">
+        <img :data-src="record.cover_url || `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3C/svg%3E"
+          :alt="record.album || 'Álbum'"
+          class="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+          @click="showAlbumDetails(record)">
         
         <!-- Botões desktop -->
         <div class="absolute top-2 right-2 hidden md:flex flex-col space-y-1 opacity-0 group-hover:opacity-100">
@@ -1841,9 +1866,11 @@
     <div class="md:hidden">
       <template x-for="record in displayedWishlist" :key="record.id">
         <div class="border-b border-custom p-4 flex items-center space-x-3">
-          <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-               class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-               @click="showAlbumDetails(record)">
+          <img :data-src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3C/svg%3E"
+            :alt="record.album || 'Álbum'"
+            class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+            @click="showAlbumDetails(record)">
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-sm truncate flex items-center space-x-2">
               <i data-lucide="heart" class="w-3 h-3 text-pink-500"></i>
@@ -1871,7 +1898,7 @@
       </template>
     </div>
     
-    <!-- Desktop Table -->
+    <!-- Desktop Table Wishlist-->
     <table class="w-full hidden md:table">
       <thead class="bg-input">
         <tr>
@@ -1886,9 +1913,11 @@
         <template x-for="record in displayedWishlist" :key="record.id">
           <tr class="border-b border-custom hover:bg-input">
             <td class="p-4">
-              <img :src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`" 
-                   class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
-                   @click="showAlbumDetails(record)">
+              <img :data-src="record.cover_url || `https://placehold.co/60x60/1E1E1E/E0E0E0?text=${record.album.charAt(0)}`"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3C/svg%3E"
+              :alt="record.album || 'Álbum'"
+              class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+              @click="showAlbumDetails(record)">
             </td>
             <td class="p-4">
               <div class="flex items-center space-x-2">
@@ -3722,38 +3751,89 @@ async init() {
       });
     },
 
-    // Lazy loading de imagens
-      initLazyLoading() {
-        if (this.imageObserver) {
-          this.imageObserver.disconnect();
-        }
-        
-        this.imageObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              const img = entry.target;
-              if (img.dataset.src) {
-                img.src = img.dataset.src;
-                img.removeAttribute('data-src');
-                img.removeAttribute('data-observed');
-                this.imageObserver.unobserve(img);
-              }
-            }
-          });
-        }, { threshold: 0.1 });
-        
-        setTimeout(() => this.observeImages(), 100);
-      },
+    // Sistema de cache de imagens
+    imageCache: new Map(),
+    maxCacheSize: 200, // Máximo de imagens em cache
 
-    observeImages() {
-      const images = document.querySelectorAll('img[data-src]');
-      images.forEach(img => {
-        if (img.dataset.src && !img.src.includes('http')) {
-          img.src = img.dataset.src;
-          img.removeAttribute('data-src');
+  // Lazy loading aprimorado com cache
+  initLazyLoading() {
+    if (this.imageObserver) {
+      this.imageObserver.disconnect();
+    }
+    
+    // Observer com rootMargin para pré-carregar imagens próximas
+    this.imageObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          const src = img.dataset.src;
+          
+          if (src) {
+            // Verificar cache primeiro
+            if (this.imageCache.has(src)) {
+              img.src = this.imageCache.get(src);
+              img.removeAttribute('data-src');
+              this.imageObserver.unobserve(img);
+            } else {
+              // Carregar imagem
+              const tempImg = new Image();
+              tempImg.onload = () => {
+                // Adicionar ao cache
+                this.addToCache(src, src);
+                img.src = src;
+                img.removeAttribute('data-src');
+                this.imageObserver.unobserve(img);
+              };
+              tempImg.onerror = () => {
+                // Usar placeholder em caso de erro
+                const placeholder = `https://placehold.co/300x300/1E1E1E/E0E0E0?text=${img.alt?.charAt(0) || 'A'}`;
+                img.src = placeholder;
+                img.removeAttribute('data-src');
+                this.imageObserver.unobserve(img);
+              };
+              tempImg.src = src;
+            }
+          }
         }
       });
-    },
+    }, { 
+      rootMargin: '100px', // Pré-carregar imagens 100px antes de aparecerem
+      threshold: 0.01
+    });
+    
+    setTimeout(() => this.observeImages(), 100);
+  },
+
+  // Adicionar imagem ao cache (LRU - Least Recently Used)
+  addToCache(key, value) {
+    // Se cache está cheio, remover a mais antiga
+    if (this.imageCache.size >= this.maxCacheSize) {
+      const firstKey = this.imageCache.keys().next().value;
+      this.imageCache.delete(firstKey);
+    }
+    this.imageCache.set(key, value);
+  },
+
+  // Observar apenas imagens visíveis e próximas
+  observeImages() {
+    const images = document.querySelectorAll('img[data-src]');
+    images.forEach(img => {
+      if (!img.dataset.observed) {
+        img.dataset.observed = 'true';
+        this.imageObserver.observe(img);
+      }
+    });
+  },
+
+  // Limpar observer ao destruir
+  cleanupObserver() {
+    if (this.imageObserver) {
+      this.imageObserver.disconnect();
+      this.imageObserver = null;
+    }
+  },
+
+  // === FIM DO BLOCO ===
 
     filterCollection() {
       this.pagination.currentPage = 1;
@@ -3945,31 +4025,30 @@ async init() {
         },
 
     confirmLogout() {
-    // Limpar listener do Firestore
-    if (this.unsubscribe) {
-        this.unsubscribe();
-        this.unsubscribe = null;
-    }
-    
-    // Limpar observer de imagens
-    if (this.imageObserver) {
-        this.imageObserver.disconnect();
-        this.imageObserver = null;
-    }
-    
-    // Limpar timeouts
-    if (this.observeTimeout) {
-        clearTimeout(this.observeTimeout);
-    }
-    
-    // Cancelar operações em andamento
-    this.cancelAllApiOperations();
-    
-    if (confirm('Deseja realmente sair?')) {
-        auth.signOut();
-        this.showNotification('Logout realizado com sucesso!', 'success');
-    }
-    },
+        // Limpar listener do Firestore
+        if (this.unsubscribe) {
+          this.unsubscribe();
+          this.unsubscribe = null;
+        }
+        
+        this.cleanupObserver();
+        
+        // Limpar observer de imagens (REMOVER SE EXISTIR - está duplicado)
+        // if (this.imageObserver) { ... } <- REMOVER ESTE BLOCO
+        
+        // Limpar timeouts
+        if (this.observeTimeout) {
+          clearTimeout(this.observeTimeout);
+        }
+        
+        // Cancelar operações em andamento
+        this.cancelAllApiOperations();
+        
+        if (confirm('Deseja realmente sair?')) {
+          auth.signOut();
+          this.showNotification('Logout realizado com sucesso!', 'success');
+        }
+      },
 
     confirmDeleteAccount() {
       this.deleteAccountModal = { 
