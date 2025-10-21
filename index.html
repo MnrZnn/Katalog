@@ -2171,35 +2171,45 @@
       console.error('Erro de rede do Firestore:', err);
     });
 
-    // Funções de Segurança
+    // =============================================================================
+    // SISTEMA DE SEGURANÇA E PROTEÇÃO
+    // =============================================================================
+    // Utilitários para sanitização de texto e controle de rate limiting
+    // Previne ataques XSS e limita requisições por usuário/ação
     const SecurityUtils = {
-    sanitizeText(text) {
-        if (!text) return '';
-        return text.toString()
-        .replace(/[<>]/g, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .trim()
-        .slice(0, 500);
-    },
+        // Sanitiza texto removendo HTML, scripts e limitando tamanho
+        sanitizeText(text) {
+            if (!text) return '';
+            return text.toString()
+            .replace(/[<>]/g, '')           // Remove tags HTML
+            .replace(/javascript:/gi, '')    // Remove JS inline
+            .replace(/on\w+\s*=/gi, '')     // Remove event handlers
+            .trim()
+            .slice(0, 500);                 // Limita a 500 caracteres
+        },
 
-    rateLimiter: {
-      requests: new Map(),
-      
-      isAllowed(userId, action = 'general') {
-        const key = `${userId}_${action}`;
-        const now = Date.now();
-        const windowMs = 60000;
-        
-        // Limites diferentes por ação
-        const limits = {
-          'login': 5,
-          'register': 3,
-          'reset': 3,
-          'file_upload': 3,  // ADICIONAR
-          'add_record': 30,
-          'general': 30
-        };
+        // Sistema de rate limiting por usuário e ação
+        rateLimiter: {
+          requests: new Map(),
+          
+          // Verifica se usuário pode fazer determinada ação
+          // @param {string} userId - ID do usuário
+          // @param {string} action - Tipo de ação (login, register, etc)
+          // @returns {boolean} - true se permitido
+          isAllowed(userId, action = 'general') {
+            const key = `${userId}_${action}`;
+            const now = Date.now();
+            const windowMs = 60000; // Janela de 1 minuto
+            
+            // Limites específicos por tipo de ação
+            const limits = {
+              'login': 5,          // 5 tentativas de login por minuto
+              'register': 3,       // 3 cadastros por minuto
+              'reset': 3,          // 3 reset de senha por minuto
+              'file_upload': 3,    // 3 uploads de arquivo por minuto
+              'add_record': 30,    // 30 adições de registro por minuto
+              'general': 30        // 30 ações gerais por minuto
+            };
         
         const maxRequests = limits[action] || limits['general'];
         
@@ -2393,219 +2403,270 @@ document.addEventListener('alpine:init', () => {
       maxConcurrentRequests: 3,
       requestDelay: 500, // ms entre requests
 
-      
-async init() {
-  try {
-    console.log('🚀 Iniciando aplicação...');
-    
-    // Device detection primeiro
-    this.checkDevice();
-    window.addEventListener('resize', () => {
-      this.checkDevice();
-    });
-
-    // Inicializar lazy loading SEMPRE
-    this.initUniversalLazyLoading();
-
-    // VERIFICAR COMPARTILHAMENTO
-    await this.checkForSharedCollection();
-    
-    // Se for visualização compartilhada, configurar e sair
-    if (this.isSharedView) {
-      console.log('🎯 Modo compartilhado confirmado - finalizando init');
-      this.loading = false;
-      
-      setTimeout(() => {
-        lucide.createIcons();
-        this.observeImages();
-      }, 500);
-      
-      return;
-    }
-
-    // Só continuar se NÃO for visualização compartilhada
-    console.log('🔐 Modo normal - inicializando autenticação...');
-    
-    // Aguardar Firebase estar pronto
-    await new Promise((resolve) => {
-      if (firebase.apps.length > 0) {
-        resolve();
-      } else {
-        setTimeout(resolve, 1000);
-      }
-    });
-    
-    auth.onAuthStateChanged(async (user) => {
-      this.user = user;
-      
-      if (user) {
-        console.log('✅ Usuário logado:', user.email);
-        console.log('Email verificado:', user.emailVerified);
-        
-        try {
-          // Carregar dados do usuário
-          await this.setupCollection(user.uid);
-          await this.loadUserSettings(user.uid);
           
-          // Verificar se o email está verificado
-          if (!user.emailVerified) {
-            console.log('⚠️ Email não verificado');
-            this.showEmailVerification = true;
-            this.emailVerified = false;
-          } else {
-            this.emailVerified = true;
-            this.showEmailVerification = false;
-          }
-        } catch (error) {
-          console.error('Erro ao carregar dados do usuário:', error);
-          this.showNotification('Erro ao carregar seus dados', 'error');
-        }
-      } else {
-        this.collection = [];
-        this.filteredCollection = [];
-        this.wishlist = [];
-        this.filteredWishlist = [];
-        this.showEmailVerification = false;
-      }
-      
-      this.loading = false;
-      setTimeout(() => lucide.createIcons(), 100);
-    });
+    // =============================================================================
+    // INICIALIZAÇÃO DA APLICAÇÃO
+    // =============================================================================
+    // Função principal que inicializa toda a aplicação
+    // Detecta modo compartilhado, configura Firebase e carrega dados do usuário
+    async init() {
+      try {
+        console.log('🚀 Iniciando aplicação...');
+        
+        // -------------------------------------------------------------------------
+        // 1. DETECÇÃO DE DISPOSITIVO
+        // -------------------------------------------------------------------------
+        // Verifica se é mobile ou desktop para adaptar interface
+        this.checkDevice();
+        window.addEventListener('resize', () => {
+          this.checkDevice();
+        });
 
-    lucide.createIcons();
-    
-    setTimeout(() => {
-      if (this.performanceMode) {
-        this.observeImages();
-      }
-    }, 200);
+        // -------------------------------------------------------------------------
+        // 2. LAZY LOADING DE IMAGENS
+        // -------------------------------------------------------------------------
+        // Inicializa sistema universal de lazy loading (funciona em todos os modos)
+        this.initUniversalLazyLoading();
 
-    setTimeout(() => {
-      this.observeImages();
-    }, 200);
-
-    // Watchers
-    this.$watch('pagination.currentPage', () => {
-      if (!this.isSharedView) {
-        setTimeout(() => {
-          lucide.createIcons();
-          this.observeImages();
-        }, 50);
-      }
-    });
-
-    this.$watch('viewMode', () => {
-      if (!this.isSharedView) {
-        setTimeout(() => {
-          lucide.createIcons();
-          this.observeImages();
-        }, 50);
-      }
-    });
-
-    this.$watch('filteredSharedCollection', () => {
-      if (this.isSharedView) {
-        this.$nextTick(() => {
+        // -------------------------------------------------------------------------
+        // 3. VERIFICAÇÃO DE MODO COMPARTILHADO
+        // -------------------------------------------------------------------------
+        // Verifica se URL contém ?shared=userId para exibir coleção pública
+        await this.checkForSharedCollection();
+        
+        // Se for visualização compartilhada, finalizar init aqui
+        if (this.isSharedView) {
+          console.log('🎯 Modo compartilhado confirmado - finalizando init');
+          this.loading = false;
+          
+          // Aguardar renderização e inicializar ícones
           setTimeout(() => {
             lucide.createIcons();
             this.observeImages();
-          }, 50);
-        });
-      }
-    });
-
-    this.$watch('sharedPagination.currentPage', () => {
-      if (this.isSharedView) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-        // Múltiplas tentativas de carregamento
-        this.$nextTick(() => {
-          this.forceLoadSharedImages();
+          }, 500);
           
-          setTimeout(() => {
-            this.forceLoadSharedImages();
-            lucide.createIcons();
-          }, 100);
-          
-          setTimeout(() => {
-            this.forceLoadSharedImages();
-          }, 300);
-          
-          setTimeout(() => {
-            this.forceLoadSharedImages();
-          }, 600);
-        });
-      }
-    });
-
-    this.$watch('wishlistPagination.currentPage', () => {
-      if (!this.isSharedView) {
-        setTimeout(() => {
-          lucide.createIcons();
-        }, 50);
-      }
-    });
-
-    this.$watch('loading', (newValue, oldValue) => {
-        if (oldValue === true && newValue === false && this.user) {
-            this.$nextTick(() => {
-                console.log('Forçando atualização da UI após o loading...');
-                this.filterAndSortCollection(); // Re-executa o filtro da coleção principal
-                this.filterWishlist();         // Re-executa o filtro da lista de desejos
-                lucide.createIcons();           // Garante que os ícones sejam renderizados
-            });
+          return; // Sair da função init
         }
-    });
 
-    this.$watch('loading', (newValue, oldValue) => {
-      if (oldValue === true && newValue === false) {
+        // -------------------------------------------------------------------------
+        // 4. INICIALIZAÇÃO FIREBASE (apenas para usuários logados)
+        // -------------------------------------------------------------------------
+        console.log('🔐 Modo normal - inicializando autenticação...');
+        
+        // Aguardar Firebase estar completamente pronto
+        await new Promise((resolve) => {
+          if (firebase.apps.length > 0) {
+            resolve();
+          } else {
+            setTimeout(resolve, 1000);
+          }
+        });
+        
+        // -------------------------------------------------------------------------
+        // 5. LISTENER DE AUTENTICAÇÃO
+        // -------------------------------------------------------------------------
+        // Monitora mudanças no estado de autenticação do usuário
+        auth.onAuthStateChanged(async (user) => {
+          this.user = user;
+          
+          if (user) {
+            console.log('✅ Usuário logado:', user.email);
+            console.log('Email verificado:', user.emailVerified);
+            
+            try {
+              // Carregar dados do usuário (coleção, wishlist, configurações)
+              await this.setupCollection(user.uid);
+              await this.loadUserSettings(user.uid);
+              
+              // ---------------------------------------------------------------
+              // VERIFICAÇÃO DE EMAIL
+              // ---------------------------------------------------------------
+              // Se email não verificado, exibir banner de verificação
+              if (!user.emailVerified) {
+                console.log('⚠️ Email não verificado');
+                this.showEmailVerification = true;
+                this.emailVerified = false;
+              } else {
+                this.emailVerified = true;
+                this.showEmailVerification = false;
+              }
+            } catch (error) {
+              console.error('Erro ao carregar dados do usuário:', error);
+              this.showNotification('Erro ao carregar seus dados', 'error');
+            }
+          } else {
+            // Usuário não logado - limpar dados locais
+            this.collection = [];
+            this.filteredCollection = [];
+            this.wishlist = [];
+            this.filteredWishlist = [];
+            this.showEmailVerification = false;
+          }
+          
+          this.loading = false;
+          setTimeout(() => lucide.createIcons(), 100);
+        });
+
+        // Inicializar ícones Lucide
+        lucide.createIcons();
+        
+        // -------------------------------------------------------------------------
+        // 6. OBSERVERS DE IMAGENS
+        // -------------------------------------------------------------------------
+        // Aguardar renderização inicial antes de observar imagens
         setTimeout(() => {
-          lucide.createIcons();
+          if (this.performanceMode) {
+            this.observeImages();
+          }
+        }, 200);
+
+        setTimeout(() => {
           this.observeImages();
-        }, 100);
-      }
-    });
+        }, 200);
 
-  } catch (error) {
-    console.error('💥 Erro crítico na inicialização:', error);
-    this.loading = false;
-    this.showNotification('Erro crítico. Recarregue a página.', 'error');
-  }
-},
-
-      async sendEmailVerification() {
-  if (!this.user) return;
-  
-  try {
-    await this.user.sendEmailVerification();
-    this.verificationSent = true;
-    this.showNotification('Email de verificação enviado!', 'success');
-  } catch (error) {
-    console.error('Erro ao enviar verificação:', error);
-    this.showNotification('Erro ao enviar email de verificação', 'error');
-  }
-},
-
-//Funções de verificação de email
-    async checkEmailVerification() {
-    if (!this.user) return;
-    
-    try {
-        await this.user.reload();
-        if (this.user.emailVerified) {
-        this.emailVerified = true;
-        this.showEmailVerification = false;
-        this.showNotification('Email verificado com sucesso!', 'success');
+        // -------------------------------------------------------------------------
+        // 7. WATCHERS REATIVOS
+        // -------------------------------------------------------------------------
+        // Monitora mudanças e atualiza interface automaticamente
         
-        this.setupCollection(this.user.uid);
-        this.loadUserSettings(this.user.uid);
-        } else {
-        this.showNotification('Email ainda não foi verificado', 'info');
+        // Watcher de paginação - atualiza ícones ao mudar página
+        this.$watch('pagination.currentPage', () => {
+          if (!this.isSharedView) {
+            setTimeout(() => {
+              lucide.createIcons();
+              this.observeImages();
+            }, 50);
+          }
+        });
+
+        // Watcher de modo de visualização (grid/list)
+        this.$watch('viewMode', () => {
+          if (!this.isSharedView) {
+            setTimeout(() => {
+              lucide.createIcons();
+              this.observeImages();
+            }, 50);
+          }
+        });
+
+        // Watcher de coleção compartilhada filtrada
+        this.$watch('filteredSharedCollection', () => {
+          if (this.isSharedView) {
+            this.$nextTick(() => {
+              setTimeout(() => {
+                lucide.createIcons();
+                this.observeImages();
+              }, 50);
+            });
+          }
+        });
+
+        // Watcher de paginação compartilhada
+        this.$watch('sharedPagination.currentPage', () => {
+          if (this.isSharedView) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Múltiplas tentativas de carregamento para garantir exibição
+            this.$nextTick(() => {
+              this.forceLoadSharedImages();
+              
+              setTimeout(() => {
+                this.forceLoadSharedImages();
+                lucide.createIcons();
+              }, 100);
+              
+              setTimeout(() => {
+                this.forceLoadSharedImages();
+              }, 300);
+              
+              setTimeout(() => {
+                this.forceLoadSharedImages();
+              }, 600);
+            });
+          }
+        });
+
+        // Watcher de paginação da wishlist
+        this.$watch('wishlistPagination.currentPage', () => {
+          if (!this.isSharedView) {
+            setTimeout(() => {
+              lucide.createIcons();
+            }, 50);
+          }
+        });
+
+        // Watcher de loading - força atualização após carregar
+        this.$watch('loading', (newValue, oldValue) => {
+            if (oldValue === true && newValue === false && this.user) {
+                this.$nextTick(() => {
+                    console.log('Forçando atualização da UI após o loading...');
+                    this.filterAndSortCollection(); // Re-executa filtro da coleção
+                    this.filterWishlist();          // Re-executa filtro da wishlist
+                    lucide.createIcons();           // Renderiza ícones
+                });
+            }
+        });
+
+        // Watcher final de loading para imagens
+        this.$watch('loading', (newValue, oldValue) => {
+          if (oldValue === true && newValue === false) {
+            setTimeout(() => {
+              lucide.createIcons();
+              this.observeImages();
+            }, 100);
+          }
+        });
+
+      } catch (error) {
+        console.error('💥 Erro crítico na inicialização:', error);
+        this.loading = false;
+        this.showNotification('Erro crítico. Recarregue a página.', 'error');
+      }
+    },
+
+    // =============================================================================
+    // SISTEMA DE VERIFICAÇÃO DE EMAIL
+    // =============================================================================
+
+    // Envia email de verificação para o usuário atual
+    async sendEmailVerification() {
+      if (!this.user) return;
+      
+      try {
+        await this.user.sendEmailVerification();
+        this.verificationSent = true;
+        this.showNotification('Email de verificação enviado!', 'success');
+      } catch (error) {
+        console.error('Erro ao enviar verificação:', error);
+        this.showNotification('Erro ao enviar email de verificação', 'error');
+      }
+    },
+
+    // Verifica se o email do usuário foi confirmado
+    // Recarrega dados do Firebase e atualiza interface se verificado
+    async checkEmailVerification() {
+        if (!this.user) return;
+        
+        try {
+            // Recarregar dados do usuário do Firebase
+            await this.user.reload();
+            
+            if (this.user.emailVerified) {
+              // Email verificado - atualizar interface
+              this.emailVerified = true;
+              this.showEmailVerification = false;
+              this.showNotification('Email verificado com sucesso!', 'success');
+              
+              // Recarregar coleção e configurações
+              this.setupCollection(this.user.uid);
+              this.loadUserSettings(this.user.uid);
+            } else {
+              this.showNotification('Email ainda não foi verificado', 'info');
+            }
+        } catch (error) {
+            console.error('Erro ao verificar email:', error);
+            this.showNotification('Erro ao verificar email', 'error');
         }
-    } catch (error) {
-        console.error('Erro ao verificar email:', error);
-        this.showNotification('Erro ao verificar email', 'error');
-    }
     },
 
     // Função recuperar senha
@@ -2642,114 +2703,133 @@ async init() {
     this.resetEmailSent = false;
     },
 
-// Verificar se é uma coleção compartilhada
-      async checkForSharedCollection() {
-      console.log('🔍 Verificando URL para compartilhamento...');
-      console.log('📍 URL atual:', window.location.href);
-      console.log('📍 Search params:', window.location.search);
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const sharedId = urlParams.get('shared');
-      
-      console.log('🆔 Shared ID encontrado:', sharedId);
-      
-      if (sharedId) {
-        console.log('✅ Modo compartilhamento ativado para ID:', sharedId);
-        this.isSharedView = true;
-        this.sharedUserId = sharedId;
-        
-        try {
-          await this.loadSharedCollection(sharedId);
-          console.log('✅ Coleção compartilhada carregada com sucesso');
-        } catch (error) {
-          console.error('❌ Erro ao carregar coleção compartilhada:', error);
-          this.goToLogin();
-        }
-      } else {
-        console.log('❌ Nenhum ID compartilhado encontrado');
-        this.isSharedView = false;
-      }
-    },
+  // =============================================================================
+  // SISTEMA DE COMPARTILHAMENTO DE COLEÇÃO
+  // =============================================================================
 
-    // Carregar coleção compartilhada
-    async loadSharedCollection(userId) {
+  // Verifica se URL contém parâmetro ?shared=userId
+  // Define o modo de visualização (compartilhado ou normal)
+  async checkForSharedCollection() {
+    console.log('🔍 Verificando URL para compartilhamento...');
+    console.log('🔍 URL atual:', window.location.href);
+    console.log('🔍 Search params:', window.location.search);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedId = urlParams.get('shared');
+    
+    console.log('🆔 Shared ID encontrado:', sharedId);
+    
+    if (sharedId) {
+      console.log('✅ Modo compartilhamento ativado para ID:', sharedId);
+      this.isSharedView = true;
+      this.sharedUserId = sharedId;
+      
       try {
-        console.log('📄 Iniciando carregamento da coleção compartilhada para:', userId);
-        this.loading = true;
-        
-        if (!db) {
-          throw new Error('Firebase não inicializado');
-        }
-        
-        console.log('🔍 Buscando dados do usuário...');
-        const userDoc = await db.collection('users').doc(userId).get();
-        
-        if (!userDoc.exists) {
-          console.error('❌ Usuário não existe:', userId);
-          throw new Error('Usuário não encontrado');
-        }
-
-        const userData = userDoc.data();
-        console.log('📋 Dados do usuário carregados:', userData);
-        
-        if (!userData || !userData.isPublic) {
-          console.error('🔒 Coleção é privada ou dados inválidos');
-          throw new Error('Coleção privada ou dados inválidos');
-        }
-
-        this.sharedCollection.owner = {
-          displayName: userData.displayName || 'Usuário',
-          email: userData.email || 'Email não disponível'
-        };
-
-        console.log('🔍 Buscando registros da coleção...');
-        const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
-        console.log('📦 Query executada, docs encontrados:', recordsSnapshot.size);
-        
-        this.sharedCollection.records = recordsSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data
-          };
-        });
-
-        this.filterSharedCollection();
-        
-        console.log('✅ Coleção compartilhada carregada:', {
-          owner: this.sharedCollection.owner,
-          totalRecords: this.sharedCollection.records.length,
-          filteredRecords: this.filteredSharedCollection.length,
-          totalPages: this.sharedPagination.totalPages
-        });
-        this.loading = false;
-        
-        // FORÇAR CARREGAMENTO DAS IMAGENS MÚLTIPLAS VEZES
-        setTimeout(() => {
-          lucide.createIcons();
-          this.observeImages();
-        }, 100);
-        
-        setTimeout(() => {
-          lucide.createIcons();
-          this.observeImages();
-        }, 500);
-        
-        setTimeout(() => {
-          this.observeImages();
-        }, 1000);
-        
+        await this.loadSharedCollection(sharedId);
+        console.log('✅ Coleção compartilhada carregada com sucesso');
       } catch (error) {
-        console.error('💥 Erro detalhado ao carregar coleção compartilhada:', error);
-        this.loading = false;
-        this.showNotification(`Erro: ${error.message}`, 'error');
-        
-        setTimeout(() => {
-          this.goToLogin();
-        }, 2000);
+        console.error('❌ Erro ao carregar coleção compartilhada:', error);
+        this.goToLogin();
       }
-    },
+    } else {
+      console.log('❌ Nenhum ID compartilhado encontrado');
+      this.isSharedView = false;
+    }
+  },
 
+  // Carrega dados de uma coleção pública compartilhada
+  // @param {string} userId - ID do dono da coleção
+  async loadSharedCollection(userId) {
+    try {
+      console.log('📄 Iniciando carregamento da coleção compartilhada para:', userId);
+      this.loading = true;
+      
+      if (!db) {
+        throw new Error('Firebase não inicializado');
+      }
+      
+      // -----------------------------------------------------------------------
+      // 1. BUSCAR DADOS DO USUÁRIO DONO DA COLEÇÃO
+      // -----------------------------------------------------------------------
+      console.log('🔍 Buscando dados do usuário...');
+      const userDoc = await db.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        console.error('❌ Usuário não existe:', userId);
+        throw new Error('Usuário não encontrado');
+      }
+
+      const userData = userDoc.data();
+      console.log('📋 Dados do usuário carregados:', userData);
+      
+      // Verificar se a coleção é pública
+      if (!userData || !userData.isPublic) {
+        console.error('🔒 Coleção é privada ou dados inválidos');
+        throw new Error('Coleção privada ou dados inválidos');
+      }
+
+      // Armazenar informações do dono
+      this.sharedCollection.owner = {
+        displayName: userData.displayName || 'Usuário',
+        email: userData.email || 'Email não disponível'
+      };
+
+      // -----------------------------------------------------------------------
+      // 2. BUSCAR REGISTROS DA COLEÇÃO
+      // -----------------------------------------------------------------------
+      console.log('🔍 Buscando registros da coleção...');
+      const recordsSnapshot = await db.collection('users').doc(userId).collection('records').get();
+      console.log('📦 Query executada, docs encontrados:', recordsSnapshot.size);
+      
+      // Mapear documentos para array de objetos
+      this.sharedCollection.records = recordsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data
+        };
+      });
+
+      // Aplicar filtro inicial
+      this.filterSharedCollection();
+      
+      console.log('✅ Coleção compartilhada carregada:', {
+        owner: this.sharedCollection.owner,
+        totalRecords: this.sharedCollection.records.length,
+        filteredRecords: this.filteredSharedCollection.length,
+        totalPages: this.sharedPagination.totalPages
+      });
+      
+      this.loading = false;
+      
+      // -----------------------------------------------------------------------
+      // 3. FORÇAR CARREGAMENTO DE IMAGENS
+      // -----------------------------------------------------------------------
+      // Múltiplas tentativas para garantir que imagens sejam carregadas
+      setTimeout(() => {
+        lucide.createIcons();
+        this.observeImages();
+      }, 100);
+      
+      setTimeout(() => {
+        lucide.createIcons();
+        this.observeImages();
+      }, 500);
+      
+      setTimeout(() => {
+        this.observeImages();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('💥 Erro detalhado ao carregar coleção compartilhada:', error);
+      this.loading = false;
+      this.showNotification(`Erro: ${error.message}`, 'error');
+      
+      setTimeout(() => {
+        this.goToLogin();
+      }, 2000);
+    }
+  },
 
     // Filtrar coleção compartilhada
         filterSharedCollection() {
@@ -3804,106 +3884,123 @@ async init() {
       });
     },
 
-   // Lazy Loading Universal - Simplificado
-  // Lazy Loading Universal - Otimizado
+  // =============================================================================
+  // SISTEMA DE LAZY LOADING DE IMAGENS
+  // =============================================================================
+  // Carrega imagens apenas quando estão prestes a aparecer na tela
+  // Melhora performance significativamente em coleções grandes
+
+  // Inicializa o sistema universal de lazy loading
   initUniversalLazyLoading() {
-    if (this.imageObserver) {
-      this.imageObserver.disconnect();
-    }
-    
-    // Callback que será executado quando uma imagem entrar na área de observação
-    const observerCallback = (entries) => {
-      entries.forEach(entry => {
-        // Se a imagem está na tela (ou perto dela) e ainda não foi carregada
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          const src = img.dataset.src;
-          
-          if (src) {
-            // Cria uma imagem temporária em memória para carregar o arquivo
-            const tempImg = new Image();
+      // Desconectar observer anterior se existir
+      if (this.imageObserver) {
+        this.imageObserver.disconnect();
+      }
+      
+      // -------------------------------------------------------------------------
+      // CALLBACK DO INTERSECTION OBSERVER
+      // -------------------------------------------------------------------------
+      // Executado quando uma imagem entra na área de observação
+      const observerCallback = (entries) => {
+        entries.forEach(entry => {
+          // Verificar se a imagem está visível (ou perto de ficar)
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            const src = img.dataset.src; // URL real da imagem
             
-            // Quando a imagem for carregada com sucesso
-            tempImg.onload = () => {
-              img.src = src; // Atribui a URL real ao elemento <img>
-              img.removeAttribute('data-src'); // Remove o atributo data-src para não recarregar
-            };
+            if (src) {
+              // Criar imagem temporária em memória para pré-carregar
+              const tempImg = new Image();
+              
+              // Callback de sucesso no carregamento
+              tempImg.onload = () => {
+                img.src = src; // Atribuir URL real ao elemento
+                img.removeAttribute('data-src'); // Remover data-src para não recarregar
+              };
+              
+              // Callback de erro no carregamento
+              tempImg.onerror = () => {
+                console.error(`Erro ao carregar a imagem: ${src}`);
+                img.removeAttribute('data-src');
+                // Opcional: definir imagem de fallback
+                // img.src = '/path/to/error-image.png';
+              };
+              
+              // Iniciar download da imagem
+              tempImg.src = src;
+            }
             
-            // Se houver um erro ao carregar
-            tempImg.onerror = () => {
-              console.error(`Erro ao carregar a imagem: ${src}`);
-              // Opcional: Você pode definir uma imagem de fallback aqui
-              // img.src = '/caminho/para/imagem_erro.png'; 
-              img.removeAttribute('data-src');
-            };
-            
-            tempImg.src = src; // Inicia o download da imagem
+            // Parar de observar esta imagem (já foi carregada)
+            this.imageObserver.unobserve(img);
           }
-          
-          // Para de observar a imagem para não disparar o evento novamente
-          this.imageObserver.unobserve(img);
-        }
-      });
-    };
+        });
+      };
 
-    // Opções do Observer
-    const observerOptions = {
-      // Aumentamos a margem para 300px. A imagem começará a carregar
-      // quando estiver a 300px de distância da tela, dando mais tempo para o download.
-      rootMargin: '300px',
+      // -------------------------------------------------------------------------
+      // OPÇÕES DO OBSERVER
+      // -------------------------------------------------------------------------
+      const observerOptions = {
+        // rootMargin: área extra ao redor da viewport
+        // 300px significa que a imagem começa a carregar quando está
+        // a 300 pixels de distância da tela (antes de ficar visível)
+        rootMargin: '300px',
+        
+        // threshold: porcentagem mínima de visibilidade para disparar
+        // 0.01 = começa a carregar assim que 1% da imagem aparece
+        threshold: 0.01
+      };
       
-      // Começa a carregar assim que o primeiro pixel da imagem se aproxima
-      threshold: 0.01
-    };
-    
-    // Cria a instância do IntersectionObserver
-    this.imageObserver = new IntersectionObserver(observerCallback, observerOptions);
-    
-    console.log('Lazy loading universal inicializado');
-  },
+      // Criar instância do IntersectionObserver
+      this.imageObserver = new IntersectionObserver(observerCallback, observerOptions);
+      
+      console.log('Lazy loading universal inicializado');
+    },
 
+    // Observa todas as imagens com atributo data-src na página
     observeImages() {
-    // Para visualização compartilhada, força carregamento imediato
-    if (this.isSharedView) {
-    return; // Não fazer nada em modo compartilhado
-  }
+      // Para visualização compartilhada, não usar observer (forçar carregamento)
+      if (this.isSharedView) {
+        return;
+      }
 
-    // Para coleção normal, usa observer
-    requestAnimationFrame(() => {
-      const images = document.querySelectorAll('img[data-src]');
-      console.log(`🔍 Encontradas ${images.length} imagens para observar`);
+      // Para coleção normal, usar intersection observer
+      requestAnimationFrame(() => {
+        const images = document.querySelectorAll('img[data-src]');
+        console.log(`🔍 Encontradas ${images.length} imagens para observar`);
+        
+        images.forEach(img => {
+          // Verificar se imagem já não está sendo observada
+          if (!img.dataset.observed) {
+            img.dataset.observed = 'true';
+            this.imageObserver.observe(img);
+          }
+        });
+      });
+    },
+
+    // Força carregamento imediato de todas as imagens (modo compartilhado)
+    forceLoadSharedImages() {
+      if (!this.isSharedView) return;
+      lucide.createIcons();
       
+      // Carregar todas as imagens imediatamente
+      const images = document.querySelectorAll('img[data-src]');
       images.forEach(img => {
-        if (!img.dataset.observed) {
-          img.dataset.observed = 'true';
-          this.imageObserver.observe(img);
+        const src = img.dataset.src;
+        if (src) {
+          img.src = src;
+          img.removeAttribute('data-src');
         }
       });
-    });
-  },
+    },
 
-  // Forçar reload de imagens na paginação compartilhada
-  forceLoadSharedImages() {
-  if (!this.isSharedView) return;
-  lucide.createIcons();
-  
-  // Forçar re-render das imagens se necessário
-  const images = document.querySelectorAll('img[data-src]');
-  images.forEach(img => {
-    const src = img.dataset.src;
-    if (src) {
-      img.src = src;
-      img.removeAttribute('data-src');
-    }
-  });
-},
-
-  cleanupObserver() {
-    if (this.imageObserver) {
-      this.imageObserver.disconnect();
-      this.imageObserver = null;
-    }
-},
+    // Limpa e desconecta o observer de imagens
+    cleanupObserver() {
+      if (this.imageObserver) {
+        this.imageObserver.disconnect();
+        this.imageObserver = null;
+      }
+    },
 
     filterCollection() {
       this.pagination.currentPage = 1;
@@ -4218,11 +4315,21 @@ async init() {
       this.deleteAccountModal.loading = false;
     },
         
-    handleFileUpload(event) {
+  // =============================================================================
+// SISTEMA DE UPLOAD E IMPORTAÇÃO DE ARQUIVOS
+// =============================================================================
+
+// Processa upload de arquivo Excel/CSV para importação
+// Inclui validações de segurança, tamanho e formato
+// @param {Event} event - Evento do input file
+handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // VERIFICAÇÃO DE BLOQUEIO PARA NÃO VERIFICADOS
+  // -------------------------------------------------------------------------
+  // 1. VERIFICAÇÃO DE BLOQUEIO PARA USUÁRIOS NÃO VERIFICADOS
+  // -------------------------------------------------------------------------
+  // Usuários sem email verificado tem limite de 2 imports de 100 itens cada
   if (!this.user.emailVerified && this.importTracking.isBlocked) {
     this.showNotification(
       'Você atingiu o limite de imports. Verifique seu email para continuar!',
@@ -4230,12 +4337,15 @@ async init() {
     );
     event.target.value = '';
     
-    // Mostrar modal de verificação
+    // Exibir modal de verificação
     this.showEmailVerification = true;
     return;
   }
 
-  // VERIFICAÇÃO DE PROTEÇÃO
+  // -------------------------------------------------------------------------
+  // 2. PROTEÇÃO CONTRA SPAM/ABUSO
+  // -------------------------------------------------------------------------
+  // Sistema de rate limiting para uploads
   const uploadCheck = this.canUpload();
   if (!uploadCheck.allowed) {
     this.showNotification(uploadCheck.message, 'error');
@@ -4243,19 +4353,23 @@ async init() {
     return;
   }
 
-  // Validação de tamanho
-  const maxSize = 10 * 1024 * 1024;
+  // -------------------------------------------------------------------------
+  // 3. VALIDAÇÃO DE TAMANHO
+  // -------------------------------------------------------------------------
+  const maxSize = 10 * 1024 * 1024; // 10MB
   if (file.size > maxSize) {
     this.showNotification('Arquivo muito grande! Máximo: 10MB', 'error');
     event.target.value = '';
     return;
   }
 
-  // Validação de tipo
+  // -------------------------------------------------------------------------
+  // 4. VALIDAÇÃO DE TIPO/FORMATO
+  // -------------------------------------------------------------------------
   const validTypes = [
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel',
-    'text/csv'
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.ms-excel', // .xls
+    'text/csv' // .csv
   ];
   
   if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
@@ -4264,31 +4378,43 @@ async init() {
     return;
   }
 
+  // -------------------------------------------------------------------------
+  // 5. LEITURA DO ARQUIVO
+  // -------------------------------------------------------------------------
   this.importModal.loading = true;
   this.importModal.progress = 0;
   this.importModal.progressText = 'Lendo arquivo...';
 
   const reader = new FileReader();
+  
+  // Callback executado quando arquivo for lido com sucesso
   reader.onload = async (e) => {
     try {
       this.importModal.progress = 30;
       this.importModal.progressText = 'Analisando conteúdo...';
       
+      // -----------------------------------------------------------------------
+      // PROCESSAMENTO DO EXCEL
+      // -----------------------------------------------------------------------
+      // Usar biblioteca XLSX para ler o arquivo
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
       
       this.importModal.progress = 60;
       this.importModal.progressText = 'Processando dados...';
       
+      // Pegar primeira planilha e converter para JSON
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // SISTEMA DE LIMITES PROGRESSIVOS
-      let maxRecords = 3000;
+      // -----------------------------------------------------------------------
+      // LIMITES PROGRESSIVOS POR TIPO DE CONTA
+      // -----------------------------------------------------------------------
+      let maxRecords = 3000; // Limite para contas verificadas
       
       if (!this.user.emailVerified) {
-        maxRecords = 100;
+        maxRecords = 100; // Limite para contas não verificadas
         
         if (jsonData.length > maxRecords) {
           this.showNotification(
@@ -4308,6 +4434,7 @@ async init() {
         }
       }
 
+      // Verificar se arquivo não está vazio
       if (jsonData.length === 0) {
         this.showNotification('Arquivo vazio ou formato incorreto', 'error');
         this.importModal.loading = false;
@@ -4320,8 +4447,12 @@ async init() {
       
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      // -----------------------------------------------------------------------
+      // PROCESSAR E VALIDAR DADOS
+      // -----------------------------------------------------------------------
       this.processImportData(jsonData);
       
+      // Se importação for muito grande (>500 itens), mostrar aviso
       if (this.importModal.data.length > 500) {
         this.largeImportModal = {
           show: true,
@@ -4347,12 +4478,14 @@ async init() {
     }
   };
   
+  // Callback de erro ao ler arquivo
   reader.onerror = () => {
     this.showNotification('Erro ao ler arquivo', 'error');
     this.importModal.loading = false;
     event.target.value = '';
   };
   
+  // Iniciar leitura do arquivo como ArrayBuffer
   reader.readAsArrayBuffer(file);
 },
 
@@ -4781,4 +4914,3 @@ document.addEventListener('DOMContentLoaded', () => {
   </script>
 </body>
 </html>
-
