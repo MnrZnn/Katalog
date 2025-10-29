@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade - Katalog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    
+    .theme-dark {
+      background-color: #121212;
+      color: #E0E0E0;
+    }
+    .theme-dark .bg-card { background-color: #1E1E1E; }
+    .theme-dark .border-custom { border-color: #383838; }
+    
+    .theme-light {
+      background-color: #f8fafc;
+      color: #1f2937;
+    }
+    .theme-light .bg-card { background-color: #ffffff; }
+    .theme-light .border-custom { border-color: #e2e8f0; }
+  </style>
+</head>
+<body class="theme-dark min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Cabeçalho -->
+    <div class="flex items-center justify-between mb-8">
+      <a href="index.html" class="flex items-center space-x-2 text-green-400 hover:text-green-300">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        <span>Voltar ao Katalog</span>
+      </a>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="bg-card rounded-lg shadow-xl p-6 md:p-8 border border-custom">
+      <h1 class="text-3xl font-bold mb-6 text-green-400">Política de Privacidade</h1>
+      
+      <div class="space-y-6 text-sm md:text-base leading-relaxed">
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h2>
+          <p>A equipe do Katalog valoriza a privacidade e a segurança dos dados pessoais de seus usuários. Esta Política de Privacidade tem como objetivo informar de maneira clara e transparente como os dados são coletados, utilizados, armazenados e protegidos dentro da plataforma.</p>
+          <p class="mt-2">O Katalog é um sistema web desenvolvido para organizar, catalogar e compartilhar coleções musicais, oferecendo aos colecionadores um ambiente seguro, colaborativo e acessível. O tratamento das informações segue rigorosamente a Lei nº 13.709/2018 – Lei Geral de Proteção de Dados (LGPD).</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">2. Dados Coletados</h2>
+          <p>O sistema coleta apenas os dados estritamente necessários para o funcionamento da plataforma, que incluem:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li>Nome e endereço de e-mail (para autenticação e identificação da conta);</li>
+            <li>Preferências de perfil (tema, visibilidade da coleção e configurações de conta);</li>
+            <li>Informações das coleções cadastradas (álbuns, artistas, formatos e capas);</li>
+            <li>Dados técnicos de acesso (data de login, IP e tipo de dispositivo, quando aplicável).</li>
+          </ul>
+          <p class="mt-2">O Katalog não coleta dados sensíveis como informações financeiras, biométricas ou de localização precisa.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">3. Finalidade do Tratamento de Dados</h2>
+          <p>Os dados coletados são utilizados para as seguintes finalidades:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li>Gerenciar a conta do usuário e permitir seu acesso seguro ao sistema;</li>
+            <li>Armazenar e organizar coleções musicais de forma individualizada;</li>
+            <li>Permitir a personalização da experiência, como temas e preferências visuais;</li>
+            <li>Garantir a segurança da conta, prevenindo acessos não autorizados;</li>
+            <li>Gerar relatórios e estatísticas internas para melhorias do sistema;</li>
+            <li>Viabilizar o compartilhamento público de coleções, quando autorizado pelo usuário.</li>
+          </ul>
+          <p class="mt-2">O tratamento de dados é sempre realizado com base na finalidade legítima e no consentimento do usuário, em conformidade com o artigo 7º da LGPD.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">4. Armazenamento e Segurança das Informações</h2>
+          <p>O Katalog utiliza a infraestrutura segura do Google Firebase (Google Cloud Platform) para o armazenamento e processamento das informações. Essa tecnologia garante:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li>Criptografia de dados em trânsito e em repouso;</li>
+            <li>Autenticação por token em cada sessão de usuário;</li>
+            <li>Controle de acesso individual baseado no identificador único (UID);</li>
+            <li>Regras de segurança no Firestore, que restringem o acesso aos dados apenas ao seu proprietário;</li>
+            <li>Backups automáticos para garantir disponibilidade e recuperação das informações.</li>
+          </ul>
+          <p class="mt-2">Todos os dados trafegam sob o protocolo HTTPS, assegurando que as informações não sejam interceptadas por terceiros.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">5. Compartilhamento de Dados</h2>
+          <p>O Katalog não compartilha, vende ou aluga informações pessoais a terceiros.</p>
+          <p class="mt-2">O único tipo de compartilhamento possível ocorre quando o próprio usuário opta por tornar sua coleção pública, gerando um link ou QR Code que permite visualização de forma somente leitura.</p>
+          <p class="mt-2">Fora dessa condição, nenhum dado é divulgado sem consentimento prévio e informado.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">6. Direitos do Usuário</h2>
+          <p>De acordo com a LGPD, o usuário possui os seguintes direitos:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li>Confirmar a existência de tratamento de dados pessoais;</li>
+            <li>Acessar, corrigir, atualizar ou excluir suas informações a qualquer momento;</li>
+            <li>Solicitar a portabilidade dos dados;</li>
+            <li>Revogar o consentimento de uso;</li>
+            <li>Solicitar a exclusão completa de sua conta e de todos os dados associados.</li>
+          </ul>
+          <p class="mt-2">Esses direitos podem ser exercidos diretamente no painel de configurações do sistema, sem necessidade de contato intermediário.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">7. Exclusão de Conta e Retenção de Dados</h2>
+          <p>Quando o usuário solicita a exclusão da conta, o sistema realiza a remoção permanente e irreversível de todas as informações pessoais e coleções armazenadas no Firestore.</p>
+          <p class="mt-2">Não é mantida nenhuma cópia após o encerramento, garantindo o direito ao esquecimento previsto na LGPD.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">8. Uso de Cookies e Tecnologias Similares</h2>
+          <p>O Katalog utiliza cookies apenas para manter a sessão do usuário autenticada e registrar preferências de interface (como tema claro ou escuro).</p>
+          <p class="mt-2">Nenhum cookie é usado para rastreamento publicitário ou monitoramento de comportamento.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">9. Alterações na Política de Privacidade</h2>
+          <p>Esta Política de Privacidade poderá ser atualizada periodicamente, sempre que houver modificações significativas na forma de tratamento dos dados.</p>
+          <p class="mt-2">As alterações serão informadas dentro da própria plataforma, e o uso contínuo do sistema após as atualizações implicará na aceitação dos novos termos.</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">10. Contato e Responsabilidade</h2>
+          <p>Em caso de dúvidas, solicitações ou reclamações sobre privacidade e proteção de dados, o usuário poderá entrar em contato com o Controlador de Dados do projeto:</p>
+          <p class="mt-2 font-semibold">Equipe Katalog – Universidade de Mogi das Cruzes (UMC)</p>
+          <p>E-mail: katalog.projeto@gmail.com</p>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">11. Conclusão</h2>
+          <p>A equipe do Katalog reafirma seu compromisso com a segurança, a ética e a privacidade de todos os usuários, adotando boas práticas de segurança digital e garantindo total transparência sobre o uso e a proteção das informações pessoais.</p>
+        </section>
+
+        <div class="mt-8 pt-6 border-t border-custom text-center text-sm opacity-70">
+          <p>Última atualização: Outubro de 2025</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
