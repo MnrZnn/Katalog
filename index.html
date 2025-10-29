@@ -1743,6 +1743,15 @@
           <p class="text-xs text-muted mt-1">Modo Performance ativo para coleções grandes</p>
         </div>
 
+        <!-- Política de Privacidade -->
+        <div class="text-center mt-4">
+          <a href="politica-de-privacidade.html" 
+            target="_blank"
+            class="text-xs text-gray-400 hover:text-green-400 transition-colors underline">
+            Política de Privacidade
+          </a>
+        </div>
+
         <!-- Empty State -->
           <div x-show="collection.length === 0" class="text-center py-12 md:py-20 bg-card rounded-lg">
             <i data-lucide="folder-x" class="mx-auto h-12 w-12 md:h-16 md:w-16 text-muted mb-4"></i>
@@ -2138,13 +2147,14 @@
     </nav>
 
   <!-- Floating Action Button (Mobile, apenas para usuários logados) -->
-    <button x-show="currentView === 'collection' && collection.length === 0 && !isSharedView" 
-        @click="currentView = 'add-record'"
-        class="fab btn-primary mobile-only"
-        :class="{'!bg-black !text-white': !darkMode}">
-    <i data-lucide="plus" class="w-6 h-6"></i>
-    </button>
+      <button x-show="currentView === 'collection' && collection.length === 0 && !isSharedView" 
+          @click="currentView = 'add-record'"
+          class="fab btn-primary mobile-only"
+          :class="{'!bg-black !text-white': !darkMode}">
+      <i data-lucide="plus" class="w-6 h-6"></i>
+      </button>
 
+<!-- JAVASCRIPT -->
   <script>
     // Firebase Config
     const firebaseConfig = {
