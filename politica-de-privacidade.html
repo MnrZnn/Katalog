@@ -17,6 +17,10 @@
     }
     .theme-dark .bg-card { background-color: #1E1E1E; }
     .theme-dark .border-custom { border-color: #383838; }
+    .theme-dark .bg-info { background-color: #1e3a5f; border-color: #3b82f6; }
+    .theme-dark .bg-warning { background-color: #4a3c1e; border-color: #f59e0b; }
+    .theme-dark .bg-danger { background-color: #4a1e1e; border-color: #ef4444; }
+    .theme-dark .bg-success { background-color: #1e4a2e; border-color: #10b981; }
     
     .theme-light {
       background-color: #f8fafc;
@@ -30,7 +34,7 @@
   <div class="container mx-auto px-4 py-8 max-w-4xl">
     <!-- Cabeçalho -->
     <div class="flex items-center justify-between mb-8">
-      <a href="index.html" class="flex items-center space-x-2 text-green-400 hover:text-green-300">
+      <a href="index.html" class="flex items-center space-x-2 text-green-400 hover:text-green-300 transition-colors">
         <i data-lucide="arrow-left" class="w-5 h-5"></i>
         <span>Voltar ao Katalog</span>
       </a>
@@ -41,103 +45,220 @@
       <h1 class="text-3xl font-bold mb-6 text-green-400">Política de Privacidade</h1>
       
       <div class="space-y-6 text-sm md:text-base leading-relaxed">
+        
+        <!-- 1. Introdução -->
         <section>
           <h2 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h2>
           <p>A equipe do Katalog valoriza a privacidade e a segurança dos dados pessoais de seus usuários. Esta Política de Privacidade tem como objetivo informar de maneira clara e transparente como os dados são coletados, utilizados, armazenados e protegidos dentro da plataforma.</p>
-          <p class="mt-2">O Katalog é um sistema web desenvolvido para organizar, catalogar e compartilhar coleções musicais, oferecendo aos colecionadores um ambiente seguro, colaborativo e acessível. O tratamento das informações segue rigorosamente a Lei nº 13.709/2018 – Lei Geral de Proteção de Dados (LGPD).</p>
+          <p class="mt-2">O Katalog é um sistema web desenvolvido para organizar, catalogar e compartilhar coleções musicais, oferecendo aos colecionadores um ambiente seguro, colaborativo e acessível. O tratamento das informações segue rigorosamente a <strong>Lei nº 13.709/2018 – Lei Geral de Proteção de Dados (LGPD)</strong>.</p>
         </section>
 
+        <!-- 2. Dados Coletados -->
         <section>
           <h2 class="text-xl font-semibold mb-3 text-green-300">2. Dados Coletados</h2>
           <p>O sistema coleta apenas os dados estritamente necessários para o funcionamento da plataforma, que incluem:</p>
           <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li>Nome e endereço de e-mail (para autenticação e identificação da conta);</li>
-            <li>Preferências de perfil (tema, visibilidade da coleção e configurações de conta);</li>
-            <li>Informações das coleções cadastradas (álbuns, artistas, formatos e capas);</li>
-            <li>Dados técnicos de acesso (data de login, IP e tipo de dispositivo, quando aplicável).</li>
+            <li><strong>Nome e endereço de e-mail</strong> (para autenticação e identificação da conta via Firebase Authentication);</li>
+            <li><strong>Preferências de interface</strong> (tema claro/escuro, armazenado localmente no navegador via localStorage);</li>
+            <li><strong>Informações das coleções cadastradas</strong> (álbuns, artistas, formatos, capas, ano, número de catálogo e descrições);</li>
+            <li><strong>Status de verificação de e-mail</strong> (para controle de limites de importação);</li>
+            <li><strong>Contadores de importação</strong> (para usuários não verificados, armazenado localmente via localStorage);</li>
+            <li><strong>Dados técnicos de autenticação</strong> (tokens de sessão gerenciados automaticamente pelo Firebase Authentication).</li>
           </ul>
-          <p class="mt-2">O Katalog não coleta dados sensíveis como informações financeiras, biométricas ou de localização precisa.</p>
+          
+          <div class="bg-info border-l-4 p-4 mt-4 rounded">
+            <p class="text-sm">
+              <strong>Importante:</strong> O Katalog NÃO coleta dados sensíveis como informações financeiras, biométricas, localização precisa ou histórico de navegação.
+            </p>
+          </div>
         </section>
 
+        <!-- 3. Finalidade do Tratamento -->
         <section>
           <h2 class="text-xl font-semibold mb-3 text-green-300">3. Finalidade do Tratamento de Dados</h2>
-          <p>Os dados coletados são utilizados para as seguintes finalidades:</p>
+          <p>Os dados coletados são utilizados exclusivamente para as seguintes finalidades:</p>
           <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
             <li>Gerenciar a conta do usuário e permitir seu acesso seguro ao sistema;</li>
             <li>Armazenar e organizar coleções musicais de forma individualizada;</li>
-            <li>Permitir a personalização da experiência, como temas e preferências visuais;</li>
-            <li>Garantir a segurança da conta, prevenindo acessos não autorizados;</li>
-            <li>Gerar relatórios e estatísticas internas para melhorias do sistema;</li>
-            <li>Viabilizar o compartilhamento público de coleções, quando autorizado pelo usuário.</li>
+            <li>Permitir a personalização da experiência (tema claro/escuro);</li>
+            <li>Controlar limites de importação para usuários não verificados;</li>
+            <li>Garantir a segurança da conta através de verificação de e-mail;</li>
+            <li>Viabilizar o compartilhamento público de coleções, quando autorizado pelo usuário;</li>
+            <li>Buscar automaticamente capas de álbuns através de APIs externas (iTunes, quando solicitado pelo usuário).</li>
           </ul>
-          <p class="mt-2">O tratamento de dados é sempre realizado com base na finalidade legítima e no consentimento do usuário, em conformidade com o artigo 7º da LGPD.</p>
+          <p class="mt-2">O tratamento de dados é sempre realizado com base na finalidade legítima e no consentimento do usuário, em conformidade com o <strong>artigo 7º da LGPD</strong>.</p>
         </section>
 
+        <!-- 4. Armazenamento e Segurança -->
         <section>
           <h2 class="text-xl font-semibold mb-3 text-green-300">4. Armazenamento e Segurança das Informações</h2>
-          <p>O Katalog utiliza a infraestrutura segura do Google Firebase (Google Cloud Platform) para o armazenamento e processamento das informações. Essa tecnologia garante:</p>
+          
+          <h3 class="text-lg font-semibold mb-2 text-green-200">4.1 Infraestrutura em Nuvem</h3>
+          <p>O Katalog utiliza a infraestrutura segura do <strong>Google Firebase</strong> (Google Cloud Platform) para o armazenamento e processamento das informações. Essa tecnologia garante:</p>
           <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li>Criptografia de dados em trânsito e em repouso;</li>
+            <li>Criptografia de dados em trânsito (HTTPS/TLS) e em repouso;</li>
             <li>Autenticação por token em cada sessão de usuário;</li>
             <li>Controle de acesso individual baseado no identificador único (UID);</li>
-            <li>Regras de segurança no Firestore, que restringem o acesso aos dados apenas ao seu proprietário;</li>
+            <li>Regras de segurança no Firestore que restringem o acesso aos dados apenas ao seu proprietário;</li>
             <li>Backups automáticos para garantir disponibilidade e recuperação das informações.</li>
           </ul>
-          <p class="mt-2">Todos os dados trafegam sob o protocolo HTTPS, assegurando que as informações não sejam interceptadas por terceiros.</p>
+
+          <h3 class="text-lg font-semibold mb-2 mt-4 text-green-200">4.2 Armazenamento Local (localStorage)</h3>
+          <p>Algumas preferências são armazenadas <strong>localmente no navegador do usuário</strong> através da tecnologia localStorage:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li><strong>Tema da interface</strong> (claro/escuro) - chave: <code class="bg-gray-700 px-2 py-1 rounded text-sm">katalog-theme</code></li>
+            <li><strong>Contadores de importação</strong> (somente para usuários não verificados) - chave: <code class="bg-gray-700 px-2 py-1 rounded text-sm">import_tracking_[userId]</code></li>
+          </ul>
+          
+          <div class="bg-warning border-l-4 p-4 mt-4 rounded">
+            <p class="text-sm">
+              <strong>Observação:</strong> Dados do localStorage ficam apenas no seu dispositivo e não são enviados para servidores. Limpar o cache do navegador remove essas preferências.
+            </p>
+          </div>
         </section>
 
+        <!-- 5. APIs Externas -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">5. Compartilhamento de Dados</h2>
-          <p>O Katalog não compartilha, vende ou aluga informações pessoais a terceiros.</p>
-          <p class="mt-2">O único tipo de compartilhamento possível ocorre quando o próprio usuário opta por tornar sua coleção pública, gerando um link ou QR Code que permite visualização de forma somente leitura.</p>
-          <p class="mt-2">Fora dessa condição, nenhum dado é divulgado sem consentimento prévio e informado.</p>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">5. Uso de APIs e Serviços Externos</h2>
+          <p class="mb-3">Para melhorar a experiência do usuário, o Katalog utiliza os seguintes serviços externos:</p>
+          
+          <div class="space-y-4">
+            <div class="border-l-4 border-green-500 pl-4 py-2">
+              <h3 class="font-semibold text-green-200">iTunes Search API (Apple Inc.)</h3>
+              <p class="text-sm mt-1">
+                <strong>Finalidade:</strong> Buscar automaticamente capas de álbuns, correção de nomes de artistas e anos de lançamento.<br>
+                <strong>Dados enviados:</strong> Nome do álbum e artista (enviados temporariamente para consulta).<br>
+                <strong>Política de Privacidade:</strong> <a href="https://www.apple.com/legal/privacy/" target="_blank" class="text-green-400 hover:text-green-300 underline">https://www.apple.com/legal/privacy/</a>
+              </p>
+            </div>
+
+            <div class="border-l-4 border-blue-500 pl-4 py-2">
+              <h3 class="font-semibold text-blue-300">Google Images</h3>
+              <p class="text-sm mt-1">
+                <strong>Finalidade:</strong> Permitir busca manual de capas de álbuns (abre em nova aba).<br>
+                <strong>Dados enviados:</strong> Nenhum dado pessoal. Apenas termos de busca (nome do álbum).<br>
+                <strong>Observação:</strong> O usuário é redirecionado para o Google, sujeito à política de privacidade do Google.
+              </p>
+            </div>
+
+            <div class="border-l-4 border-purple-500 pl-4 py-2">
+              <h3 class="font-semibold text-purple-300">CDNs Públicos</h3>
+              <p class="text-sm mt-1">
+                <strong>Serviços:</strong> Tailwind CSS, Lucide Icons, Alpine.js, SheetJS, QRCode.js<br>
+                <strong>Finalidade:</strong> Carregamento de bibliotecas JavaScript e estilos.<br>
+                <strong>Dados:</strong> Apenas requisições HTTP padrão (sem dados pessoais).
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-danger border-l-4 p-4 mt-4 rounded">
+            <p class="text-sm">
+              <strong>Importante:</strong> O Katalog NÃO tem controle sobre a política de privacidade de serviços externos. Recomendamos a leitura das políticas de cada serviço.
+            </p>
+          </div>
         </section>
 
+        <!-- 6. Compartilhamento de Dados -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">6. Direitos do Usuário</h2>
-          <p>De acordo com a LGPD, o usuário possui os seguintes direitos:</p>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">6. Compartilhamento de Dados</h2>
+          <p>O Katalog <strong>NÃO compartilha, vende ou aluga</strong> informações pessoais a terceiros para fins comerciais ou publicitários.</p>
+          <p class="mt-2">O único tipo de compartilhamento possível ocorre quando o próprio usuário opta por <strong>tornar sua coleção pública</strong>, gerando um link (formato: <code class="bg-gray-700 px-2 py-1 rounded text-sm">?shared=[userId]</code>) ou QR Code que permite visualização em modo somente leitura.</p>
+          
+          <div class="bg-success border-l-4 p-4 mt-4 rounded">
+            <p class="text-sm">
+              <strong>Coleções Públicas:</strong> Quando ativadas, qualquer pessoa com o link pode visualizar os álbuns, artistas e capas da coleção. Dados de e-mail e preferências permanecem privados.
+            </p>
+          </div>
+        </section>
+
+        <!-- 7. Cookies -->
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">7. Uso de Cookies e Tecnologias Similares</h2>
+          <p>O Katalog <strong>NÃO utiliza cookies tradicionais</strong> para armazenamento de preferências ou rastreamento de navegação.</p>
+          <p class="mt-2">Em vez disso, o sistema utiliza:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li><strong>localStorage</strong> (armazenamento local do navegador) para salvar tema e contadores de importação;</li>
+            <li><strong>Firebase Authentication Tokens</strong> (gerenciados automaticamente pelo Firebase) para manter a sessão do usuário autenticada de forma segura.</li>
+          </ul>
+          
+          <div class="bg-info border-l-4 p-4 mt-4 rounded">
+            <p class="text-sm">
+              <strong>Resultado:</strong> O Katalog NÃO requer banner de consentimento de cookies, pois não utiliza cookies para rastreamento, publicidade ou análise comportamental.
+            </p>
+          </div>
+        </section>
+
+        <!-- 8. Direitos do Usuário -->
+        <section>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">8. Direitos do Usuário</h2>
+          <p>De acordo com a <strong>LGPD</strong>, o usuário possui os seguintes direitos:</p>
           <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
             <li>Confirmar a existência de tratamento de dados pessoais;</li>
-            <li>Acessar, corrigir, atualizar ou excluir suas informações a qualquer momento;</li>
-            <li>Solicitar a portabilidade dos dados;</li>
-            <li>Revogar o consentimento de uso;</li>
-            <li>Solicitar a exclusão completa de sua conta e de todos os dados associados.</li>
+            <li>Acessar seus dados a qualquer momento através do painel de configurações;</li>
+            <li>Corrigir, atualizar ou completar informações (nome, senha, dados da coleção);</li>
+            <li>Solicitar a portabilidade dos dados (exportação para Excel);</li>
+            <li>Revogar o consentimento de compartilhamento público;</li>
+            <li>Solicitar a exclusão completa da conta e de todos os dados associados.</li>
           </ul>
-          <p class="mt-2">Esses direitos podem ser exercidos diretamente no painel de configurações do sistema, sem necessidade de contato intermediário.</p>
+          <p class="mt-2">Esses direitos podem ser exercidos <strong>diretamente no painel de configurações</strong> do sistema, sem necessidade de contato intermediário ou justificativa.</p>
         </section>
 
+        <!-- 9. Exclusão de Conta -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">7. Exclusão de Conta e Retenção de Dados</h2>
-          <p>Quando o usuário solicita a exclusão da conta, o sistema realiza a remoção permanente e irreversível de todas as informações pessoais e coleções armazenadas no Firestore.</p>
-          <p class="mt-2">Não é mantida nenhuma cópia após o encerramento, garantindo o direito ao esquecimento previsto na LGPD.</p>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">9. Exclusão de Conta e Retenção de Dados</h2>
+          <p>Quando o usuário solicita a exclusão da conta através do painel de configurações, o sistema realiza:</p>
+          <ol class="list-decimal list-inside mt-2 space-y-1 ml-4">
+            <li>Exclusão permanente de todos os registros da coleção (álbuns, artistas, capas);</li>
+            <li>Remoção dos dados de perfil (nome, preferências);</li>
+            <li>Exclusão da conta de autenticação no Firebase;</li>
+            <li>Limpeza automática do localStorage no navegador.</li>
+          </ol>
+          
+          <div class="bg-danger border-l-4 p-4 mt-4 rounded">
+            <p class="text-sm">
+              <strong>Atenção:</strong> A exclusão é <strong>permanente e irreversível</strong>. Nenhuma cópia é mantida após o encerramento, garantindo o direito ao esquecimento previsto na LGPD.
+            </p>
+          </div>
         </section>
 
+        <!-- 10. Limitações para Usuários Não Verificados -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">8. Uso de Cookies e Tecnologias Similares</h2>
-          <p>O Katalog utiliza cookies apenas para manter a sessão do usuário autenticada e registrar preferências de interface (como tema claro ou escuro).</p>
-          <p class="mt-2">Nenhum cookie é usado para rastreamento publicitário ou monitoramento de comportamento.</p>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">10. Limitações para Usuários Não Verificados</h2>
+          <p>Para prevenir abuso do sistema, usuários que <strong>não verificaram o endereço de e-mail</strong> possuem as seguintes limitações:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+            <li>Máximo de <strong>2 importações</strong> de arquivo Excel/CSV;</li>
+            <li>Máximo de <strong>100 registros por importação</strong>;</li>
+            <li>Contadores armazenados localmente (localStorage) para controle.</li>
+          </ul>
+          <p class="mt-2">Após a verificação do e-mail, todas as limitações são removidas automaticamente.</p>
         </section>
 
+        <!-- 11. Alterações na Política -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">9. Alterações na Política de Privacidade</h2>
-          <p>Esta Política de Privacidade poderá ser atualizada periodicamente, sempre que houver modificações significativas na forma de tratamento dos dados.</p>
-          <p class="mt-2">As alterações serão informadas dentro da própria plataforma, e o uso contínuo do sistema após as atualizações implicará na aceitação dos novos termos.</p>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">11. Alterações na Política de Privacidade</h2>
+          <p>Esta Política de Privacidade poderá ser atualizada periodicamente, sempre que houver modificações significativas na forma de tratamento dos dados. As alterações serão informadas dentro da própria plataforma, e o uso contínuo do sistema após as atualizações implicará na aceitação dos novos termos.</p>
         </section>
 
+        <!-- 12. Contato -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">10. Contato e Responsabilidade</h2>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">12. Contato e Responsabilidade</h2>
           <p>Em caso de dúvidas, solicitações ou reclamações sobre privacidade e proteção de dados, o usuário poderá entrar em contato com o Controlador de Dados do projeto:</p>
-          <p class="mt-2 font-semibold">Equipe Katalog – Universidade de Mogi das Cruzes (UMC)</p>
-          <p>E-mail: katalog.projeto@gmail.com</p>
+          <div class="bg-card border border-custom rounded-lg p-4 mt-3">
+            <p class="font-semibold">Equipe Katalog – Universidade de Mogi das Cruzes (UMC)</p>
+            <p class="mt-1">E-mail: <a href="mailto:katalog.projeto@gmail.com" class="text-green-400 hover:text-green-300 underline">katalog.projeto@gmail.com</a></p>
+          </div>
         </section>
 
+        <!-- 13. Conclusão -->
         <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">11. Conclusão</h2>
+          <h2 class="text-xl font-semibold mb-3 text-green-300">13. Conclusão</h2>
           <p>A equipe do Katalog reafirma seu compromisso com a segurança, a ética e a privacidade de todos os usuários, adotando boas práticas de segurança digital e garantindo total transparência sobre o uso e a proteção das informações pessoais.</p>
         </section>
 
+        <!-- Footer -->
         <div class="mt-8 pt-6 border-t border-custom text-center text-sm opacity-70">
-          <p>Última atualização: Outubro de 2025</p>
+          <p><strong>Última atualização:</strong> Janeiro de 2025</p>
+          <p class="mt-2">© 2025 Katalog - Todos os direitos reservados</p>
         </div>
       </div>
     </div>
