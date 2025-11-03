@@ -461,6 +461,17 @@
           }
         }
 
+        /* Checkbox customizado para termos */
+        .theme-light input[type="checkbox"]:checked {
+          background-color: #1DB954;
+          border-color: #1DB954;
+        }
+
+        input[type="checkbox"]:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
     }
   </style>
 </head>
@@ -1422,19 +1433,40 @@
         <div x-show="showRegister" class="space-y-4">
           <h3 class="text-lg font-semibold text-center">Criar Nova Conta</h3>
           <input x-model="displayName" type="text" placeholder="Nome de usuário" 
-                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+                class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
           <input x-model="email" type="email" placeholder="seu@email.com" 
-                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
-          <input x-model="password" type="password" placeholder="Senha (min. 6 caracteres)" 
-                 class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+                class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          <input x-model="password" type="password" placeholder="Senha (min. 8 caracteres)" 
+                class="w-full p-3 bg-input border border-custom rounded-md placeholder-custom">
+          
+          <!-- CHECKBOX DE TERMOS -->
+          <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+            <label class="flex items-start space-x-3 cursor-pointer">
+              <input x-model="acceptedTerms" type="checkbox" class="mt-1 rounded">
+              <div class="flex-1">
+                <span class="text-sm text-blue-200">
+                  Li e concordo com a 
+                  <a href="politica-de-privacidade.html" 
+                    target="_blank"
+                    class="text-blue-400 hover:text-blue-300 underline font-medium"
+                    @click.stop>
+                    Política de Privacidade
+                  </a>
+                </span>
+              </div>
+            </label>
+          </div>
+          
           <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-sm">
             <p class="text-blue-300">
-                <i data-lucide="info" class="w-4 h-4 inline mr-2"></i>
-                Você receberá um email de verificação após o cadastro
+              <i data-lucide="info" class="w-4 h-4 inline mr-2"></i>
+              Você receberá um email de verificação após o cadastro
             </p>
-            </div>          
-                 <button @click="register()" :disabled="authLoading"
-                  class="w-full py-3 px-4 btn-primary rounded-md font-medium">
+          </div>
+          
+          <button @click="register()" 
+                  :disabled="authLoading || !acceptedTerms"
+                  class="w-full py-3 px-4 btn-primary rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed">
             <span x-show="!authLoading">Cadastrar</span>
             <span x-show="authLoading">Cadastrando...</span>
           </button>
@@ -1444,14 +1476,8 @@
             <button @click="showRegister = false" class="text-green-400 hover:text-green-300 text-sm ml-1">
               Fazer login
             </button>
-            <div class="text-center mt-4">
-              <a href="politica-de-privacidade.html" 
-                target="_blank"
-                class="text-xs text-gray-400 hover:text-green-400 transition-colors underline">
-                Política de Privacidade
-              </a>
-            </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -2273,6 +2299,8 @@ document.addEventListener('alpine:init', () => {
     user: null,
     authLoading: false,
     formLoading: false,
+    acceptedTerms: false, 
+
 
   uploadControl: {
     attempts: [],
@@ -3373,6 +3401,7 @@ document.addEventListener('alpine:init', () => {
 
 // Função Login
     async login() {
+    LogSystem.log('auth', 'login_attempt', { email: this.email });
     console.log('🚀 FUNÇÃO LOGIN CHAMADA!');
     console.log('📧 Email:', this.email);
     console.log('🔑 Senha:', this.password ? '***' : 'VAZIO');
@@ -3419,7 +3448,13 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Registro de Usuario
-  async register() {
+    async register() {
+    // Validar aceitação dos termos
+    if (!this.acceptedTerms) {
+      this.showNotification('Você precisa aceitar a Política de Privacidade', 'error');
+      return;
+    }
+    
     if (!this.email || !this.password || !this.displayName) {
       this.showNotification('Preencha todos os campos', 'error');
       return;
