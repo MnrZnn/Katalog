@@ -1416,8 +1416,9 @@
           
           <div class="text-center">
             <span class="text-gray-400 text-sm">Não tem uma conta?</span>
-            <button @click="showRegister = true" class="text-green-400 hover:text-green-300 text-sm ml-1">
-              Cadastre-se
+            <button @click="showRegister = true; acceptedTerms = false" 
+                    class="text-green-400 hover:text-green-300 text-sm ml-1">
+                Cadastre-se
             </button>
             <!-- Política de Privacidade -->
         <div class="text-center mt-4">
@@ -1473,8 +1474,9 @@
           
           <div class="text-center">
             <span class="text-gray-400 text-sm">Já tem uma conta?</span>
-            <button @click="showRegister = false" class="text-green-400 hover:text-green-300 text-sm ml-1">
-              Fazer login
+            <button @click="showRegister = false; acceptedTerms = false" 
+                    class="text-green-400 hover:text-green-300 text-sm ml-1">
+                Fazer login
             </button>
           </div>
         </div>
@@ -3399,130 +3401,160 @@ document.addEventListener('alpine:init', () => {
         }
       },
 
-// Função Login
+  // Função Login
     async login() {
-    LogSystem.log('auth', 'login_attempt', { email: this.email });
-    console.log('🚀 FUNÇÃO LOGIN CHAMADA!');
-    console.log('📧 Email:', this.email);
-    console.log('🔑 Senha:', this.password ? '***' : 'VAZIO');
-    
-    if (!this.email || !this.password) {
-        this.showNotification('Preencha email e senha', 'error');
-        return;
-    }
-
-    if (!SecurityUtils.rateLimiter.isAllowed(this.email, 'login')) {
-        this.showNotification('Muitas tentativas de login. Tente novamente em 1 minuto', 'error');
-        return;
-    }
-
-    console.log('✅ Validações passaram, tentando login...');
-    
-    this.authLoading = true;
-    try {
-        await auth.signInWithEmailAndPassword(this.email, this.password);
-        console.log('✅ Login bem sucedido!');
-        this.showNotification('Login realizado com sucesso!', 'success');
-    } catch (error) {
-        console.error('❌ Erro no login:', error);
-        let message = 'Erro no login: ';
+        console.log('🚀 FUNÇÃO LOGIN CHAMADA!');
+        console.log('📧 Email:', this.email);
+        console.log('🔑 Senha:', this.password ? '***' : 'VAZIO');
         
-        switch(error.code) {
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-            message += 'Email ou senha incorretos';
-            break;
-        case 'auth/too-many-requests':
-            message += 'Muitas tentativas. Tente novamente mais tarde';
-            break;
-        case 'auth/user-disabled':
-            message += 'Conta desabilitada';
-            break;
-        default:
-            message += error.message;
+        // ⚠️ LOGIN NÃO VALIDA TERMOS - apenas email e senha
+        if (!this.email || !this.password) {
+            this.showNotification('Preencha email e senha', 'error');
+            return;
         }
-        
-        this.showNotification(message, 'error');
-    }
-    this.authLoading = false;
-    },
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(this.email)) {
+            this.showNotification('Email inválido', 'error');
+            return;
+        }
+
+        if (!SecurityUtils.rateLimiter.isAllowed(this.email, 'login')) {
+            this.showNotification('Muitas tentativas de login. Tente novamente em 1 minuto', 'error');
+            return;
+        }
+
+        console.log('✅ Validações passaram, tentando login...');
+        
+        this.authLoading = true;
+        
+        try {
+            const userCredential = await auth.signInWithEmailAndPassword(this.email, this.password);
+            console.log('✅ Login bem sucedido!', userCredential.user.email);
+            
+            this.showNotification('Login realizado com sucesso!', 'success');
+            
+            // Limpar campos
+            this.email = '';
+            this.password = '';
+            
+        } catch (error) {
+            console.error('❌ Erro no login:', error);
+            let message = 'Erro no login: ';
+            
+            switch(error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    message += 'Email ou senha incorretos';
+                    break;
+                case 'auth/too-many-requests':
+                    message += 'Muitas tentativas. Tente novamente mais tarde';
+                    break;
+                case 'auth/user-disabled':
+                    message += 'Conta desabilitada';
+                    break;
+                case 'auth/network-request-failed':
+                    message += 'Erro de conexão. Verifique sua internet';
+                    break;
+                default:
+                    message += error.message;
+            }
+            
+            this.showNotification(message, 'error');
+        } finally {
+            this.authLoading = false;
+        }
+    },
     // Registro de Usuario
     async register() {
-    // Validar aceitação dos termos
-    if (!this.acceptedTerms) {
-      this.showNotification('Você precisa aceitar a Política de Privacidade', 'error');
-      return;
-    }
-    
-    if (!this.email || !this.password || !this.displayName) {
-      this.showNotification('Preencha todos os campos', 'error');
-      return;
-    }
+        console.log('📝 FUNÇÃO REGISTER CHAMADA');
+        console.log('Email:', this.email);
+        console.log('Nome:', this.displayName);
+        console.log('Termos aceitos:', this.acceptedTerms);
+        
+        // ⚠️ VALIDAÇÃO DE TERMOS APENAS NO REGISTRO
+        if (!this.acceptedTerms) {
+            this.showNotification('Você precisa aceitar a Política de Privacidade', 'error');
+            return;
+        }
+        
+        if (!this.email || !this.password || !this.displayName) {
+            this.showNotification('Preencha todos os campos', 'error');
+            return;
+        }
 
-    if (this.password.length < 8) {
-      this.showNotification('Senha deve ter pelo menos 8 caracteres', 'error');
-      return;
-    }
+        if (this.password.length < 8) {
+            this.showNotification('Senha deve ter pelo menos 8 caracteres', 'error');
+            return;
+        }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.email)) {
-      this.showNotification('Email inválido', 'error');
-      return;
-    }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(this.email)) {
+            this.showNotification('Email inválido', 'error');
+            return;
+        }
 
-    // Delay artificial
-    this.authLoading = true;
-    this.showNotification('Validando dados...', 'info');
-    await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 segundos
+        // Delay artificial
+        this.authLoading = true;
+        this.showNotification('Validando dados...', 'info');
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const sanitizedName = SecurityUtils.sanitizeText(this.displayName);
-    if (sanitizedName.length < 2) {
-      this.showNotification('Nome deve ter pelo menos 2 caracteres', 'error');
-      this.authLoading = false;
-      return;
-    }
+        const sanitizedName = SecurityUtils.sanitizeText(this.displayName);
+        if (sanitizedName.length < 2) {
+            this.showNotification('Nome deve ter pelo menos 2 caracteres', 'error');
+            this.authLoading = false;
+            return;
+        }
 
-    try {
-      const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
-      await userCredential.user.updateProfile({ displayName: sanitizedName });
-      await userCredential.user.sendEmailVerification();
-      
-      await db.collection('users').doc(userCredential.user.uid).set({
-        displayName: sanitizedName,
-        email: this.email,
-        isPublic: false,
-        createdAt: new Date(),
-        emailVerified: false
-      });
-      
-      this.showNotification('Conta criada! Verifique seu email', 'success');
-      this.showEmailVerification = true;
-      this.verificationSent = true;
-      
-    } catch (error) {
-      console.error('Erro no registro:', error);
-      let message = 'Erro no registro: ';
-      
-      switch(error.code) {
-        case 'auth/email-already-in-use':
-          message += 'Email já está em uso';
-          break;
-        case 'auth/weak-password':
-          message += 'Senha muito fraca';
-          break;
-        case 'auth/invalid-email':
-          message += 'Email inválido';
-          break;
-        default:
-          message += error.message;
-      }
-      
-      this.showNotification(message, 'error');
-    }
-    
-    this.authLoading = false;
-  },
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(this.email, this.password);
+            await userCredential.user.updateProfile({ displayName: sanitizedName });
+            await userCredential.user.sendEmailVerification();
+            
+            await db.collection('users').doc(userCredential.user.uid).set({
+                displayName: sanitizedName,
+                email: this.email,
+                isPublic: false,
+                createdAt: new Date(),
+                emailVerified: false,
+                acceptedTerms: true, // Registrar que aceitou os termos
+                acceptedTermsDate: new Date()
+            });
+            
+            this.showNotification('Conta criada! Verifique seu email', 'success');
+            this.showEmailVerification = true;
+            this.verificationSent = true;
+            
+            // Limpar campos após cadastro
+            this.email = '';
+            this.password = '';
+            this.displayName = '';
+            this.acceptedTerms = false;
+            
+        } catch (error) {
+            console.error('Erro no registro:', error);
+            let message = 'Erro no registro: ';
+            
+            switch(error.code) {
+                case 'auth/email-already-in-use':
+                    message += 'Email já está em uso';
+                    break;
+                case 'auth/weak-password':
+                    message += 'Senha muito fraca';
+                    break;
+                case 'auth/invalid-email':
+                    message += 'Email inválido';
+                    break;
+                default:
+                    message += error.message;
+            }
+            
+            this.showNotification(message, 'error');
+        }
+        
+        this.authLoading = false;
+    },
 
       // Nova função para cancelar operações
       cancelAllApiOperations() {
