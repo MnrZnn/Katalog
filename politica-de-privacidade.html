@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Política de Privacidade - Katalog</title>
+  <title>Políticas - Katalog</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,10 +17,6 @@
     }
     .theme-dark .bg-card { background-color: #1E1E1E; }
     .theme-dark .border-custom { border-color: #383838; }
-    .theme-dark .bg-info { background-color: #1e3a5f; border-color: #3b82f6; }
-    .theme-dark .bg-warning { background-color: #4a3c1e; border-color: #f59e0b; }
-    .theme-dark .bg-danger { background-color: #4a1e1e; border-color: #ef4444; }
-    .theme-dark .bg-success { background-color: #1e4a2e; border-color: #10b981; }
     
     .theme-light {
       background-color: #f8fafc;
@@ -34,7 +30,7 @@
   <div class="container mx-auto px-4 py-8 max-w-4xl">
     <!-- Cabeçalho -->
     <div class="flex items-center justify-between mb-8">
-      <a href="index.html" class="flex items-center space-x-2 text-green-400 hover:text-green-300 transition-colors">
+      <a href="index.html" class="flex items-center space-x-2 text-green-400 hover:text-green-300">
         <i data-lucide="arrow-left" class="w-5 h-5"></i>
         <span>Voltar ao Katalog</span>
       </a>
@@ -42,223 +38,700 @@
 
     <!-- Conteúdo -->
     <div class="bg-card rounded-lg shadow-xl p-6 md:p-8 border border-custom">
-      <h1 class="text-3xl font-bold mb-6 text-green-400">Política de Privacidade</h1>
+      <h1 class="text-3xl font-bold mb-6 text-green-400">Políticas do Katalog</h1>
       
-      <div class="space-y-6 text-sm md:text-base leading-relaxed">
+      <p class="text-sm md:text-base mb-8 opacity-90">
+        Este documento contém todas as políticas relacionadas ao uso, segurança e privacidade do sistema Katalog, em conformidade com a Lei Geral de Proteção de Dados (LGPD).
+      </p>
+
+      <!-- Menu de Navegação -->
+      <nav class="mb-8 p-4 bg-card border border-custom rounded-lg">
+        <h3 class="text-lg font-semibold mb-3 text-green-300">Navegação Rápida</h3>
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+          <li><a href="#privacidade" class="text-green-400 hover:text-green-300">1. Política de Privacidade</a></li>
+          <li><a href="#retencao" class="text-green-400 hover:text-green-300">2. Retenção e Descarte de Dados</a></li>
+          <li><a href="#seguranca" class="text-green-400 hover:text-green-300">3. Segurança da Informação</a></li>
+          <li><a href="#recuperacao" class="text-green-400 hover:text-green-300">4. Recuperação de Desastres</a></li>
+          <li><a href="#incidentes" class="text-green-400 hover:text-green-300">5. Resposta a Incidentes</a></li>
+          <li><a href="#controle-acesso" class="text-green-400 hover:text-green-300">6. Controle de Acesso</a></li>
+        </ul>
+      </nav>
+      
+      <div class="space-y-8 text-sm md:text-base leading-relaxed">
         
-        <!-- 1. Introdução -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h2>
-          <p>A equipe do Katalog valoriza a privacidade e a segurança dos dados pessoais de seus usuários. Esta Política de Privacidade tem como objetivo informar de maneira clara e transparente como os dados são coletados, utilizados, armazenados e protegidos dentro da plataforma.</p>
-          <p class="mt-2">O Katalog é um sistema web desenvolvido para organizar, catalogar e compartilhar coleções musicais, oferecendo aos colecionadores um ambiente seguro, colaborativo e acessível. O tratamento das informações segue rigorosamente a <strong>Lei nº 13.709/2018 – Lei Geral de Proteção de Dados (LGPD)</strong>.</p>
-        </section>
-
-        <!-- 2. Dados Coletados -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">2. Dados Coletados</h2>
-          <p>O sistema coleta apenas os dados estritamente necessários para o funcionamento da plataforma, que incluem:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li><strong>Nome e endereço de e-mail</strong> (para autenticação e identificação da conta via Firebase Authentication);</li>
-            <li><strong>Preferências de interface</strong> (tema claro/escuro, armazenado localmente no navegador via localStorage);</li>
-            <li><strong>Informações das coleções cadastradas</strong> (álbuns, artistas, formatos, capas, ano, número de catálogo e descrições);</li>
-            <li><strong>Status de verificação de e-mail</strong> (para controle de limites de importação);</li>
-            <li><strong>Contadores de importação</strong> (para usuários não verificados, armazenado localmente via localStorage);</li>
-            <li><strong>Dados técnicos de autenticação</strong> (tokens de sessão gerenciados automaticamente pelo Firebase Authentication).</li>
-          </ul>
+        <!-- ===================== POLÍTICA DE PRIVACIDADE ===================== -->
+        <section id="privacidade" class="scroll-mt-4">
+          <h2 class="text-2xl font-bold mb-6 text-green-400 border-b-2 border-green-400 pb-2">POLÍTICA DE PRIVACIDADE</h2>
           
-          <div class="bg-info border-l-4 p-4 mt-4 rounded">
-            <p class="text-sm">
-              <strong>Importante:</strong> O Katalog NÃO coleta dados sensíveis como informações financeiras, biométricas, localização precisa ou histórico de navegação.
-            </p>
-          </div>
-        </section>
-
-        <!-- 3. Finalidade do Tratamento -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">3. Finalidade do Tratamento de Dados</h2>
-          <p>Os dados coletados são utilizados exclusivamente para as seguintes finalidades:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li>Gerenciar a conta do usuário e permitir seu acesso seguro ao sistema;</li>
-            <li>Armazenar e organizar coleções musicais de forma individualizada;</li>
-            <li>Permitir a personalização da experiência (tema claro/escuro);</li>
-            <li>Controlar limites de importação para usuários não verificados;</li>
-            <li>Garantir a segurança da conta através de verificação de e-mail;</li>
-            <li>Viabilizar o compartilhamento público de coleções, quando autorizado pelo usuário;</li>
-            <li>Buscar automaticamente capas de álbuns através de APIs externas (iTunes, quando solicitado pelo usuário).</li>
-          </ul>
-          <p class="mt-2">O tratamento de dados é sempre realizado com base na finalidade legítima e no consentimento do usuário, em conformidade com o <strong>artigo 7º da LGPD</strong>.</p>
-        </section>
-
-        <!-- 4. Armazenamento e Segurança -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">4. Armazenamento e Segurança das Informações</h2>
-          
-          <h3 class="text-lg font-semibold mb-2 text-green-200">4.1 Infraestrutura em Nuvem</h3>
-          <p>O Katalog utiliza a infraestrutura segura do <strong>Google Firebase</strong> (Google Cloud Platform) para o armazenamento e processamento das informações. Essa tecnologia garante:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li>Criptografia de dados em trânsito (HTTPS/TLS) e em repouso;</li>
-            <li>Autenticação por token em cada sessão de usuário;</li>
-            <li>Controle de acesso individual baseado no identificador único (UID);</li>
-            <li>Regras de segurança no Firestore que restringem o acesso aos dados apenas ao seu proprietário;</li>
-            <li>Backups automáticos para garantir disponibilidade e recuperação das informações.</li>
-          </ul>
-
-          <h3 class="text-lg font-semibold mb-2 mt-4 text-green-200">4.2 Armazenamento Local (localStorage)</h3>
-          <p>Algumas preferências são armazenadas <strong>localmente no navegador do usuário</strong> através da tecnologia localStorage:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li><strong>Tema da interface</strong> (claro/escuro) - chave: <code class="bg-gray-700 px-2 py-1 rounded text-sm">katalog-theme</code></li>
-            <li><strong>Contadores de importação</strong> (somente para usuários não verificados) - chave: <code class="bg-gray-700 px-2 py-1 rounded text-sm">import_tracking_[userId]</code></li>
-          </ul>
-          
-          <div class="bg-warning border-l-4 p-4 mt-4 rounded">
-            <p class="text-sm">
-              <strong>Observação:</strong> Dados do localStorage ficam apenas no seu dispositivo e não são enviados para servidores. Limpar o cache do navegador remove essas preferências.
-            </p>
-          </div>
-        </section>
-
-        <!-- 5. APIs Externas -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">5. Uso de APIs e Serviços Externos</h2>
-          <p class="mb-3">Para melhorar a experiência do usuário, o Katalog utiliza os seguintes serviços externos:</p>
-          
-          <div class="space-y-4">
-            <div class="border-l-4 border-green-500 pl-4 py-2">
-              <h3 class="font-semibold text-green-200">iTunes Search API (Apple Inc.)</h3>
-              <p class="text-sm mt-1">
-                <strong>Finalidade:</strong> Buscar automaticamente capas de álbuns, correção de nomes de artistas e anos de lançamento.<br>
-                <strong>Dados enviados:</strong> Nome do álbum e artista (enviados temporariamente para consulta).<br>
-                <strong>Política de Privacidade:</strong> <a href="https://www.apple.com/legal/privacy/" target="_blank" class="text-green-400 hover:text-green-300 underline">https://www.apple.com/legal/privacy/</a>
-              </p>
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h3>
+              <p>A equipe do Katalog valoriza a privacidade e a segurança dos dados pessoais de seus usuários. Esta Política de Privacidade tem como objetivo informar de maneira clara e transparente como os dados são coletados, utilizados, armazenados e protegidos dentro da plataforma.</p>
+              <p class="mt-2">O Katalog é um sistema web desenvolvido para organizar, catalogar e compartilhar coleções musicais, oferecendo aos colecionadores um ambiente seguro, colaborativo e acessível. O tratamento das informações segue rigorosamente a Lei nº 13.709/2018 – Lei Geral de Proteção de Dados (LGPD).</p>
             </div>
 
-            <div class="border-l-4 border-blue-500 pl-4 py-2">
-              <h3 class="font-semibold text-blue-300">Google Images</h3>
-              <p class="text-sm mt-1">
-                <strong>Finalidade:</strong> Permitir busca manual de capas de álbuns (abre em nova aba).<br>
-                <strong>Dados enviados:</strong> Nenhum dado pessoal. Apenas termos de busca (nome do álbum).<br>
-                <strong>Observação:</strong> O usuário é redirecionado para o Google, sujeito à política de privacidade do Google.
-              </p>
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">2. Dados Coletados</h3>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">2.1. Dados Pessoais Fornecidos Expressamente pelo Usuário</h4>
+              <p>O sistema coleta os seguintes dados pessoais que nossos usuários nos fornecem expressamente:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Nome, e-mail e senha;</li>
+                <li>Preferências de perfil (tema, visibilidade da coleção e configurações de conta);</li>
+                <li>Informações das coleções cadastradas (álbuns, artistas, formatos e capas).</li>
+              </ul>
+              <p class="mt-3"><strong>A coleta ocorre quando:</strong> o usuário faz seu cadastro no site ou personaliza suas configurações.</p>
+              <p class="mt-2"><strong>Finalidades:</strong> criação e gerenciamento da conta de acesso, controle de segurança, comunicação e recuperação de conta, personalização do painel.</p>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">2.2. Dados Pessoais Obtidos de Outras Formas</h4>
+              <p>O sistema coleta automaticamente os seguintes dados técnicos:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Endereço IP;</li>
+                <li>Informações do navegador e dispositivo;</li>
+                <li>Data, hora e duração do acesso;</li>
+                <li>Localização aproximada (geolocalização por IP);</li>
+                <li>Identificadores técnicos (session token, device ID);</li>
+                <li>Eventos de navegação.</li>
+              </ul>
+              <p class="mt-3"><strong>Finalidades:</strong> garantir funcionamento e estabilidade do sistema, proteger a conta dos usuários, cumprir obrigações legais, melhorar a experiência de navegação, monitorar falhas técnicas e detectar comportamentos suspeitos.</p>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">2.3. Dados Sensíveis</h4>
+              <p>O Katalog <strong>não coleta dados sensíveis</strong>, conforme definidos nos arts. 11 e seguintes da LGPD. Não há coleta de dados sobre origem racial ou étnica, convicção religiosa, opinião política, filiação sindical, dados de saúde, vida sexual, dados genéticos ou biométricos.</p>
             </div>
 
-            <div class="border-l-4 border-purple-500 pl-4 py-2">
-              <h3 class="font-semibold text-purple-300">CDNs Públicos</h3>
-              <p class="text-sm mt-1">
-                <strong>Serviços:</strong> Tailwind CSS, Lucide Icons, Alpine.js, SheetJS, QRCode.js<br>
-                <strong>Finalidade:</strong> Carregamento de bibliotecas JavaScript e estilos.<br>
-                <strong>Dados:</strong> Apenas requisições HTTP padrão (sem dados pessoais).
-              </p>
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">3. Compartilhamento de Dados</h3>
+              <p>O Katalog <strong>não compartilha, vende ou aluga</strong> informações pessoais a terceiros.</p>
+              <p class="mt-2">O único tipo de compartilhamento possível ocorre quando o próprio usuário opta por tornar sua coleção pública, gerando um link ou QR Code que permite visualização de forma somente leitura.</p>
+              <p class="mt-2">Fora dessa condição, nenhum dado é divulgado sem consentimento prévio e informado.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">4. Armazenamento e Tempo de Retenção</h3>
+              <p>Os dados pessoais são armazenados pelo tempo necessário para atingir as finalidades informadas, considerando os direitos dos titulares e as disposições legais aplicáveis.</p>
+              <p class="mt-2">Uma vez expirados os períodos de armazenamento, os dados são removidos de nossas bases de dados ou anonimizados, salvo quando houver necessidade legal de armazenamento.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">5. Direitos do Usuário</h3>
+              <p>De acordo com a LGPD, o usuário possui os seguintes direitos:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Confirmar a existência de tratamento de dados pessoais;</li>
+                <li>Acessar, corrigir, atualizar ou excluir suas informações a qualquer momento;</li>
+                <li>Solicitar a portabilidade dos dados;</li>
+                <li>Revogar o consentimento de uso;</li>
+                <li>Solicitar a exclusão completa de sua conta e de todos os dados associados.</li>
+              </ul>
+              <p class="mt-2">Esses direitos podem ser exercidos diretamente no painel de configurações do sistema, sem necessidade de contato intermediário.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">6. Medidas de Segurança</h3>
+              <p>O Katalog utiliza a infraestrutura segura do Google Firebase (Google Cloud Platform), garantindo:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Criptografia de dados em trânsito e em repouso;</li>
+                <li>Autenticação por token em cada sessão de usuário;</li>
+                <li>Controle de acesso individual baseado no identificador único (UID);</li>
+                <li>Regras de segurança no Firestore;</li>
+                <li>Backups automáticos para recuperação das informações;</li>
+                <li>Todos os dados trafegam sob protocolo HTTPS.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">7. Uso de Cookies</h3>
+              <p>O Katalog utiliza cookies apenas para manter a sessão do usuário autenticada e registrar preferências de interface (como tema claro ou escuro).</p>
+              <p class="mt-2">Nenhum cookie é usado para rastreamento publicitário ou monitoramento de comportamento.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">8. Alterações na Política</h3>
+              <p>Esta Política de Privacidade poderá ser atualizada periodicamente. As alterações serão informadas dentro da própria plataforma, e o uso contínuo do sistema após as atualizações implicará na aceitação dos novos termos.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">9. Contato</h3>
+              <p>Em caso de dúvidas, solicitações ou reclamações sobre privacidade:</p>
+              <p class="mt-2 font-semibold">Equipe Katalog – Universidade de Mogi das Cruzes (UMC)</p>
+              <p>E-mail: katalog.projeto@gmail.com</p>
+              <p>Endereço: Av. Dr. Cândido X. de Almeida e Souza, 200 - Centro Cívico, Mogi das Cruzes - SP, 08780-911</p>
             </div>
           </div>
-
-          <div class="bg-danger border-l-4 p-4 mt-4 rounded">
-            <p class="text-sm">
-              <strong>Importante:</strong> O Katalog NÃO tem controle sobre a política de privacidade de serviços externos. Recomendamos a leitura das políticas de cada serviço.
-            </p>
-          </div>
         </section>
 
-        <!-- 6. Compartilhamento de Dados -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">6. Compartilhamento de Dados</h2>
-          <p>O Katalog <strong>NÃO compartilha, vende ou aluga</strong> informações pessoais a terceiros para fins comerciais ou publicitários.</p>
-          <p class="mt-2">O único tipo de compartilhamento possível ocorre quando o próprio usuário opta por <strong>tornar sua coleção pública</strong>, gerando um link (formato: <code class="bg-gray-700 px-2 py-1 rounded text-sm">?shared=[userId]</code>) ou QR Code que permite visualização em modo somente leitura.</p>
+        <!-- ===================== RETENÇÃO E DESCARTE ===================== -->
+        <section id="retencao" class="scroll-mt-4">
+          <h2 class="text-2xl font-bold mb-6 text-green-400 border-b-2 border-green-400 pb-2">POLÍTICA DE RETENÇÃO E DESCARTE DE DADOS PESSOAIS</h2>
           
-          <div class="bg-success border-l-4 p-4 mt-4 rounded">
-            <p class="text-sm">
-              <strong>Coleções Públicas:</strong> Quando ativadas, qualquer pessoa com o link pode visualizar os álbuns, artistas e capas da coleção. Dados de e-mail e preferências permanecem privados.
-            </p>
+          <div class="space-y-6">
+            <div>
+              <p class="font-mono text-xs opacity-70">Código: POL.LGPD_.04-KAT | Versão: 01 | Classificação: Interna</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h3>
+              <p>O sistema Katalog compromete-se com a conformidade à LGPD e às boas práticas de privacidade e segurança da informação.</p>
+              <p class="mt-2">Esta Política complementa a Política Geral de Privacidade e define as diretrizes para armazenamento, retenção e descarte de dados pessoais tratados pelo sistema, seja em meio físico ou digital.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">2. Classificação dos Dados Pessoais</h3>
+              <ul class="list-disc list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Dados de Autenticação:</strong> informações de login e senha criptografada (Firebase Authentication).</li>
+                <li><strong>Dados de Perfil:</strong> nome, e-mail e preferências salvas no Firestore.</li>
+                <li><strong>Dados Operacionais:</strong> registros de acesso, logs de erro e histórico de uso.</li>
+                <li><strong>Dados Administrativos:</strong> informações de administradores e permissões de acesso.</li>
+                <li><strong>Dados de Comunicação:</strong> mensagens enviadas por formulários ou e-mail de contato.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">3. Princípio Geral de Retenção</h3>
+              <p>Os dados pessoais são armazenados apenas pelo tempo necessário ao cumprimento das finalidades informadas, conforme os princípios da necessidade e finalidade da LGPD (arts. 15 e 16).</p>
+              <p class="mt-2">Após o término da relação com o usuário, os dados serão mantidos apenas:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Pelo período legal obrigatório;</li>
+                <li>Até o fim do prazo prescricional de defesa de direitos;</li>
+                <li>Ou até a solicitação de exclusão pelo titular.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">4. Tabela de Retenção e Descarte</h3>
+              <div class="overflow-x-auto mt-4">
+                <table class="w-full border border-custom">
+                  <thead class="bg-green-900 bg-opacity-20">
+                    <tr>
+                      <th class="border border-custom p-3 text-left">Tipo de Dado</th>
+                      <th class="border border-custom p-3 text-left">Período de Retenção</th>
+                      <th class="border border-custom p-3 text-left">Forma de Descarte</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-custom p-3">Autenticação</td>
+                      <td class="border border-custom p-3">Enquanto a conta estiver ativa</td>
+                      <td class="border border-custom p-3">Exclusão imediata via Firebase</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-custom p-3">Perfil do Usuário</td>
+                      <td class="border border-custom p-3">30 dias após exclusão da conta</td>
+                      <td class="border border-custom p-3">Exclusão automática no Firestore</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-custom p-3">Logs e Registros</td>
+                      <td class="border border-custom p-3">180 dias</td>
+                      <td class="border border-custom p-3">Exclusão automática e rotativa</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-custom p-3">Comunicação</td>
+                      <td class="border border-custom p-3">12 meses</td>
+                      <td class="border border-custom p-3">Exclusão manual pelo administrador</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-custom p-3">Dados Administrativos</td>
+                      <td class="border border-custom p-3">Durante vínculo de gestão</td>
+                      <td class="border border-custom p-3">Exclusão manual após desligamento</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-custom p-3">Dados de Backup</td>
+                      <td class="border border-custom p-3">30 dias</td>
+                      <td class="border border-custom p-3">Eliminação completa e criptografada</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">5. Destruição e Eliminação de Dados</h3>
+              <p>Encerrado o período de retenção, os dados serão eliminados de forma segura e irreversível, observando:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Exclusão definitiva no Firebase Firestore e Authentication;</li>
+                <li>Remoção de backups criptografados após o prazo;</li>
+                <li>Descarte seguro de registros físicos (quando houver).</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">6. Contato</h3>
+              <p>Os titulares podem solicitar acesso, correção ou exclusão de seus dados por meio do e-mail: <strong>katalog.projeto@gmail.com</strong></p>
+              <p class="mt-2">As solicitações serão respondidas no prazo máximo de 15 dias úteis, conforme art. 19 da LGPD.</p>
+            </div>
           </div>
         </section>
 
-        <!-- 7. Cookies -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">7. Uso de Cookies e Tecnologias Similares</h2>
-          <p>O Katalog <strong>NÃO utiliza cookies tradicionais</strong> para armazenamento de preferências ou rastreamento de navegação.</p>
-          <p class="mt-2">Em vez disso, o sistema utiliza:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li><strong>localStorage</strong> (armazenamento local do navegador) para salvar tema e contadores de importação;</li>
-            <li><strong>Firebase Authentication Tokens</strong> (gerenciados automaticamente pelo Firebase) para manter a sessão do usuário autenticada de forma segura.</li>
-          </ul>
+        <!-- ===================== SEGURANÇA DA INFORMAÇÃO ===================== -->
+        <section id="seguranca" class="scroll-mt-4">
+          <h2 class="text-2xl font-bold mb-6 text-green-400 border-b-2 border-green-400 pb-2">POLÍTICA DE SEGURANÇA DA INFORMAÇÃO</h2>
           
-          <div class="bg-info border-l-4 p-4 mt-4 rounded">
-            <p class="text-sm">
-              <strong>Atenção:</strong> O Katalog NÃO requer banner de consentimento de cookies, pois não utiliza cookies para rastreamento, publicidade ou análise comportamental.
-            </p>
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h3>
+              <p>As informações e os recursos de informação do Projeto Katalog são ativos fundamentais para o desenvolvimento das atividades, suporte às decisões e continuidade das operações.</p>
+              <p class="mt-2">Esta Política estabelece princípios, diretrizes e responsabilidades que assegurem a confidencialidade, integridade, disponibilidade e autenticidade das informações tratadas, alinhando-se à LGPD e às melhores práticas de mercado.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">2. Objetivos</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Proteger os ativos de informação do Projeto Katalog;</li>
+                <li>Garantir o uso adequado dos sistemas e dados;</li>
+                <li>Promover uma cultura de segurança entre todos os envolvidos;</li>
+                <li>Estabelecer diretrizes para o uso seguro das informações e sistemas;</li>
+                <li>Minimizar riscos associados a incidentes de segurança;</li>
+                <li>Garantir conformidade com a legislação vigente.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">3. Abrangência</h3>
+              <p>Esta Política se aplica a todos os usuários, colaboradores, parceiros e prestadores de serviço que tenham acesso às informações e aos sistemas do Projeto Katalog.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">4. Termos e Definições</h3>
+              <ul class="list-disc list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Ativo de informação:</strong> Qualquer dado, documento, sistema ou recurso com valor para o projeto.</li>
+                <li><strong>Confidencialidade:</strong> Garantia de que a informação seja acessada apenas por pessoas autorizadas.</li>
+                <li><strong>Integridade:</strong> Garantia de que a informação permaneça completa e inalterada.</li>
+                <li><strong>Disponibilidade:</strong> Garantia de que a informação esteja acessível sempre que necessário.</li>
+                <li><strong>Autenticidade:</strong> Confirma que a informação é legítima e proveniente de fonte confiável.</li>
+                <li><strong>Incidente de segurança:</strong> Qualquer evento que comprometa a segurança da informação.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">5. Princípios de Segurança</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Proteger todas as informações contra acessos não autorizados;</li>
+                <li>Garantir a integridade e disponibilidade dos dados;</li>
+                <li>Cumprir a legislação aplicável e normas internas;</li>
+                <li>Promover conscientização e uso responsável das informações;</li>
+                <li>Gerenciar riscos e manter controles adequados de segurança.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">6. Papéis e Responsabilidades</h3>
+              <ul class="list-disc list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Equipe Gestora:</strong> responsável por garantir o cumprimento desta Política e adotar medidas de segurança adequadas.</li>
+                <li><strong>Desenvolvedores e administradores:</strong> devem aplicar controles de segurança nos sistemas e realizar manutenção preventiva.</li>
+                <li><strong>Usuários:</strong> devem utilizar os sistemas de forma ética, segura e conforme as orientações estabelecidas.</li>
+                <li><strong>Terceiros:</strong> devem seguir as mesmas diretrizes de segurança e confidencialidade.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">7. Medidas de Segurança</h3>
+              <p>O Projeto Katalog adota medidas técnicas e organizacionais para garantir a proteção das informações:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Controle de acesso por autenticação e senhas fortes;</li>
+                <li>Criptografia de dados sensíveis;</li>
+                <li>Monitoramento de atividades e logs do sistema;</li>
+                <li>Backup periódico e plano de recuperação de desastres;</li>
+                <li>Treinamentos e campanhas de conscientização sobre segurança digital.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">8. Violações e Sanções</h3>
+              <p>Qualquer violação das diretrizes desta Política será tratada com seriedade e poderá resultar em sanções disciplinares, administrativas ou legais, conforme a gravidade da infração.</p>
+              <p class="mt-2">Incidentes devem ser reportados imediatamente à equipe responsável pela segurança da informação.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">9. Revisão e Atualização</h3>
+              <p>Esta Política será revisada anualmente, ou sempre que ocorrerem mudanças relevantes nos processos, na legislação ou nas tecnologias utilizadas.</p>
+            </div>
           </div>
         </section>
 
-        <!-- 8. Direitos do Usuário -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">8. Direitos do Usuário</h2>
-          <p>De acordo com a <strong>LGPD</strong>, o usuário possui os seguintes direitos:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li>Confirmar a existência de tratamento de dados pessoais;</li>
-            <li>Acessar seus dados a qualquer momento através do painel de configurações;</li>
-            <li>Corrigir, atualizar ou completar informações (nome, senha, dados da coleção);</li>
-            <li>Solicitar a portabilidade dos dados (exportação para Excel);</li>
-            <li>Revogar o consentimento de compartilhamento público;</li>
-            <li>Solicitar a exclusão completa da conta e de todos os dados associados.</li>
-          </ul>
-          <p class="mt-2">Esses direitos podem ser exercidos <strong>diretamente no painel de configurações</strong> do sistema, sem necessidade de contato intermediário ou justificativa.</p>
-        </section>
-
-        <!-- 9. Exclusão de Conta -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">9. Exclusão de Conta e Retenção de Dados</h2>
-          <p>Quando o usuário solicita a exclusão da conta através do painel de configurações, o sistema realiza:</p>
-          <ol class="list-decimal list-inside mt-2 space-y-1 ml-4">
-            <li>Exclusão permanente de todos os registros da coleção (álbuns, artistas, capas);</li>
-            <li>Remoção dos dados de perfil (nome, preferências);</li>
-            <li>Exclusão da conta de autenticação no Firebase;</li>
-            <li>Limpeza automática do localStorage no navegador.</li>
-          </ol>
+        <!-- ===================== RECUPERAÇÃO DE DESASTRES ===================== -->
+        <section id="recuperacao" class="scroll-mt-4">
+          <h2 class="text-2xl font-bold mb-6 text-green-400 border-b-2 border-green-400 pb-2">PLANO DE RECUPERAÇÃO DE DESASTRES</h2>
           
-          <div class="bg-danger border-l-4 p-4 mt-4 rounded">
-            <p class="text-sm">
-              <strong>Atenção:</strong> A exclusão é <strong>permanente e irreversível</strong>. Nenhuma cópia é mantida após o encerramento, garantindo o direito ao esquecimento previsto na LGPD.
-            </p>
+          <div class="space-y-6">
+            <div>
+              <p class="opacity-70">Última atualização: 13/11/2025</p>
+              <p class="mt-2">O objetivo deste plano é garantir que o Projeto Katalog possa responder de maneira eficaz a um desastre ou emergência que afete seus sistemas de informação, minimizando o impacto nas operações e assegurando a continuidade dos serviços.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">1. Principais Objetivos</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Garantir a continuidade das operações críticas do Projeto Katalog;</li>
+                <li>Minimizar o tempo de inatividade dos sistemas e serviços essenciais;</li>
+                <li>Proteger os dados e ativos digitais contra perda, corrupção ou acesso indevido;</li>
+                <li>Estabelecer responsabilidades e procedimentos claros de recuperação;</li>
+                <li>Reduzir o impacto financeiro e operacional decorrente de incidentes graves.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">2. Pessoal Responsável</h3>
+              <ul class="list-disc list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Coordenador de Recuperação:</strong> Luiza – Responsável pela coordenação geral do plano.</li>
+                <li><strong>Analista de Sistemas:</strong> Renan – Responsável pela restauração e validação dos sistemas críticos.</li>
+                <li><strong>Administrador de Banco de Dados:</strong> Equipe Técnica Katalog – Responsável pelos backups e recuperação de dados.</li>
+                <li><strong>Encarregado de Proteção de Dados (DPO):</strong> Munir – Responsável pela comunicação com a ANPD e cumprimento da LGPD.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">3. Perfil do Aplicativo</h3>
+              <p>O Projeto Katalog utiliza uma aplicação web hospedada em ambiente em nuvem, com banco de dados relacional e módulos de autenticação, gerenciamento de usuários e relatórios de desempenho. Todos os sistemas são monitorados continuamente.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">4. Perfil de Inventário</h3>
+              <p>Os principais ativos tecnológicos incluem:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Servidores de hospedagem em nuvem;</li>
+                <li>Banco de dados;</li>
+                <li>Aplicações web e API RESTful;</li>
+                <li>Infraestrutura de rede segura (VPN e firewall);</li>
+                <li>Equipamentos de comunicação e estações de trabalho administrativas.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">5. Procedimentos de Backup</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Backups completos realizados semanalmente e armazenados em nuvem segura (criptografada);</li>
+                <li>Backups incrementais diários de bancos de dados;</li>
+                <li>Testes de restauração realizados mensalmente;</li>
+                <li>Armazenamento redundante em múltiplas zonas geográficas;</li>
+                <li>Monitoramento automatizado para garantir a integridade dos backups.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">6. Procedimentos de Recuperação</h3>
+              <p>O processo de recuperação segue três fases essenciais:</p>
+              <ol class="list-decimal list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Avaliação inicial:</strong> Identificar a extensão do desastre e priorizar sistemas críticos.</li>
+                <li><strong>Ação corretiva:</strong> Restaurar serviços por meio de backups e servidores redundantes.</li>
+                <li><strong>Validação:</strong> Testar os sistemas restaurados para confirmar a integridade e funcionamento.</li>
+              </ol>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">7. Plano de Recuperação para Sites Móveis</h3>
+              <p>Em caso de indisponibilidade do ambiente principal, a operação do Projeto Katalog poderá ser transferida temporariamente para um ambiente móvel (site alternativo), configurado com acesso remoto seguro e credenciais restritas.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">8. Site de Contingência</h3>
+              <p>O Projeto Katalog mantém um ambiente de contingência em nuvem, pronto para ativação imediata. Este site alternativo opera como backup temporário enquanto o ambiente principal é restaurado.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">9. Restaurando Todo o Sistema</h3>
+              <p>Para restaurar completamente o sistema, devem ser seguidas as etapas:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Reinstalar o ambiente de hospedagem e dependências de software;</li>
+                <li>Importar o backup completo mais recente do banco de dados;</li>
+                <li>Validar a integridade das tabelas e registros;</li>
+                <li>Testar a aplicação e restabelecer o acesso dos usuários.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">10. Processo de Reconstrução</h3>
+              <p>Após o desastre, a equipe de gestão deve avaliar os danos físicos e lógicos, definir prioridades e iniciar a reconstrução da infraestrutura afetada. O objetivo é restaurar o pleno funcionamento da operação dentro dos prazos estabelecidos no plano de continuidade.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">11. Testando o Plano</h3>
+              <p>Os testes de recuperação devem ser realizados semestralmente para validar a eficácia dos procedimentos. Resultados, falhas e melhorias devem ser documentados e comunicados à equipe gestora.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">12. Reconstrução do Local</h3>
+              <p>Caso haja destruição física das instalações, o Projeto Katalog deverá adotar um plano de reconstrução gradual, priorizando primeiro os sistemas críticos e de suporte. As atividades presenciais poderão ser transferidas temporariamente para outro local até a conclusão da reconstrução.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">13. Registro de Alterações</h3>
+              <p>Todas as alterações neste plano devem ser registradas e datadas, incluindo modificações na infraestrutura, aplicações, cronogramas de backup e responsabilidades. A versão atualizada deverá ser revisada anualmente ou sempre que houver mudanças relevantes.</p>
+            </div>
           </div>
         </section>
 
-        <!-- 10. Limitações para Usuários Não Verificados -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">10. Limitações para Usuários Não Verificados</h2>
-          <p>Para prevenir abuso do sistema, usuários que <strong>não verificaram o endereço de e-mail</strong> possuem as seguintes limitações:</p>
-          <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
-            <li>Máximo de <strong>2 importações</strong> de arquivo Excel/CSV;</li>
-            <li>Máximo de <strong>100 registros por importação</strong>;</li>
-            <li>Contadores armazenados localmente (localStorage) para controle.</li>
-          </ul>
-          <p class="mt-2">Após a verificação do e-mail, todas as limitações são removidas automaticamente.</p>
-        </section>
+        <!-- ===================== RESPOSTA A INCIDENTES ===================== -->
+        <section id="incidentes" class="scroll-mt-4">
+          <h2 class="text-2xl font-bold mb-6 text-green-400 border-b-2 border-green-400 pb-2">PLANO DE RESPOSTA A INCIDENTES DE SEGURANÇA</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">1. Introdução</h3>
+              <p>O presente Plano de Resposta a Incidentes de Segurança da Informação tem como objetivo preparar o Projeto Katalog para lidar com a ocorrência de incidentes que possam comprometer a confidencialidade, integridade e disponibilidade das informações.</p>
+              <p class="mt-2">O plano visa garantir que a resposta a tais eventos seja rápida, eficiente e coordenada, minimizando seus impactos e restaurando a normalidade das operações.</p>
+              <p class="mt-2">Conforme o artigo 50 da Lei nº 13.709/2018 (LGPD), este plano integra o Programa de Governança em Privacidade do Projeto Katalog.</p>
+              <p class="mt-3"><strong>Estrutura do Plano:</strong> Identificação, Planejamento, Tratamento e Lições Aprendidas.</p>
+            </div>
 
-        <!-- 11. Alterações na Política -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">11. Alterações na Política de Privacidade</h2>
-          <p>Esta Política de Privacidade poderá ser atualizada periodicamente, sempre que houver modificações significativas na forma de tratamento dos dados. As alterações serão informadas dentro da própria plataforma, e o uso contínuo do sistema após as atualizações implicará na aceitação dos novos termos.</p>
-        </section>
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">2. Identificação</h3>
+              <p>Todos os membros da equipe, prestadores de serviço e parceiros que tenham acesso às informações do Projeto Katalog são responsáveis por reportar imediatamente qualquer incidente de segurança à equipe técnica responsável.</p>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">Incidentes podem incluir:</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Violações de dados;</li>
+                <li>Falhas em sistemas;</li>
+                <li>Acessos não autorizados;</li>
+                <li>Perda ou corrupção de dados.</li>
+              </ul>
 
-        <!-- 12. Contato -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">12. Contato e Responsabilidade</h2>
-          <p>Em caso de dúvidas, solicitações ou reclamações sobre privacidade e proteção de dados, o usuário poderá entrar em contato com o Controlador de Dados do projeto:</p>
-          <div class="bg-card border border-custom rounded-lg p-4 mt-3">
-            <p class="font-semibold">Equipe Katalog – Universidade de Mogi das Cruzes (UMC)</p>
-            <p class="mt-1">E-mail: <a href="mailto:katalog.projeto@gmail.com" class="text-green-400 hover:text-green-300 underline">katalog.projeto@gmail.com</a></p>
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">A detecção pode ocorrer por meio de:</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Monitoramento de logs e sistemas;</li>
+                <li>Alertas de antivírus ou firewall;</li>
+                <li>Identificação de anomalias em dispositivos, servidores ou redes;</li>
+                <li>Relatos de usuários sobre falhas, lentidão ou perda de acesso.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">Para confirmação de um incidente, verifica-se:</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Violação de confidencialidade, integridade ou disponibilidade das informações;</li>
+                <li>Funcionamento incorreto de sistemas ou hardware;</li>
+                <li>Processos em desacordo com as normas internas ou políticas de segurança.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">3. Planejamento</h3>
+              <p>Nesta etapa, são aplicadas as ações previamente definidas para lidar com o incidente identificado. O plano de recuperação deve considerar a natureza do evento, os ativos afetados, a gravidade e as ações imediatas.</p>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">Informações mínimas a serem registradas:</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Nome e tipo do incidente;</li>
+                <li>Consequências para a confidencialidade, integridade e disponibilidade (CID);</li>
+                <li>Ativos afetados;</li>
+                <li>Responsável pelo ativo;</li>
+                <li>Ações imediatas a serem executadas;</li>
+                <li>Criticidade do incidente.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">Equipe de Resposta a Incidentes (ERIS):</h4>
+              <p class="mt-2">A ERIS será acionada sempre que ocorrer um incidente envolvendo dados pessoais ou informações sensíveis. A equipe é composta por:</p>
+              <ul class="list-disc list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Coordenador de Tecnologia:</strong> responsável técnico pela contenção e análise do incidente;</li>
+                <li><strong>Encarregado de Proteção de Dados (DPO):</strong> responsável pela avaliação de riscos à privacidade e comunicação com a ANPD;</li>
+                <li><strong>Gestor de Projeto:</strong> responsável pela comunicação interna e externa;</li>
+                <li><strong>Consultor Jurídico:</strong> responsável pela análise legal e recomendações de conformidade.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">4. Tratamento</h3>
+              <p>Após a confirmação do incidente, devem ser tomadas medidas imediatas para conter o evento, preservar as evidências e restaurar os serviços afetados.</p>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">Ações de tratamento:</h4>
+              <ol class="list-decimal list-inside mt-2 space-y-2 ml-4">
+                <li>Preservar todas as evidências possíveis do incidente para análise posterior;</li>
+                <li>Acionar os planos de recuperação adequados;</li>
+                <li>Conter a propagação do incidente (por exemplo, desconectando dispositivos afetados);</li>
+                <li>Restaurar dados e sistemas com base em backups confiáveis;</li>
+                <li>Avaliar o risco aos titulares de dados pessoais e, se necessário, comunicar o incidente à Autoridade Nacional de Proteção de Dados (ANPD) e aos próprios titulares.</li>
+              </ol>
+
+              <p class="mt-4">A comunicação sobre o incidente deve ser clara, objetiva e conter informações sobre a natureza da violação, as medidas adotadas e as orientações aos titulares de dados afetados.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">5. Lições Aprendidas</h3>
+              <p>Após a resolução do incidente, a equipe deve realizar uma análise detalhada do evento, identificando as causas, as vulnerabilidades exploradas e as medidas preventivas necessárias.</p>
+              <p class="mt-2">Essa etapa tem como objetivo aprimorar os processos internos e evitar a recorrência de incidentes semelhantes.</p>
+              <p class="mt-2">Os resultados e recomendações devem ser documentados e incorporados aos Planos de Recuperação e às políticas de segurança do Projeto Katalog.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">6. Fluxo de Resposta</h3>
+              <p class="mt-2 opacity-80 italic">O fluxograma de resposta a incidentes segue as etapas: Detecção → Análise → Contenção → Erradicação → Recuperação → Lições Aprendidas</p>
+            </div>
           </div>
         </section>
 
-        <!-- 13. Conclusão -->
-        <section>
-          <h2 class="text-xl font-semibold mb-3 text-green-300">13. Conclusão</h2>
-          <p>A equipe do Katalog reafirma seu compromisso com a segurança, a ética e a privacidade de todos os usuários, adotando boas práticas de segurança digital e garantindo total transparência sobre o uso e a proteção das informações pessoais.</p>
+        <section id="controle-acesso" class="scroll-mt-4">
+          <h2 class="text-2xl font-bold mb-6 text-green-400 border-b-2 border-green-400 pb-2">POLÍTICA DE CONTROLE DE ACESSO</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <p class="font-mono text-xs opacity-70">Código: POL.SEC.01-KAT | Versão: 01 | Classificação: Interna</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">1. Objetivo</h3>
+              <p>Esta política estabelece as diretrizes para o controle de acesso aos sistemas, dados e recursos de TI do Projeto Katalog, garantindo que apenas usuários autorizados tenham acesso apropriado às informações e funcionalidades, de acordo com suas responsabilidades e necessidades de negócio.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">2. Abrangência</h3>
+              <p>Esta política aplica-se a todos os usuários internos, colaboradores externos, prestadores de serviços e parceiros que necessitem de acesso aos sistemas e informações do Projeto Katalog.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">3. Princípios Fundamentais</h3>
+              <ul class="list-disc list-inside mt-2 space-y-2 ml-4">
+                <li><strong>Menor privilégio:</strong> Os usuários devem ter apenas o nível de acesso necessário para realizar suas atividades.</li>
+                <li><strong>Necessidade de conhecimento:</strong> O acesso às informações deve ser concedido somente quando houver justificativa clara e documentada.</li>
+                <li><strong>Segregação de funções:</strong> Funções críticas devem ser distribuídas entre diferentes usuários para prevenir conflitos de interesse e fraudes.</li>
+                <li><strong>Responsabilidade individual:</strong> Cada usuário é responsável pelo uso adequado de suas credenciais de acesso.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">4. Classificação de Usuários</h3>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">4.1. Usuário Final</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Acesso restrito às funcionalidades de consulta e uso do sistema;</li>
+                <li>Pode visualizar e gerenciar sua própria coleção musical;</li>
+                <li>Não possui permissões administrativas.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">4.2. Administrador</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Acesso completo ao sistema, incluindo gerenciamento de usuários;</li>
+                <li>Pode configurar parâmetros do sistema e realizar backups;</li>
+                <li>Responsável pela gestão de permissões e auditoria de acessos.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">4.3. Desenvolvedor</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Acesso ao código-fonte e ambiente de desenvolvimento;</li>
+                <li>Permissão para modificar funcionalidades e realizar testes;</li>
+                <li>Acesso limitado aos dados de produção (somente para debug autorizado).</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">4.4. Suporte Técnico</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Acesso aos logs e ferramentas de diagnóstico;</li>
+                <li>Pode visualizar dados de usuários para resolução de problemas;</li>
+                <li>Não possui permissão para modificar dados sem autorização expressa.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">5. Gestão de Credenciais</h3>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">5.1. Criação de Contas</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Toda solicitação de acesso deve ser justificada e aprovada pelo gestor responsável;</li>
+                <li>O cadastro deve ser realizado com dados verídicos e atualizados;</li>
+                <li>Cada usuário deve ter uma conta individual e intransferível.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">5.2. Política de Senhas</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Senhas devem ter no mínimo 8 caracteres, incluindo letras maiúsculas, minúsculas, números e símbolos;</li>
+                <li>Senhas não devem conter informações pessoais facilmente identificáveis;</li>
+                <li>É proibido compartilhar senhas com terceiros;</li>
+                <li>Senhas devem ser alteradas periodicamente ou quando houver suspeita de comprometimento;</li>
+                <li>O sistema deve implementar autenticação multifator (MFA) para contas administrativas.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">5.3. Bloqueio e Recuperação de Conta</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Contas serão bloqueadas após 5 tentativas consecutivas de login incorreto;</li>
+                <li>A recuperação de senha deve ser realizada através de e-mail verificado ou autenticação secundária;</li>
+                <li>Contas inativas por mais de 90 dias podem ser desativadas automaticamente.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">6. Controle de Acesso Físico e Lógico</h3>
+              
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">6.1. Acesso Físico</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>O acesso físico aos servidores e equipamentos críticos deve ser restrito a pessoas autorizadas;</li>
+                <li>Registros de entrada e saída devem ser mantidos para fins de auditoria;</li>
+                <li>Equipamentos contendo dados sensíveis devem ser armazenados em locais seguros.</li>
+              </ul>
+
+              <h4 class="text-lg font-medium mb-2 text-green-200 mt-4">6.2. Acesso Lógico</h4>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>O acesso remoto deve ser realizado através de conexões seguras (VPN ou HTTPS);</li>
+                <li>Sessões de usuário devem expirar após período de inatividade;</li>
+                <li>O sistema deve registrar todas as tentativas de acesso, bem-sucedidas ou não;</li>
+                <li>Acessos realizados fora do horário comercial ou de localizações incomuns devem gerar alertas.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">7. Revisão e Auditoria de Acessos</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>As permissões de acesso devem ser revisadas trimestralmente para garantir que estejam alinhadas às funções atuais dos usuários;</li>
+                <li>Logs de acesso devem ser armazenados por no mínimo 180 dias para fins de auditoria;</li>
+                <li>Acessos privilegiados (administradores) devem ser auditados mensalmente;</li>
+                <li>Qualquer anomalia detectada deve ser investigada imediatamente.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">8. Revogação de Acesso</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>O acesso deve ser revogado imediatamente quando o usuário deixar de necessitar ou quando houver término de vínculo com o projeto;</li>
+                <li>Contas de colaboradores desligados devem ser desativadas no mesmo dia do desligamento;</li>
+                <li>Todos os ativos digitais (tokens, chaves de API, certificados) devem ser revogados ou renovados.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">9. Acesso de Terceiros</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Prestadores de serviço e parceiros devem assinar termo de confidencialidade antes de receberem acesso;</li>
+                <li>O acesso deve ser limitado ao estritamente necessário para a execução dos serviços contratados;</li>
+                <li>O monitoramento de acessos de terceiros deve ser mais rigoroso, incluindo auditoria em tempo real quando necessário;</li>
+                <li>Ao término do contrato, todos os acessos devem ser imediatamente revogados.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">10. Exceções e Acessos Emergenciais</h3>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Em situações emergenciais, acessos temporários podem ser concedidos mediante aprovação do gestor responsável;</li>
+                <li>Acessos emergenciais devem ser registrados, justificados e revogados assim que a situação for resolvida;</li>
+                <li>Contas de emergência (break-glass) devem ser auditadas rigorosamente.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">11. Sanções</h3>
+              <p>O descumprimento desta política poderá resultar em:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 ml-4">
+                <li>Advertência formal;</li>
+                <li>Suspensão temporária ou permanente do acesso;</li>
+                <li>Desligamento do projeto;</li>
+                <li>Ações legais, conforme a gravidade da violação.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">12. Disposições Finais</h3>
+              <p>Esta política deve ser revisada anualmente ou sempre que houver mudanças significativas na infraestrutura tecnológica ou nos processos do Projeto Katalog.</p>
+              <p class="mt-2">Todos os usuários devem ser informados sobre esta política durante o processo de concessão de acesso e reconfirmar seu entendimento periodicamente.</p>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-3 text-green-300">13. Contato</h3>
+              <p>Para dúvidas, solicitações de acesso ou relato de incidentes relacionados ao controle de acesso:</p>
+              <p class="mt-2 font-semibold">Equipe de Segurança – Projeto Katalog</p>
+              <p>E-mail: katalog.projeto@gmail.com</p>
+              <p>Endereço: Av. Dr. Cândido X. de Almeida e Souza, 200 - Centro Cívico, Mogi das Cruzes - SP, 08780-911</p>
+            </div>
+          </div>
         </section>
 
-        <!-- Footer -->
-        <div class="mt-8 pt-6 border-t border-custom text-center text-sm opacity-70">
-          <p><strong>Última atualização:</strong> Outubro de 2025</p>
-          <p class="mt-2">© 2025 Katalog - Todos os direitos reservados</p>
+        <!-- Rodapé -->
+        <div class="mt-12 pt-6 border-t border-custom text-center text-sm opacity-70 space-y-2">
+          <p><strong>Aprovado por:</strong> Equipe de Segurança da Informação e Comitê de Privacidade – Sistema Katalog</p>
+          <p><strong>Data de aprovação:</strong> 13 de novembro de 2025</p>
+          <p><strong>Próxima revisão:</strong> 13 de novembro de 2027</p>
+          <p class="mt-4"><strong>Contato:</strong> katalog.projeto@gmail.com</p>
+          <p>Av. Dr. Cândido X. de Almeida e Souza, 200 - Centro Cívico, Mogi das Cruzes - SP, 08780-911</p>
         </div>
       </div>
     </div>
@@ -266,6 +739,20 @@
 
   <script>
     lucide.createIcons();
+    
+    // Smooth scroll para links internos
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
   </script>
 </body>
 </html>
